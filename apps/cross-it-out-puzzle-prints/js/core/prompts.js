@@ -4,7 +4,6 @@
  * The AI never builds puzzles. It supplies what it is good at: topics, little mysteries, lists
  * of everyday things and plain facts about them, with the exact options each fact describes.
  * The app writes every letter clue, picks the answer and proves the puzzle has one answer.
- * A second prompt asks an AI to fact-check the knowledge clues the book actually uses.
  */
 (function (root) {
   'use strict';
@@ -99,6 +98,33 @@
   }
 
   /*
+   * The prompts the book takes: the replies already added (one per batch of packs) and the
+   * prompts still needed to fill the missing cases at `count` packs a reply (two cases a pack).
+   * Returns { done:[{ no, batch, packs:[pack], cases }], left, total, current (0 when the book
+   * is full), nextBatch, missing }.
+   */
+  function plan(project, built, count) {
+    var groups = {};
+    project.packs.forEach(function (pk) {
+      var b = pk.batch || 0;
+      (groups[b] = groups[b] || []).push(pk);
+    });
+    var batches = Object.keys(groups).map(Number).sort(function (a, b) { return a - b; });
+    var done = batches.map(function (b, i) {
+      var cases = groups[b].reduce(function (a, pk) { return a + (pk.off ? 0 : pk.cases.length); }, 0);
+      return { no: i + 1, batch: b, packs: groups[b], cases: cases };
+    });
+    var missing = built ? Object.keys(built.short).reduce(function (a, k) { return a + built.short[k]; }, 0) : 0;
+    var left = Math.ceil(Math.ceil(missing / 2) / Math.max(1, count || 10));
+    return {
+      done: done, left: left, total: done.length + left,
+      current: left ? done.length + 1 : 0,
+      nextBatch: batches.length ? batches[batches.length - 1] + 1 : 1,
+      missing: missing
+    };
+  }
+
+  /*
    * Asks again for the packs that could not be used, and for missing facts where the AI was short.
    */
   function fixPrompt(result) {
@@ -111,67 +137,6 @@
     L.push('Please write those packs again in full (or new packs in their place), following every rule from my first message: 30 to 36 options, 2 cases and 8 to 10 facts with complete "yes" and "maybe" lists.');
     L.push('Reply with ONE JSON object only, in the same format, inside a single ```json code block: { "packs": [ ... ] }');
     return L.join('\n');
-  }
-
-  // ---------- fact-check ----------
-  var AUDIT_CHUNK = 30;
-
-  // The puzzles that use knowledge clues, in book order.
-  function auditCases(built) {
-    return built.all.filter(function (pz) { return pz.clues.some(function (c) { return c.type === 'fact' || c.type === 'notFact'; }); });
-  }
-
-  /*
-   * One fact-check prompt for the part'th chunk of cases (0-based). Returns { text, from, to, parts }.
-   */
-  function auditPrompt(project, built, part) {
-    var list = auditCases(built);
-    var parts = Math.max(1, Math.ceil(list.length / AUDIT_CHUNK));
-    part = Math.max(0, Math.min(parts - 1, part || 0));
-    var chunk = list.slice(part * AUDIT_CHUNK, (part + 1) * AUDIT_CHUNK);
-    var L = [];
-    L.push('Please fact-check the everyday-knowledge clues in my puzzle book “Cross It Out If…” (' + (project.setup.spelling === 'uk' ? 'British' : 'American') + ' English, readers: ' + (AUDIENCE[project.setup.audience] || AUDIENCE.adults) + ').');
-    L.push('In each puzzle the reader crosses out every option a clue describes; the one option left is the answer. Below, for every knowledge clue, you see which options I expect a careful reader to cross out with it and which they keep.');
-    L.push('');
-    L.push('Report a problem only when:');
-    L.push('- "answer": the ANSWER could reasonably be described by the clue (a reader might cross it out), or');
-    L.push('- "crossed": an option in CROSSES OUT is not clearly described by the clue (a reader might keep it).');
-    L.push('Be strict but fair: report anything a sensible reader could dispute. Ignore spelling and grammar.');
-    L.push('');
-    chunk.forEach(function (pz) {
-      L.push('CASE ' + pz.no + ' (' + pz.pack.topic + '). ANSWER: ' + pz.options[pz.answer]);
-      pz.clues.forEach(function (c) {
-        if (c.type !== 'fact' && c.type !== 'notFact') return;
-        var crossed = [], kept = [];
-        pz.options.forEach(function (o, i) { if (c.yes & (1 << i)) crossed.push(o); else if (!(c.maybe & (1 << i))) kept.push(o); });
-        L.push('  Clue: "' + c.text + '"');
-        L.push('    CROSSES OUT: ' + crossed.join(', '));
-        L.push('    KEEPS: ' + kept.join(', '));
-      });
-    });
-    L.push('');
-    L.push('Reply with ONE JSON object only, inside a single ```json code block:');
-    L.push('{ "issues": [ { "case": 12, "clue": "It grows underground", "option": "Peanut", "problem": "crossed", "why": "a few words" } ] }');
-    L.push('If everything is correct, reply { "issues": [] }.');
-    return { text: L.join('\n'), from: chunk.length ? chunk[0].no : 0, to: chunk.length ? chunk[chunk.length - 1].no : 0, parts: parts, count: list.length };
-  }
-
-  // Reads a fact-check reply. Returns { ok, issues:[{ case, clue, option, problem }] }.
-  function readAudit(text) {
-    var objs = CX.reader.allObjects(text);
-    var issues = null;
-    objs.forEach(function (o) {
-      if (issues) return;
-      if (Array.isArray(o.issues)) issues = o.issues;
-      else if (o.case !== undefined && o.option) issues = [o];
-    });
-    if (!issues) return { ok: false, issues: [] };
-    return {
-      ok: true,
-      issues: issues.filter(function (i) { return i && typeof i === 'object'; }).map(function (i) {
-        return { case: parseInt(String(i.case).replace(/[^0-9]/g, ''), 10), clue: String(i.clue || ''), option: String(i.option || ''), problem: String(i.problem || '').toLowerCase() };
-      }).filter(function (i) { return i.case > 0 && i.option; })
-    };
   }
 
   // ---------- listing ----------
@@ -194,5 +159,5 @@
     return L.join('\n');
   }
 
-  CX.prompts = { THEMES: THEMES, AUDIENCE: AUDIENCE, theme: theme, packPrompt: packPrompt, fixPrompt: fixPrompt, auditPrompt: auditPrompt, auditCases: auditCases, readAudit: readAudit, listingPrompt: listingPrompt, AUDIT_CHUNK: AUDIT_CHUNK };
+  CX.prompts = { THEMES: THEMES, AUDIENCE: AUDIENCE, theme: theme, packPrompt: packPrompt, plan: plan, fixPrompt: fixPrompt, listingPrompt: listingPrompt };
 })(typeof window !== 'undefined' ? window : globalThis);

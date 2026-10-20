@@ -174,9 +174,7 @@
     clue_text: 'clue', statement: 'clue', fact: 'clue', rule: 'clue',
     not_clue: 'not', negative: 'not', negation: 'not', opposite: 'not', not_text: 'not',
     applies_to: 'yes', matches: 'yes', true_for: 'yes', described: 'yes', cross_out: 'yes',
-    debatable: 'maybe', unsure: 'maybe', borderline: 'maybe', ambiguous: 'maybe',
-    // a fact-check reply
-    problems: 'issues', errors: 'issues', corrections: 'issues', case_number: 'case', puzzle: 'case', item: 'option', word: 'option', reason: 'problem', type: 'problem'
+    debatable: 'maybe', unsure: 'maybe', borderline: 'maybe', ambiguous: 'maybe'
   };
   function normalizeKeys(o, depth) {
     depth = depth || 0;

@@ -1,8 +1,7 @@
 /*
- * The starter library: 22 hand-written packs (44 mysteries) so a book with only a few packs of
- * your own still fills every level. Words were chosen to read the same in
- * American and British English. Anything a reader could argue about sits in "maybe", which
- * the engine never relies on. Your own packs come from the AI prompt in step 2.
+ * Test data: 22 hand-written packs (44 mysteries) that stand in for AI replies in the tests.
+ * Words were chosen to read the same in American and British English. Anything a reader could
+ * argue about sits in "maybe", which the engine never relies on.
  *
  * Compact form: options are one comma list; a fact is [clue, not-clue, yes list, maybe list].
  */
@@ -339,7 +338,6 @@
         options: list(r.options),
         facts: r.facts.map(function (f) { return { clue: f[0], not: f[1], yes: list(f[2]), maybe: list(f[3]) }; })
       }, i + 1);
-      res.pack.source = 'starter';
       res.pack.id = 's' + String(i + 1).padStart(2, '0') + '-' + res.pack.id.slice(1, 7);
       Object.defineProperty(res.pack, '_notes', { value: res.notes, enumerable: false });
       return res.pack;
@@ -347,5 +345,5 @@
     return cache;
   }
 
-  CX.starter = { packs: packs, count: RAW.length };
+  CX.samplePacks = { packs: packs, count: RAW.length };
 })(typeof window !== 'undefined' ? window : globalThis);

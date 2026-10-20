@@ -13,8 +13,7 @@
     user: { built: null, book: null, check: null, cover: null, coverIssues: [] },
     view: 'book',             // 'book' (the pages) or 'cover'
     touchedAuthor: false,
-    downloading: false,
-    audit: { built: null, done: {} }  // the book the fact-check prompts were copied from, and the parts pasted back
+    downloading: false
   };
 
   function hasWork() {
@@ -41,16 +40,17 @@
     return '';
   }
 
-  // Whether the book has at least one case from the user's own packs (starter packs alone are only filler).
+  // Whether the book has any puzzles yet.
   function hasOwnPuzzles() {
     var b = state.user.built;
-    return !!b && b.all.some(function (pz) { return pz.pack.source !== 'starter'; });
+    return !!b && b.all.length > 0;
   }
 
   function render() {
     if (!hasOwnPuzzles()) CX.preview.showEmpty(function () { CX.sidebar.setOpen(1); });
     else if (state.view === 'cover' && state.user.cover) CX.preview.showCover(state.user.cover);
     else if (state.user.book) CX.preview.update(state.user.book, 'user:' + state.project.seed);
+    document.getElementById('app').classList.toggle('mode-cover', state.view === 'cover');
     document.getElementById('btnViewBook').setAttribute('aria-pressed', String(state.view !== 'cover'));
     document.getElementById('btnViewCover').setAttribute('aria-pressed', String(state.view === 'cover'));
     refreshUi();
@@ -65,7 +65,7 @@
     var u = state.user;
     return {
       view: state.view, built: u.built, book: u.book, check: u.check, cover: u.cover, coverIssues: u.coverIssues,
-      coverBlock: coverBlock(), touchedAuthor: state.touchedAuthor, downloading: state.downloading, audit: state.audit
+      coverBlock: coverBlock(), touchedAuthor: state.touchedAuthor, downloading: state.downloading
     };
   }
 
@@ -145,6 +145,16 @@
     changed(typing);
   }
 
+  // A new template starts in its own colors.
+  function setCoverDesign(id) {
+    var c = state.project.setup.cover;
+    if (c.design === id && !c.palette) return;
+    c.design = id;
+    c.palette = '';
+    if (state.view !== 'cover') state.view = 'cover';
+    changed(false);
+  }
+
   function setView(v) {
     if (state.view === v) return;
     state.view = v;
@@ -170,9 +180,10 @@
 
   // ---------- packs ----------
   /*
-   * Adds the packs in a pasted AI reply. Returns { ok, message, result } for the sidebar.
+   * Adds the packs in a pasted AI reply as prompt batch `batch`. Returns { ok, message, result,
+   * batch } for the sidebar.
    */
-  function addPacks(text) {
+  function addPacks(text, batch) {
     if (!String(text || '').trim()) return { ok: false, message: 'Paste the AI’s reply in the box first.' };
     var res = CX.packs.read(text);
     if (!res.found) {
@@ -183,13 +194,17 @@
     res.packs.forEach(function (pk) {
       if (have[pk.id]) { dupes++; return; }
       have[pk.id] = 1;
+      pk.batch = batch || 0;
       p.packs.push(pk);
       added++;
     });
     if (added) changed(false);
     var msg = added ? 'Added ' + U.plural(added, 'pack') + ' (' + U.plural(added * 2, 'case') + ').' : 'No new packs were added.';
     if (dupes) msg += ' ' + U.plural(dupes, 'pack') + ' you already had ' + (dupes === 1 ? 'was' : 'were') + ' skipped.';
-    return { ok: added > 0, message: msg, result: res };
+    var b = added ? CX.book.build(p) : null;
+    var missing = b ? Object.keys(b.short).reduce(function (a, k) { return a + b.short[k]; }, 0) : 0;
+    if (missing) msg += ' The book has ' + b.all.length + ' of its ' + b.want + ' cases: go on with the next prompt, or lower the counts in step 1.';
+    return { ok: added > 0, message: msg, result: res, batch: batch };
   }
 
   function togglePack(id) {
@@ -229,37 +244,6 @@
     Object.keys(t).forEach(function (k) { delete t[k].off; if (!Object.keys(t[k]).length) delete t[k]; });
     changed(false);
   }
-
-  // ---------- fact-check ----------
-  function auditPrompt(part) {
-    if (!state.audit.built || state.audit.built !== state.user.built) state.audit = { built: state.user.built, done: {} };
-    return CX.prompts.auditPrompt(state.project, state.audit.built, part).text;
-  }
-
-  function applyAudit(text, part) {
-    var r = CX.prompts.readAudit(text);
-    if (!r.ok) return { ok: false, message: 'I could not find the fact-check result in that text. Copy the AI’s whole reply and paste it again.' };
-    var built = state.audit.built || state.user.built;
-    var res = CX.book.applyFactIssues(state.project, built, r.issues);
-    state.audit.done[part] = true;
-    var parts = CX.prompts.auditPrompt(state.project, built, 0).parts;
-    var all = true;
-    for (var i = 0; i < parts; i++) if (!state.audit.done[i]) all = false;
-    rebuild();
-    if (all) {
-      state.project.factCheck = { sig: CX.checklist.factSig(state.user.built) };
-      state.audit = { built: null, done: {} };
-      rebuild();
-    }
-    render();
-    var msg = !r.issues.length ? 'The AI found no problems' + (parts > 1 ? ' in part ' + (part + 1) : '') + '.'
-      : U.plural(res.applied, 'correction') + ' applied. The cases they touched now have new clues.';
-    if (res.skipped.length) msg += ' ' + U.plural(res.skipped.length, 'note') + ' could not be matched: ' + res.skipped.slice(0, 2).join(' ');
-    if (!all) msg += ' Now copy part ' + (nextPart(parts) + 1) + '.';
-    else msg += ' Fact-check complete.';
-    return { ok: true, message: msg };
-  }
-  function nextPart(parts) { for (var i = 0; i < parts; i++) if (!state.audit.done[i]) return i; return 0; }
 
   // ---------- downloads ----------
   function downloadPdf() {
@@ -328,7 +312,6 @@
       var go = function () {
         state.project = p;
         state.touchedAuthor = false;
-        state.audit = { built: null, done: {} };
         CX.sidebar.reset();
         changed(false);
         dom.toast('Project opened: ' + U.plural(p.packs.length, 'pack') + ' of your own.');
@@ -354,7 +337,6 @@
       state.project = CX.book.newProject();
       state.view = 'book';
       state.touchedAuthor = false;
-      state.audit = { built: null, done: {} };
       CX.sidebar.reset();
       CX.sidebar.setOpen(1);
       changed(false);
@@ -366,10 +348,9 @@
     project: function () { return state.project; },
     built: function () { return state.user.built; },
     book: function () { return state.user.book; },
-    setSetup: setSetup, setCount: setCount, setPage: setPage, setCover: setCover, setView: setView, reshuffle: reshuffle,
+    setSetup: setSetup, setCount: setCount, setPage: setPage, setCover: setCover, setCoverDesign: setCoverDesign, setView: setView, reshuffle: reshuffle,
     addPacks: addPacks, togglePack: togglePack, removePack: removePack,
     caseNewClues: caseNewClues, caseRemove: caseRemove, restoreCases: restoreCases,
-    auditPrompt: auditPrompt, applyAudit: applyAudit,
     goToCase: function (no) { var b = state.user.book; if (state.view !== 'book') setView('book'); if (b && b.casePage[no]) CX.preview.goTo(b.casePage[no]); },
     refresh: function () { refreshUi(); }
   };

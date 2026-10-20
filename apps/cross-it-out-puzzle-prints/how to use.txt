@@ -10,16 +10,17 @@ The first time it opens, type the access key that came with your purchase and cl
 
 1. Set up your book: title, pen name, readers, page layout and how many cases each level has.
 2. Add your own puzzles with AI: click "Copy prompt", paste it into ChatGPT, Claude or Gemini,
-   then paste the whole reply back into the app and click "Add these packs". Repeat until the
-   book has all its cases. Each pack gives two cases.
-3. Review and fact-check: copy the fact-check prompt into a new AI chat and paste the reply
-   back. Any clue a reader could argue with is fixed for you.
-4. Open the Cover tab, pick a design and colors, and click "Download cover PDF".
+   then paste the whole reply back into the app and click "Add these packs". Each pack gives
+   two cases. "Your prompts" shows how many prompts the book takes and which one is next
+   (e.g. "Prompt 2 of 4"); click a number to see what an earlier prompt added.
+3. Review the cases: look through them; "New clues" gives a case a new line-up and clues,
+   "Remove" takes it out of the book.
+4. Click "Book cover" at the top of the left panel (the panel and the preview switch to the cover), pick one of 40 cover templates (filter by Classic, Mystery, Playful, Seasonal or Cross-out), keep its own colors or pick another palette, and click "Download cover PDF".
 5. Check and download: when every item is green, click "Download PDF" and upload it to KDP
    as the paperback manuscript (no bleed, black & white).
 
 Click "Save project file" to keep your work; open it later with "Open project file".
-At least two thirds of a published book must come from your own packs, so your book is
-different from every other book made with this app.
+Every case comes from your own AI packs, so your book is different from every other book
+made with this app.
 
 If you have any questions, feel free to let me know.

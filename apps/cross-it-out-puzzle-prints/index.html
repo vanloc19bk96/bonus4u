@@ -17,6 +17,10 @@
         <p class="brand-sub">“Cross it out if…” elimination puzzle books for Amazon KDP</p>
       </div>
     </header>
+    <div class="mode-switch" role="group" aria-label="What you are working on">
+      <button type="button" id="btnViewBook" aria-pressed="true" title="The inside of the book: puzzles, pages and the interior PDF"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5zM12 6.5v13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Book pages</span></button>
+      <button type="button" id="btnViewCover" aria-pressed="false" title="The paperback cover: front, spine and back, and the cover PDF"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 3.5v17M11 8h5M11 11h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Book cover</span></button>
+    </div>
     <ol class="steps" id="steps"></ol>
     <footer class="project-bar">
       <button type="button" class="btn-quiet" id="btnExport">Save project file</button>
@@ -28,14 +32,10 @@
 
   <main class="viewer" aria-label="Book preview">
     <div class="toolbar" role="toolbar" aria-label="Preview controls">
-      <div class="view-switch" role="group" aria-label="What to show">
-        <button type="button" id="btnViewBook" aria-pressed="true">Pages</button>
-        <button type="button" id="btnViewCover" aria-pressed="false">Cover</button>
-      </div>
-      <label class="nav-label"><span class="sr-only">Jump to</span>
+      <label class="nav-label pages-only"><span class="sr-only">Jump to</span>
         <select id="navSelect" aria-label="Jump to a part of the book"></select>
       </label>
-      <div class="tool-group">
+      <div class="tool-group pages-only">
         <button type="button" class="icon-btn" id="btnPrev" aria-label="Previous pages" title="Previous pages (Page Up)">&#8249;</button>
         <span class="page-indicator" id="pageIndicator" aria-live="polite"></span>
         <button type="button" class="icon-btn" id="btnNext" aria-label="Next pages" title="Next pages (Page Down)">&#8250;</button>
@@ -47,7 +47,7 @@
       </div>
       <div class="tool-group toggles">
         <label class="toggle" title="Shows the KDP safe area and the inside (gutter) margin, or the cover's trim, spine and barcode box"><input type="checkbox" id="tglMargins"> <span>Show margins</span></label>
-        <label class="toggle" title="Highlights each case's answer in its line-up. Only on screen, never in the PDF."><input type="checkbox" id="tglAnswer"> <span>Show answers</span></label>
+        <label class="toggle pages-only" title="Highlights each case's answer in its line-up. Only on screen, never in the PDF."><input type="checkbox" id="tglAnswer"> <span>Show answers</span></label>
       </div>
       <div class="tool-end">
         <span class="busy" id="busy" hidden>Updating&hellip;</span>
@@ -92,10 +92,10 @@
 <script src="js/core/engine.js"></script>
 <script src="js/core/packs.js"></script>
 <script src="js/core/prompts.js"></script>
-<script src="js/data/starter-packs.js"></script>
 <script src="js/core/book.js"></script>
 <script src="js/core/layout.js"></script>
 <script src="js/core/cover.js"></script>
+<script src="js/core/cover-fronts.js"></script>
 <script src="js/core/checklist.js"></script>
 <script src="js/render/svg.js"></script>
 <script src="js/render/pdf.js"></script>

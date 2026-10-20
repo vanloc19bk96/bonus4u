@@ -226,8 +226,7 @@
   }
 
   /*
-   * Before the user has any puzzles of their own: a placeholder that sends them to step 1,
-   * in place of a book filled only from the starter library.
+   * Before the user has any puzzles: a placeholder that sends them to step 1.
    */
   function showEmpty(onStart) {
     lastCover = null;
@@ -248,7 +247,7 @@
       h('ul', { class: 'feature-grid' }, [
         h('li', null, [h('strong', null, 'The AI writes the topics'), 'Little mysteries, everyday things and plain facts about them.']),
         h('li', null, [h('strong', null, 'The app builds the puzzles'), 'It writes every letter clue and proves each case has one answer.']),
-        h('li', null, [h('strong', null, 'Starter packs fill gaps'), 'They only top up a book that already has puzzles of your own.']),
+        h('li', null, [h('strong', null, 'Any AI chat works'), 'ChatGPT, Claude, Gemini or another: copy the prompt, paste the reply.']),
         h('li', null, [h('strong', null, 'Print-ready for KDP'), 'Interior and cover PDFs sized to your trim, with safe margins.'])
       ])
     ]));

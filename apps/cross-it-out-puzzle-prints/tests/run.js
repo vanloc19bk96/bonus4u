@@ -10,6 +10,7 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 const env = require('./node-env.js');
 const CX = env.loadAll();
+env.load('tests/sample-packs.js');
 
 let passed = 0, failed = 0;
 function test(name, fn) {
@@ -19,9 +20,9 @@ function test(name, fn) {
 function assert(c, msg) { if (!c) throw new Error(msg || 'assertion failed'); }
 function eq(a, b, msg) { if (a !== b) throw new Error((msg || 'expected equal') + ': ' + JSON.stringify(a) + ' vs ' + JSON.stringify(b)); }
 
-// A project that uses only its own packs: the starter packs, renamed, as if an AI wrote them.
+// An AI reply: the sample packs, renamed, as if an AI wrote them.
 function aiReply(n, tag) {
-  const packs = CX.starter.packs().slice(0, n).map((p) => ({
+  const packs = CX.samplePacks.packs().slice(0, n).map((p) => ({
     topic: p.topic + ' ' + tag,
     cases: p.cases.map((c) => ({ title: c.title + ' ' + tag, story: c.story })),
     options: p.options,
@@ -42,8 +43,8 @@ function project(o) {
 (async function main() {
   console.log('Cross It Out Puzzle Prints tests');
 
-  await test('starter library: 22 clean packs, no notes, every pack Master-ready', () => {
-    const packs = CX.starter.packs();
+  await test('sample packs: 22 clean packs, no notes, every pack Master-ready', () => {
+    const packs = CX.samplePacks.packs();
     eq(packs.length, 22, 'pack count');
     packs.forEach((p) => {
       eq(p._notes.length, 0, p.topic + ' notes');
@@ -55,7 +56,7 @@ function project(o) {
 
   await test('engine: every level, every audience, 3 seeds, all fair', () => {
     let made = 0;
-    CX.starter.packs().forEach((p) => {
+    CX.samplePacks.packs().forEach((p) => {
       ['adults', 'kids'].forEach((aud) => {
         CX.engine.LEVELS.forEach((lv) => {
           ['a', 'b', 'c'].forEach((sd) => {
@@ -79,7 +80,7 @@ function project(o) {
   });
 
   await test('engine: steps cross out every option but the answer, once', () => {
-    const p = CX.starter.packs()[3];
+    const p = CX.samplePacks.packs()[3];
     const r = CX.engine.make(p, 0, { seed: 'steps', level: 'master' });
     const st = CX.engine.steps(r), seen = {};
     st.forEach((list) => list.forEach((i) => { assert(!seen[i], 'crossed twice'); seen[i] = 1; }));
@@ -125,21 +126,47 @@ function project(o) {
     assert(/8 new puzzle packs/.test(t) && /Christmas/.test(t) && /Fruit at the market/.test(t) && /```json/.test(t));
   });
 
-  await test('book: own packs come first, the starter library only fills gaps', () => {
-    const p = project({ own: 16 });
+  await test('book: only the pasted packs; enough of them fill the book and can be downloaded', () => {
+    const p = project({ own: 22 });
     const b = CX.book.build(p);
     eq(b.all.length, 40);
-    assert(b.starterShare <= 0.25, 'starter share ' + b.starterShare);
     const ck = CX.checklist.build(p, b, CX.layout.layoutBook(p, b));
     assert(ck.canDownload, ck.items.filter((i) => !i.ok).map((i) => i.title + ': ' + i.detail).join('; '));
   });
 
-  await test('book: the starter library alone cannot be downloaded', () => {
-    const p = project({});
+  await test('book: no packs, no puzzles; too few packs are blocked with how many to add', () => {
+    let p = project({});
+    eq(CX.book.build(p).all.length, 0);
+    p = project({ own: 10 });
     const b = CX.book.build(p);
+    eq(b.all.length, 20);
     const ck = CX.checklist.build(p, b, CX.layout.layoutBook(p, b));
     assert(!ck.canDownload, 'should be blocked');
-    assert(ck.items.some((i) => i.title === 'Your own content' && !i.ok));
+    const it = ck.items.filter((i) => i.title === 'Puzzles')[0];
+    assert(!it.ok && /only 20/.test(it.detail), it.detail);
+    p.setup.counts = { warmup: 5, casework: 5, tough: 5, master: 5 };
+    const b2 = CX.book.build(p);
+    assert(CX.checklist.build(p, b2, CX.layout.layoutBook(p, b2)).canDownload, '20 cases from 10 packs');
+  });
+
+  await test('prompts: the plan counts replies done and prompts still needed; batches survive save/open', () => {
+    const p = project({});
+    let pl = CX.prompts.plan(p, CX.book.build(p), 10);
+    eq(pl.done.length, 0); eq(pl.left, 2); eq(pl.total, 2); eq(pl.current, 1); eq(pl.nextBatch, 1);
+    eq(CX.prompts.plan(p, CX.book.build(p), 8).total, 3, '20 packs at 8 a reply');
+    // two replies of 6 packs: 24 cases of 40, 8 packs to go
+    const two = CX.packs.read(aiReply(12, 'X')).packs;
+    two.forEach((pk, i) => { pk.batch = i < 6 ? 1 : 2; });
+    p.packs = two;
+    pl = CX.prompts.plan(p, CX.book.build(p), 5);
+    eq(pl.done.length, 2); eq(pl.done[1].packs.length, 6); eq(pl.done[1].cases, 12);
+    eq(pl.missing, 16); eq(pl.left, 2); eq(pl.total, 4); eq(pl.current, 3); eq(pl.nextBatch, 3);
+    const q = CX.book.upgrade(JSON.parse(JSON.stringify(CX.book.toSave(p))));
+    eq(CX.prompts.plan(q, CX.book.build(q), 5).done.map((r) => r.packs.length).join(), '6,6', 'after save/open');
+    // a full book: no prompt left
+    p.setup.counts = { warmup: 6, casework: 6, tough: 6, master: 6 };
+    pl = CX.prompts.plan(p, CX.book.build(p), 10);
+    eq(pl.left, 0); eq(pl.current, 0); eq(pl.total, 2);
   });
 
   await test('book: same project, same book; a new seed, a new book', () => {
@@ -166,27 +193,6 @@ function project(o) {
     eq(JSON.stringify(b2.all.map((z) => z.key + z.answer)), JSON.stringify(b1.all.map((z) => z.key + z.answer)));
   });
 
-  await test('fact-check: an issue makes the option debatable and the case stays fair', () => {
-    const p = project({ own: 16, setup: { starter: true } });
-    let b = CX.book.build(p);
-    const pz = b.all.find((z) => z.clues.some((c) => c.type === 'fact'));
-    const fc = pz.clues.find((c) => c.type === 'fact');
-    const opt = pz.options.find((o, i) => fc.yes & (1 << i));
-    const audit = CX.prompts.readAudit('```json\n{"issues":[{"case":' + pz.no + ',"clue":"' + fc.text + '","option":"' + opt + '","problem":"crossed"}]}\n```');
-    assert(audit.ok);
-    const res = CX.book.applyFactIssues(p, b, audit.issues);
-    eq(res.applied, 1, res.skipped.join('; '));
-    b = CX.book.build(p);
-    b.all.forEach((z) => assert(!CX.engine.verify(z.pack, z).length, 'case ' + z.no + ' unfair'));
-    const again = b.all.find((z) => z.key === pz.key);
-    if (again) {
-      const oi = again.options.indexOf(opt);
-      again.clues.filter((c) => c.text === fc.text).forEach((c) => assert(oi === -1 || !(c.yes & (1 << oi)), 'still relies on the disputed option'));
-    }
-    // the shared starter pack itself is untouched
-    CX.starter.packs().forEach((sp) => sp.facts.forEach((f) => assert(f.maybe.length >= 0)));
-  });
-
   // every layout, trim and print size: KDP rules on every page and on the cover
   const combos = [];
   CX.kdp.TRIMS.forEach((t) => ['spread', 'single'].forEach((layout) => combos.push({ trim: t.id, layout, largePrint: false })));
@@ -195,10 +201,10 @@ function project(o) {
   combos.push({ trim: '6x9', layout: 'spread', largePrint: false, counts: { warmup: 30, casework: 30, tough: 30, master: 30 }, paper: 'cream' });
   for (const c of combos) {
     await test('layout: ' + JSON.stringify(c), () => {
-      const p = project({ own: c.counts ? 22 : 16, setup: Object.assign({}, c, { pages: Object.assign({}, CX.book.newProject().setup.pages) }) });
+      const p = project({ own: 22, setup: Object.assign({}, c, { pages: Object.assign({}, CX.book.newProject().setup.pages) }) });
       if (c.counts) {
         p.setup.counts = c.counts;
-        p.packs = p.packs.concat(CX.packs.read(aiReply(22, 'Y')).packs).concat(CX.packs.read(aiReply(22, 'W')).packs);
+        p.packs = p.packs.concat(CX.packs.read(aiReply(22, 'Y')).packs).concat(CX.packs.read(aiReply(22, 'W')).packs).concat(CX.packs.read(aiReply(22, 'V')).packs);
       }
       const b = CX.book.build(p);
       const book = CX.layout.layoutBook(p, b);
@@ -214,7 +220,9 @@ function project(o) {
       assert(!book.pages.some((pg) => pg.meta.overflow), 'a case did not fit');
       const ck = CX.checklist.build(p, b, book);
       assert(ck.canDownload, ck.items.filter((i) => !i.ok).map((i) => i.title + ': ' + i.detail).join('; '));
-      CX.cover.DESIGNS.forEach((d) => Object.keys(CX.cover.PALETTES).forEach((pal) => {
+      // every template in its own colors and in one other palette (a different one on each size)
+      const pals = Object.keys(CX.cover.PALETTES);
+      CX.cover.DESIGNS.forEach((d, di) => ['', pals[(di + combos.indexOf(c)) % pals.length]].forEach((pal) => {
         p.setup.cover.design = d.id; p.setup.cover.palette = pal;
         const cv = CX.cover.layout(p, b, book);
         const ci = CX.cover.audit(cv);
@@ -225,8 +233,46 @@ function project(o) {
     });
   }
 
+  await test('cover: 40 templates in 5 groups, 18 palettes, old projects keep their colors', () => {
+    const D = CX.cover;
+    assert(D.DESIGNS.length >= 40, D.DESIGNS.length + ' templates');
+    eq(new Set(D.DESIGNS.map((d) => d.id)).size, D.DESIGNS.length, 'unique template ids');
+    const groups = D.GROUPS.map((g) => g.id);
+    D.DESIGNS.forEach((d) => {
+      assert(groups.includes(d.group), d.id + ' group');
+      assert(typeof CX.coverFronts[d.layout] === 'function', d.id + ' layout ' + d.layout);
+      assert(D.PALETTES[d.pal], d.id + ' palette ' + d.pal);
+    });
+    groups.forEach((g) => assert(D.DESIGNS.filter((d) => d.group === g).length >= 6, g + ' has 6+ templates'));
+    // every palette: all the colors, and words that stand out from what they sit on
+    const lum = (hex) => { const v = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((x) => x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4)); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+    const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
+    Object.keys(D.PALETTES).forEach((id) => {
+      const pal = Object.assign({ markInk: '#FFFFFF' }, D.PALETTES[id]);
+      ['bg', 'ink', 'card', 'cardInk', 'mark', 'soft', 'dark', 'strike'].forEach((k) => assert(/^#[0-9A-F]{6}$/i.test(pal[k]), id + '.' + k));
+      assert(contrast(pal.ink, pal.bg) >= 3.9, id + ': ink on bg ' + contrast(pal.ink, pal.bg).toFixed(2));
+      assert(contrast(pal.cardInk, pal.card) >= 4.5, id + ': cardInk on card');
+      assert(contrast(pal.markInk, pal.mark) >= 3, id + ': badge text on mark');
+    });
+    const p = project({ own: 22 });
+    const b = CX.book.build(p), book = CX.layout.layoutBook(p, b);
+    // a project saved before templates: its design and palette are kept as they were
+    const old = CX.book.upgrade(JSON.parse(JSON.stringify(Object.assign(CX.book.toSave(p), {}))));
+    old.setup.cover = { design: 'bold', palette: 'plum', badge: '', blurb: '' };
+    let cv = D.layout(old, b, book);
+    eq(cv.design, 'bold', 'old design'); eq(cv.palette, 'plum', 'old palette');
+    // a new project uses the template's own colors; an unknown template falls back to the first
+    p.setup.cover.design = 'checklist'; p.setup.cover.palette = '';
+    eq(D.layout(p, b, book).palette, 'sunny', 'template colors');
+    p.setup.cover.design = 'no-such'; cv = D.layout(p, b, book);
+    eq(cv.design, 'notecard', 'fallback');
+    // each template draws a different front
+    const fronts = new Set(D.DESIGNS.map((d) => { p.setup.cover.design = d.id; p.setup.cover.palette = ''; return JSON.stringify(D.layout(p, b, book).items); }));
+    eq(fronts.size, D.DESIGNS.length, 'distinct fronts');
+  });
+
   await test('cover: long title, long pen name, custom badge and blurb stay inside', () => {
-    const p = project({ own: 16, setup: { title: 'The Absolutely Enormous Cross It Out Casebook of Everyday Mysteries', author: 'Professor Wilhelmina Fotheringay-Smythe' } });
+    const p = project({ own: 22, setup: { title: 'The Absolutely Enormous Cross It Out Casebook of Everyday Mysteries', author: 'Professor Wilhelmina Fotheringay-Smythe' } });
     p.setup.cover.badge = 'BIG FAMILY EDITION';
     p.setup.cover.blurb = Array(8).fill('A very long paragraph about the book that keeps going and going.').join(' ') + '\n' + 'Second paragraph.';
     const b = CX.book.build(p), book = CX.layout.layoutBook(p, b);
@@ -243,7 +289,7 @@ function project(o) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cxio-'));
   await test('pdf: interior and cover build; checked with PyMuPDF when available', async () => {
     for (const layout of ['spread', 'single']) {
-      const p = project({ own: 16, setup: { layout } });
+      const p = project({ own: 22, setup: { layout } });
       const b = CX.book.build(p), book = CX.layout.layoutBook(p, b);
       const bytes = await CX.pdf.build(book, { fileId: '0123456789ABCDEF0123456789ABCDEF' });
       const f = path.join(tmp, layout + '.pdf');

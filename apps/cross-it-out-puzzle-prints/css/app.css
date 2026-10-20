@@ -263,10 +263,16 @@ details.spoiler p { margin-top: 6px; }
 .design.on .design-label { color: var(--accent); font-family: var(--ui-bold); }
 .swatch.on .swatch-label { color: var(--accent); font-family: var(--ui-bold); }
 
-.view-switch { display: inline-flex; border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden; background: #fff; }
-.view-switch button { border: 0; background: none; padding: 6px 13px; font-size: 13.5px; cursor: pointer; color: var(--ink-2); }
-.view-switch button + button { border-left: 1px solid var(--line-2); }
-.view-switch button[aria-pressed="true"] { background: var(--accent); color: #fff; font-family: var(--ui-bold); }
+/* the switch between the book pages and the cover, under the app name */
+.mode-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 10px 12px 2px; padding: 4px; border-radius: 11px; background: var(--bg); border: 1px solid var(--line); }
+.mode-switch button { display: flex; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 8px; background: none; padding: 8px 6px; font-size: 14px; color: var(--ink-2); cursor: pointer; }
+.mode-switch button svg { width: 19px; height: 19px; flex: none; }
+.mode-switch button:hover { color: var(--accent); }
+.mode-switch button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-family: var(--ui-bold); box-shadow: 0 1px 3px rgba(0,0,0,.18); }
+.mode-switch button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* in cover mode the page tools have nothing to do */
+.mode-cover .pages-only { display: none !important; }
+.sub-head { font-family: var(--ui-bold); font-size: 13px; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-2); margin: 18px 0 8px; padding-top: 12px; border-top: 1px solid var(--line); }
 .viewer.is-cover .nav-label, .viewer.is-cover .tool-group:not(.toggles), .viewer.is-cover .toggles .toggle:last-child { display: none; }
 .viewer.is-cover .page-indicator { display: none; }
 
@@ -304,7 +310,6 @@ details.spoiler p { margin-top: 6px; }
 .meter .bar { height: 8px; border-radius: 99px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; margin-top: 5px; display: flex; }
 .meter .bar span { display: block; height: 100%; }
 .meter .bar .own { background: var(--ok); }
-.meter .bar .starter { background: #d7a64a; }
 .legend { display: flex; gap: 12px; font-size: 12px; color: var(--muted); margin-top: 4px; }
 .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
 .pack-list { list-style: none; margin: 8px 0 0; padding: 0; max-height: 300px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
@@ -329,8 +334,6 @@ details.spoiler p { margin-top: 6px; }
 .case-list .acts button:hover { border-color: var(--accent); color: var(--accent); }
 .case-list li.lv-head { display: block; background: var(--bg); font-family: var(--ui-bold); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); }
 .removed-note { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
-.part-pick { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
-.part-pick .chip-btn.done { border-color: var(--ok); color: var(--ok); }
 
 /* ---------- cover step ---------- */
 .designs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -339,3 +342,24 @@ details.spoiler p { margin-top: 6px; }
 .pal:hover { border-color: var(--accent); }
 .pal.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); color: var(--accent); font-family: var(--ui-bold); }
 .pal i { display: block; width: 26px; height: 26px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
+
+/* the prompt navigator in step 2 */
+.pn-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 14px; }
+.prompt-nav { display: flex; align-items: center; gap: 6px; }
+.pn-dots { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; min-width: 0; }
+.pn-arrow, .pn-dot { flex: none; min-width: 30px; height: 30px; padding: 0 6px; border: 1px solid var(--line-2); background: #fff; border-radius: 8px; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+.pn-arrow { font-size: 17px; line-height: 1; }
+.pn-arrow:disabled { opacity: .4; cursor: default; }
+.pn-arrow:not(:disabled):hover, .pn-dot:hover { border-color: var(--accent); color: var(--accent); }
+.pn-dot.done { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+.pn-dot.now { border-color: var(--accent); color: var(--accent); border-style: dashed; }
+.pn-dot.sel { outline: 2px solid var(--accent); outline-offset: 1px; font-family: var(--ui-bold); }
+.pn-dot.done.sel { outline-color: var(--ok); }
+.pn-gap { align-self: center; color: var(--muted); padding: 0 2px; }
+.pn-note { margin: 0 0 10px; font-size: 13.5px; color: var(--ink-2); }
+.prompt-panel { margin: 0 0 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.prompt-panel .actions { margin-top: 8px; }
+.pn-topics { margin: 0; padding-left: 18px; font-size: 13px; color: var(--ink-2); columns: 2; column-gap: 18px; }
+.pn-topics li.off { opacity: .55; text-decoration: line-through; }
+.pack-list li.pk-group { display: block; padding: 5px 9px; background: var(--bg); font-family: var(--ui-bold); font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.pn-head .chip.now { background: var(--accent-soft); color: var(--accent); border-color: #efc2b9; }

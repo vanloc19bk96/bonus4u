@@ -8,7 +8,9 @@
   var openStep = 1;          // the open book step (1-4); the cover step (5) shows with the cover
   var mode = 'book';
   var chipSets = [];         // [{ get, buttons: [{ value, el }] }]
-  var ai = { theme: 'everyday', custom: '', count: 10 };
+  // view: the prompt shown in the navigator (0 follows the current one);
+  // fixFor: the prompt a pasted fix reply belongs to (0: the next prompt)
+  var ai = { theme: 'everyday', custom: '', count: 10, view: 0, fixFor: 0 };
 
   var AI_LINKS = [
     { name: 'ChatGPT', url: 'https://chatgpt.com/' },
@@ -60,13 +62,15 @@
     openStep = n;
     var toPages = mode !== 'book';
     mode = 'book';
-    applyMode();
+    applyMode(toPages);
     if (toPages) A.setView('book');
     else A.refresh();
   }
 
-  function applyMode() {
+  // switched: a new mode starts at the top of the sidebar
+  function applyMode(switched) {
     var cover = mode === 'cover';
+    if (switched) document.getElementById('steps').scrollTop = 0;
     [[1, refs.s1], [2, refs.s2], [3, refs.s3], [5, refs.s5], [4, refs.s4]].forEach(function (x) {
       var s = x[1], show = cover ? x[0] === 5 : x[0] !== 5, open = show && (cover || x[0] === openStep);
       s.li.hidden = !show;
@@ -111,7 +115,7 @@
 
     body.appendChild(h('div', { class: 'field' }, [h('span', { class: 'field-label' }, 'Spelling'),
       chips([{ value: 'us', label: 'American' }, { value: 'uk', label: 'British' }], function () { return P().spelling; }, function (v) { A.setSetup('spelling', v); }),
-      h('div', { class: 'hint' }, 'Used by the AI prompts. The starter puzzles read the same in both.')]));
+      h('div', { class: 'hint' }, 'Used by the AI prompts.')]));
 
     refs.layoutHint = h('div', { class: 'hint' });
     body.appendChild(h('div', { class: 'field' }, [h('span', { class: 'field-label' }, 'Page layout'),
@@ -206,27 +210,49 @@
       chips([5, 8, 10, 12].map(function (n) { return { value: n, label: String(n) }; }), function () { return ai.count; }, function (v) { ai.count = v; A.refresh(); }),
       h('div', { class: 'hint' }, 'Each pack gives two cases. Free AI plans may cut off very long replies; 5 to 8 is safest there.')]));
 
-    body.appendChild(h('ol', { class: 'howto-mini' }, [
-      h('li', null, 'Click “Copy prompt”.'),
-      h('li', null, aiLinksLine()),
-      h('li', null, 'Copy the whole reply, paste it below and click “Add these packs”.'),
-      h('li', null, 'Repeat until the book has all its cases. Each new prompt asks for new topics.')
-    ]));
-    body.appendChild(h('div', { class: 'actions first' }, [CX.dom.copyButton('Copy prompt', promptText, 'btn btn-primary')]));
+    // the prompt navigator: how many prompts the book takes, and which one is next
+    refs.navHead = h('div', { class: 'pn-head', 'aria-live': 'polite' });
+    refs.navPrev = h('button', { type: 'button', class: 'pn-arrow', 'aria-label': 'Previous prompt' }, '‹');
+    refs.navNext = h('button', { type: 'button', class: 'pn-arrow', 'aria-label': 'Next prompt' }, '›');
+    refs.navPrev.addEventListener('click', function () { showPrompt(refs.navSel - 1); });
+    refs.navNext.addEventListener('click', function () { showPrompt(refs.navSel + 1); });
+    refs.navDots = h('div', { class: 'pn-dots' });
+    refs.navHint = h('div', { class: 'hint' });
+    body.appendChild(h('div', { class: 'field' }, [h('span', { class: 'field-label' }, 'Your prompts'), refs.navHead,
+      h('div', { class: 'prompt-nav', role: 'group', 'aria-label': 'Prompts' }, [refs.navPrev, refs.navDots, refs.navNext]), refs.navHint]));
+
+    // a prompt already answered, or one still to come
+    refs.pOther = h('div', { class: 'prompt-panel' });
+    body.appendChild(refs.pOther);
+
+    // the prompt to send now
+    refs.pNowNote = h('p', { class: 'pn-note' });
+    var copy = CX.dom.copyButton('Copy prompt', promptText, 'btn btn-primary');
+    copy.addEventListener('click', function () { ai.fixFor = 0; });
     var peekArea = h('textarea', { class: 'textarea', readonly: true, rows: 8, 'aria-label': 'The prompt' });
     var peek = h('details', { class: 'peek' }, [h('summary', null, 'See the prompt'), peekArea]);
     peek.addEventListener('toggle', function () { if (peek.open) peekArea.value = promptText(); });
-    body.appendChild(peek);
-
     refs.paste = h('textarea', { class: 'textarea paste', id: 'fPaste', rows: 6, placeholder: 'Paste the AI’s reply here…' });
-    body.appendChild(field('The AI’s reply', refs.paste, null, false, 'fPaste'));
     var add = h('button', { type: 'button', class: 'btn btn-primary' }, 'Add these packs');
     add.addEventListener('click', function () {
-      var res = A.addPacks(refs.paste.value);
+      var pl = CX.prompts.plan(A.project(), A.built(), ai.count);
+      ai.view = 0;
+      var res = A.addPacks(refs.paste.value, ai.fixFor || pl.nextBatch);
       if (res.ok) refs.paste.value = '';
+      if (res.ok && !res.result.errors.length && !res.result.cutOff) ai.fixFor = 0;
       showPackResult(res);
     });
-    body.appendChild(h('div', { class: 'actions' }, [add]));
+    refs.pNow = h('div', null, [refs.pNowNote,
+      h('ol', { class: 'howto-mini' }, [
+        h('li', null, 'Click “Copy prompt”.'),
+        h('li', null, aiLinksLine()),
+        h('li', null, 'Copy the whole reply, paste it below and click “Add these packs”.'),
+        h('li', null, 'Then go on with the next prompt. Each one lists the topics you already have, so the AI writes new ones.')
+      ]),
+      h('div', { class: 'actions first' }, [copy]), peek,
+      field('The AI’s reply', refs.paste, null, false, 'fPaste'),
+      h('div', { class: 'actions' }, [add])]);
+    body.appendChild(refs.pNow);
     refs.result2 = h('div', { class: 'result', 'aria-live': 'polite' });
     body.appendChild(refs.result2);
 
@@ -236,10 +262,7 @@
     refs.packList = h('ul', { class: 'pack-list' });
     body.appendChild(refs.packHead);
     body.appendChild(refs.packList);
-    var st = checkbox('Use the starter library', CX.starter.count + ' ready-made packs (' + CX.starter.count * 2 + ' cases) that come with the app. Every user of the app has them, so at most a third of a book you publish may come from here.', function (on) { A.setSetup('starter', on); });
-    refs.starter = st.box;
-    body.appendChild(st.el);
-    var next = h('button', { type: 'button', class: 'btn block next-step' }, 'Next: review and fact-check');
+    var next = h('button', { type: 'button', class: 'btn block next-step' }, 'Next: review the cases');
     next.addEventListener('click', function () { setOpen(3); });
     body.appendChild(next);
   }
@@ -255,7 +278,7 @@
         h('strong', null, r.cutOff ? 'The reply was cut off, so the last pack was lost.' : 'Some packs could not be used:'),
         r.errors.length ? h('ul', null, r.errors.slice(0, 6).map(function (e) { return h('li', null, e); })) : null,
         h('p', { class: 'fix-help' }, 'Copy the fix prompt into the same chat, then paste the new reply above.'),
-        h('div', { class: 'actions' }, [CX.dom.copyButton('Copy fix prompt', function () { return CX.prompts.fixPrompt(r); }, 'btn small')])
+        h('div', { class: 'actions' }, [fixButton(res)])
       ]));
     }
     if (r && r.notes.length) {
@@ -264,11 +287,95 @@
     }
   }
 
+  // The fix reply goes with the prompt it fixes, not into a new one.
+  function fixButton(res) {
+    var b = CX.dom.copyButton('Copy fix prompt', function () { return CX.prompts.fixPrompt(res.result); }, 'btn small');
+    b.addEventListener('click', function () { if (res.ok) ai.fixFor = res.batch; });
+    return b;
+  }
+
+  function showPrompt(n) {
+    ai.view = n;
+    A.refresh();
+  }
+
+  // The navigator numbers, with a gap (0) when there are many: 1 … 6 7 [8] 9 10 … 24
+  function navNumbers(last, sel) {
+    var out = [], prev = 0;
+    for (var i = 1; i <= last; i++) {
+      if (last <= 9 || i === 1 || i === last || Math.abs(i - sel) <= 2) {
+        if (prev && i - prev > 1) out.push(0);
+        out.push(i);
+        prev = i;
+      }
+    }
+    return out;
+  }
+
+  function renderNav(pl, built) {
+    var done = pl.done.length, last = done + Math.max(pl.left, 1);
+    var sel = ai.view >= 1 && ai.view <= last ? ai.view : (pl.current || last);
+    var extra = !pl.left && sel === last;
+    refs.navSel = sel;
+    refs.navPrev.disabled = sel <= 1;
+    refs.navNext.disabled = sel >= last;
+
+    refs.navHead.innerHTML = '';
+    var status = sel <= done ? h('span', { class: 'chip done' }, 'Done')
+      : extra ? h('span', { class: 'chip todo' }, 'Optional')
+        : sel === pl.current ? h('span', { class: 'chip now' }, 'Your turn') : h('span', { class: 'chip todo' }, 'Later');
+    refs.navHead.appendChild(h('strong', null, extra ? 'Extra prompt' : 'Prompt ' + sel + ' of ' + pl.total));
+    refs.navHead.appendChild(status);
+
+    refs.navDots.innerHTML = '';
+    navNumbers(last, sel).forEach(function (n) {
+      if (!n) { refs.navDots.appendChild(h('span', { class: 'pn-gap', 'aria-hidden': 'true' }, '…')); return; }
+      var isExtra = !pl.left && n === last;
+      var cls = 'pn-dot' + (n <= done ? ' done' : n === pl.current ? ' now' : '') + (n === sel ? ' sel' : '');
+      var label = isExtra ? 'Extra prompt' : 'Prompt ' + n + (n <= done ? ', done' : n === pl.current ? ', your turn' : '');
+      var b = h('button', { type: 'button', class: cls, title: label, 'aria-label': label, 'aria-current': n === sel ? 'step' : null }, isExtra ? '+' : String(n));
+      b.addEventListener('click', function () { showPrompt(n); });
+      refs.navDots.appendChild(b);
+    });
+
+    refs.navHint.textContent = pl.left
+      ? U.plural(pl.total, 'prompt') + ' fill this book at ' + ai.count + ' packs a reply: ' + done + ' done, ' + pl.left + ' to go.'
+      : done ? 'All ' + U.plural(done, 'prompt') + ' done. The book has all its cases.' : '';
+
+    // the panel for the chosen prompt
+    refs.pNow.hidden = sel <= done || (sel > pl.current && !extra);
+    refs.pOther.hidden = !refs.pNow.hidden;
+    refs.pNowNote.hidden = !extra;
+    if (extra) refs.pNowNote.textContent = built && built.all.length ? 'Your book has all its cases. An extra prompt gives spare packs you can swap in.' : 'Set how many cases the book has in step 1 first.';
+    refs.pOther.innerHTML = '';
+    if (refs.pOther.hidden) return;
+    if (sel <= done) {
+      var r = pl.done[sel - 1], on = r.packs.filter(function (pk) { return !pk.off; }).length;
+      refs.pOther.appendChild(h('p', { class: 'pn-note' }, 'This reply added ' + U.plural(r.packs.length, 'pack') +
+        (on < r.packs.length ? ' (' + on + ' ticked)' : '') + ': ' + U.plural(r.cases, 'case') + ' for the book.'));
+      refs.pOther.appendChild(h('ul', { class: 'pn-topics' }, r.packs.map(function (pk) { return h('li', { class: pk.off ? 'off' : null }, pk.topic); })));
+    } else {
+      refs.pOther.appendChild(h('p', { class: 'pn-note' }, 'Prompt ' + sel + ' is ready once the reply to prompt ' + pl.current + ' is in. Each prompt lists the topics you already have, so the AI writes new ones.'));
+    }
+    var back = h('button', { type: 'button', class: 'btn small' }, pl.current ? 'Go to prompt ' + pl.current : 'Go to the extra prompt');
+    back.addEventListener('click', function () { showPrompt(0); });
+    refs.pOther.appendChild(h('div', { class: 'actions' }, [back]));
+  }
+
   function renderPacks(state) {
     var p = A.project(), built = state.built;
+    var pl = CX.prompts.plan(p, built, ai.count);
+    renderNav(pl, built);
     refs.packList.innerHTML = '';
     refs.packHead.hidden = !p.packs.length;
-    p.packs.forEach(function (pk) {
+    pl.done.forEach(function (r) {
+      if (pl.done.length > 1) refs.packList.appendChild(h('li', { class: 'pk-group' }, 'Prompt ' + r.no + ' · ' + U.plural(r.packs.length, 'pack')));
+      r.packs.forEach(packRow);
+    });
+    renderMeter(built);
+  }
+
+  function packRow(pk) {
       var sm = CX.packs.summary(pk);
       var box = h('input', { type: 'checkbox', 'aria-label': 'Use “' + pk.topic + '” in the book' });
       box.checked = !pk.off;
@@ -279,41 +386,21 @@
       refs.packList.appendChild(h('li', { class: pk.off ? 'off' : '' }, [box,
         h('span', { class: 'pk-text' }, [h('span', { class: 'pk-name', title: pk.topic }, pk.topic),
           h('span', { class: 'pk-meta' }, sm.cases + ' cases · ' + sm.options + ' options · ' + sm.facts + ' facts' + hard)]), x]));
-    });
+  }
+
+  function renderMeter(built) {
     if (!built) { refs.meter.innerHTML = ''; return; }
-    var own = built.all.filter(function (pz) { return pz.pack.source !== 'starter'; }).length, n = built.all.length;
-    var starter = n - own, want = built.want;
+    var n = built.all.length, want = built.want;
     var missing = Object.keys(built.short).reduce(function (a, k) { return a + built.short[k]; }, 0);
     var base = Math.max(want, n, 1);
     refs.meter.innerHTML = '';
     refs.meter.appendChild(h('div', null, [h('strong', null, n + ' of ' + want + ' cases'), missing ? ' · ' + missing + ' still missing: add ' + Math.ceil(missing / 2) + ' or more packs' : ' · all filled']));
-    refs.meter.appendChild(h('div', { class: 'bar' }, [h('span', { class: 'own', style: 'width:' + (own / base * 100) + '%' }), h('span', { class: 'starter', style: 'width:' + (starter / base * 100) + '%' })]));
-    refs.meter.appendChild(h('div', { class: 'legend' }, [h('span', null, [h('i', { style: 'background:var(--ok)' }), 'Your packs ' + own]), h('span', null, [h('i', { style: 'background:#d7a64a' }), 'Starter ' + starter])]));
+    refs.meter.appendChild(h('div', { class: 'bar' }, [h('span', { class: 'own', style: 'width:' + (n / base * 100) + '%' })]));
   }
 
-  // ---------- step 3: review and fact-check ----------
+  // ---------- step 3: review the cases ----------
   function buildReview(body) {
-    body.appendChild(h('p', { class: 'lead' }, 'Every puzzle is already proven to have one answer. What a program cannot judge is whether readers agree with a knowledge clue (“It is green”, “It has four legs”). A second AI chat checks those for you.'));
-    refs.factStatus = h('div', { class: 'derived' });
-    body.appendChild(refs.factStatus);
-    refs.factParts = h('div', { class: 'part-pick' });
-    body.appendChild(h('div', { class: 'field' }, [h('span', { class: 'field-label' }, 'Fact-check prompt'), refs.factParts,
-      h('div', { class: 'hint' }, aiLinksLine(', paste the prompt and send. Use a new chat for the fact-check; a fresh pair of eyes is stricter.'))]));
-    refs.auditPaste = h('textarea', { class: 'textarea paste', id: 'fAudit', rows: 5, placeholder: 'Paste the fact-check reply here…' });
-    refs.auditLabel = h('label', { for: 'fAudit' }, 'The fact-check reply');
-    body.appendChild(h('div', { class: 'field' }, [refs.auditLabel, refs.auditPaste]));
-    var apply = h('button', { type: 'button', class: 'btn btn-primary' }, 'Apply the fact-check');
-    apply.addEventListener('click', function () {
-      var res = A.applyAudit(refs.auditPaste.value, refs.auditPart || 0);
-      if (res.ok) refs.auditPaste.value = '';
-      refs.result3.innerHTML = '';
-      refs.result3.appendChild(h('div', { class: 'msg ' + (res.ok ? 'ok' : 'err') }, res.message));
-    });
-    body.appendChild(h('div', { class: 'actions' }, [apply]));
-    refs.result3 = h('div', { class: 'result', 'aria-live': 'polite' });
-    body.appendChild(refs.result3);
-
-    body.appendChild(h('h3', { class: 'pub-group' }, 'The cases'));
+    body.appendChild(h('p', { class: 'lead' }, 'Every puzzle is already proven to have one answer, and every clue is needed. Look through the cases and change any you do not like.'));
     body.appendChild(h('p', { class: 'hint' }, 'Click a case to see it. “New clues” builds a new line-up and clues from the same pack; “Remove” takes the case out of the book.'));
     refs.caseList = h('ul', { class: 'case-list' });
     body.appendChild(refs.caseList);
@@ -325,26 +412,8 @@
   }
 
   function renderReview(state) {
-    var p = A.project(), built = state.built, check = state.check;
+    var p = A.project(), built = state.built;
     if (!built) return;
-    var info = CX.prompts.auditPrompt(p, built, 0);
-    var audit = state.audit || { done: {} };
-    refs.factParts.innerHTML = '';
-    if (!info.count) {
-      refs.factStatus.textContent = 'No case in the book uses a knowledge clue, so there is nothing to fact-check.';
-    } else {
-      refs.factStatus.textContent = check && check.factChecked
-        ? 'Fact-checked: all ' + info.count + ' cases with knowledge clues.'
-        : info.count + ' cases use knowledge clues' + (info.parts > 1 ? ', in ' + info.parts + ' prompts of up to ' + CX.prompts.AUDIT_CHUNK + ' cases each.' : '.') + ' Not fact-checked yet.';
-      for (var i = 0; i < info.parts; i++) {
-        (function (part) {
-          var chunk = CX.prompts.auditPrompt(p, built, part);
-          var label = info.parts > 1 ? 'Copy part ' + (part + 1) + ' (cases ' + chunk.from + '–' + chunk.to + ')' : 'Copy fact-check prompt';
-          var b = CX.dom.copyButton(label, function () { refs.auditPart = part; refs.auditLabel.textContent = 'The fact-check reply' + (info.parts > 1 ? ' for part ' + (part + 1) : ''); return A.auditPrompt(part); }, 'chip-btn' + (audit.done[part] ? ' done' : ''));
-          refs.factParts.appendChild(b);
-        })(i);
-      }
-    }
     // the cases, level by level
     var key = JSON.stringify(built.all.map(function (pz) { return pz.key + pz.v + pz.answer + pz.clues.length; }));
     if (key !== refs.caseKey) {
@@ -378,26 +447,50 @@
   // ---------- the cover ----------
   function buildCover(body) {
     body.appendChild(h('p', { class: 'lead' }, 'A complete paperback cover: front, spine and back on one sheet at KDP’s exact size for your page count. Your title, subtitle and pen name are filled in for you.'));
+    // the templates: real thumbnails of the user's own front, filtered by group
+    var D = CX.cover;
+    refs.designFilter = 'all';
+    refs.designChips = [];
+    var fbar = h('div', { class: 'design-filters', role: 'group', 'aria-label': 'Show designs' });
+    [{ id: 'all', label: 'All ' + D.DESIGNS.length }].concat(D.GROUPS).forEach(function (fl) {
+      var b = h('button', { type: 'button', class: 'chip-btn', 'aria-pressed': 'false' }, fl.label);
+      b.addEventListener('click', function () { refs.designFilter = fl.id; A.refresh(); });
+      refs.designChips.push({ id: fl.id, el: b });
+      fbar.appendChild(b);
+    });
     refs.designs = [];
     var dg = h('div', { class: 'designs', role: 'radiogroup', 'aria-label': 'Cover design' });
-    CX.cover.DESIGNS.forEach(function (d) {
+    D.DESIGNS.forEach(function (d) {
       var art = h('span', { class: 'design-art' });
       var b = h('button', { type: 'button', class: 'design', role: 'radio', 'aria-checked': 'false', title: d.hint }, [art, h('span', { class: 'design-label' }, d.label)]);
-      b.addEventListener('click', function () { A.setCover('design', d.id); });
-      refs.designs.push({ id: d.id, el: b, art: art });
+      b.addEventListener('click', function () { A.setCoverDesign(d.id); });
+      refs.designs.push({ id: d.id, group: d.group, el: b, art: art, key: null });
       dg.appendChild(b);
     });
-    body.appendChild(h('div', { class: 'field' }, [h('span', { class: 'field-label' }, 'Design'), dg]));
+    refs.designName = h('span', { class: 'design-current' });
+    body.appendChild(h('div', { class: 'field' }, [h('span', { class: 'field-label' }, ['Design ', refs.designName]), fbar, dg]));
     refs.pals = [];
     var pg = h('div', { class: 'palettes', role: 'radiogroup', 'aria-label': 'Colors' });
-    Object.keys(CX.cover.PALETTES).forEach(function (id) {
-      var pal = CX.cover.PALETTES[id];
-      var b = h('button', { type: 'button', class: 'pal', role: 'radio', 'aria-checked': 'false' }, [h('i', { style: 'background:' + pal.bg }), pal.label]);
+    refs.ownSwatch = h('i');
+    [''].concat(Object.keys(D.PALETTES)).forEach(function (id) {
+      var b = h('button', { type: 'button', class: 'pal', role: 'radio', 'aria-checked': 'false', title: id ? null : 'The colors the template was designed with' },
+        [id ? h('i', { style: 'background:' + D.PALETTES[id].bg }) : refs.ownSwatch, id ? D.PALETTES[id].label : 'Template']);
       b.addEventListener('click', function () { A.setCover('palette', id); });
       refs.pals.push({ id: id, el: b });
       pg.appendChild(b);
     });
     body.appendChild(h('div', { class: 'field' }, [h('span', { class: 'field-label' }, 'Colors'), pg]));
+    // the same title, subtitle and pen name as step 1, so the cover can be finished without switching
+    refs.cTitle = h('input', { class: 'input', id: 'fCTitle', type: 'text', maxlength: 80, autocomplete: 'off', placeholder: 'e.g. Last One Standing' });
+    refs.cTitle.addEventListener('input', function () { A.setSetup('title', refs.cTitle.value, { typing: true }); });
+    refs.cSubtitle = h('input', { class: 'input', id: 'fCSubtitle', type: 'text', maxlength: 160, autocomplete: 'off' });
+    refs.cSubtitle.addEventListener('input', function () { A.setSetup('subtitle', refs.cSubtitle.value, { typing: true }); });
+    refs.cAuthor = h('input', { class: 'input', id: 'fCAuthor', type: 'text', maxlength: 80, autocomplete: 'off', placeholder: 'e.g. Ruth Ellery' });
+    refs.cAuthor.addEventListener('input', function () { A.setSetup('author', refs.cAuthor.value, { typing: true }); });
+    body.appendChild(h('h3', { class: 'sub-head' }, 'Words on the cover'));
+    body.appendChild(field('Book title', refs.cTitle, null, true, 'fCTitle'));
+    body.appendChild(field('Subtitle', refs.cSubtitle, 'Leave empty for the wording shown in grey.', false, 'fCSubtitle'));
+    body.appendChild(field('Pen name', refs.cAuthor, null, true, 'fCAuthor'));
     refs.badge = h('input', { class: 'input', id: 'fBadge', type: 'text', maxlength: 22, autocomplete: 'off' });
     refs.badge.addEventListener('input', function () { A.setCover('badge', refs.badge.value, true); });
     body.appendChild(field('Badge', refs.badge, 'The round sticker on the front, e.g. “150 CASES” or “LARGE PRINT”.', false, 'fBadge'));
@@ -411,15 +504,25 @@
     refs.coverNote = h('p', { class: 'hint' });
     body.appendChild(refs.coverNote);
     body.appendChild(h('p', { class: 'hint' }, 'On KDP choose “Upload a cover you already have” and upload this PDF. KDP prints the barcode in the clear box at the bottom right of the back.'));
-    var next = h('button', { type: 'button', class: 'btn block next-step' }, 'Next: check and download');
+    var next = h('button', { type: 'button', class: 'btn block next-step' }, 'Back to the book pages: check and download');
     next.addEventListener('click', function () { setOpen(4); });
     body.appendChild(next);
   }
 
   function refreshCover(state) {
-    var p = A.project(), c = p.setup.cover;
-    refs.designs.forEach(function (d) { d.el.setAttribute('aria-checked', String(d.id === c.design)); d.el.classList.toggle('on', d.id === c.design); });
-    refs.pals.forEach(function (d) { d.el.setAttribute('aria-checked', String(d.id === c.palette)); d.el.classList.toggle('on', d.id === c.palette); });
+    var p = A.project(), c = p.setup.cover, D = CX.cover, cur = D.design(c.design);
+    refs.designChips.forEach(function (ch) { ch.el.setAttribute('aria-pressed', String(ch.id === refs.designFilter)); });
+    refs.designs.forEach(function (d) {
+      d.el.hidden = refs.designFilter !== 'all' && d.group !== refs.designFilter;
+      d.el.setAttribute('aria-checked', String(d.id === cur.id)); d.el.classList.toggle('on', d.id === cur.id);
+    });
+    refs.designName.textContent = '· ' + cur.label;
+    var palNow = c.palette && D.PALETTES[c.palette] ? c.palette : '';
+    refs.ownSwatch.style.background = D.PALETTES[cur.pal].bg;
+    refs.pals.forEach(function (d) { d.el.setAttribute('aria-checked', String(d.id === palNow)); d.el.classList.toggle('on', d.id === palNow); });
+    setValue(refs.cTitle, p.setup.title || '');
+    setValue(refs.cSubtitle, p.setup.subtitle || '');
+    setValue(refs.cAuthor, p.setup.author || '');
     setValue(refs.badge, c.badge || '');
     setValue(refs.blurb, c.blurb || '');
     if (state.built) {
@@ -427,6 +530,7 @@
       refs.badge.placeholder = p.setup.largePrint ? 'LARGE PRINT' : (state.built.all.length ? state.built.all.length + ' CASES' : '');
       refs.blurb.placeholder = CX.cover.defaultBlurb(p, state.built).replace('\n', '\n\n');
       refs.subtitle.placeholder = wd.subtitle;
+      refs.cSubtitle.placeholder = wd.subtitle;
     }
     var cv = state.cover;
     refs.coverInfo.textContent = cv ? 'Full cover ' + cv.inches.w.toFixed(3) + ' x ' + cv.inches.h.toFixed(3) + ' in, bleed included. Spine ' + cv.spine.toFixed(3) + ' in' +
@@ -436,18 +540,20 @@
       refs.coverIssues.appendChild(h('div', { class: 'msg err' }, [h('strong', null, 'The cover needs a fix:'), h('ul', null, state.coverIssues.map(function (t) { return h('li', null, t); }))]));
     }
     refs.coverNote.textContent = state.coverBlock || 'Ready. Click “Download cover PDF” at the top right.';
-    // thumbnails of the three fronts, only while the cover step is open
+    // thumbnails of the fronts in the template's own colors, only while the cover step is open,
+    // and only for the templates on show
     if (mode === 'cover' && cv && state.book) {
-      var key = JSON.stringify([c.palette, p.setup.title, p.setup.subtitle, p.setup.author, c.badge, p.setup.trim, state.book.pageCount, p.seed, state.built.all.length]);
-      if (key !== refs.thumbKey) {
-        refs.thumbKey = key;
-        var proj = JSON.parse(JSON.stringify(CX.book.toSave(p)));
-        refs.designs.forEach(function (d) {
-          proj.setup.cover.design = d.id;
-          var t = CX.cover.layout(proj, state.built, state.book), g = t.guides;
-          d.art.innerHTML = CX.svg.renderCover(t, { crop: { x: g.spineX1, y: 0, w: t.W - g.spineX1, h: t.H } });
-        });
-      }
+      var key = JSON.stringify([p.setup.title, p.setup.subtitle, p.setup.author, c.badge, p.setup.trim, p.setup.largePrint, p.setup.audience, state.book.pageCount, p.seed, state.built.all.length, state.built.all[0] && state.built.all[0].title]);
+      var proj = null;
+      refs.designs.forEach(function (d) {
+        if (d.el.hidden || d.key === key) return;
+        proj = proj || JSON.parse(JSON.stringify(CX.book.toSave(p)));
+        proj.setup.cover.design = d.id;
+        proj.setup.cover.palette = '';
+        var t = CX.cover.layout(proj, state.built, state.book), g = t.guides;
+        d.art.innerHTML = CX.svg.renderCover(t, { crop: { x: g.spineX1, y: 0, w: t.W - g.spineX1, h: t.H } });
+        d.key = key;
+      });
     }
   }
 
@@ -517,7 +623,7 @@
   // ---------- refresh ----------
   function refresh(state) {
     var p = A.project(), s = p.setup;
-    if (state.view && state.view !== mode) { mode = state.view; applyMode(); }
+    if (state.view && state.view !== mode) { mode = state.view; applyMode(true); }
     setValue(refs.title, s.title || '');
     setValue(refs.subtitle, s.subtitle || '');
     setValue(refs.author, s.author || '');
@@ -525,7 +631,6 @@
     setValue(refs.solutions, s.pages.solutions);
     setValue(refs.notes, s.pages.notes);
     refs.largePrint.checked = !!s.largePrint;
-    refs.starter.checked = !!s.starter;
     var off = 0;
     Object.keys(refs.pages).forEach(function (k) { refs.pages[k].checked = !!s.pages[k]; if (!s.pages[k]) off++; });
     refs.pagesSummary.textContent = off ? off + ' left out' : '';
@@ -555,10 +660,13 @@
     var hasBasics = !!(s.author || '').trim() && !!(s.title || '').trim();
     chipState(refs.s1, hasBasics ? 'done' : 'todo', hasBasics ? 'Done' : !(s.title || '').trim() ? 'Title needed' : 'Pen name needed');
     var check = state.check;
-    var ownOk = check && check.items.filter(function (i) { return i.title === 'Your own content' || i.title === 'Puzzles'; }).every(function (i) { return i.ok; });
-    chipState(refs.s2, ownOk ? 'done' : p.packs.length ? 'fix' : 'todo', ownOk ? 'Done' : p.packs.length ? 'Add more' : 'To do');
+    var ownOk = check && check.items.filter(function (i) { return i.title === 'Puzzles'; }).every(function (i) { return i.ok; });
+    var pl = CX.prompts.plan(p, state.built, ai.count);
+    chipState(refs.s2, ownOk ? 'done' : p.packs.length ? 'fix' : 'todo',
+      ownOk ? 'Done' : p.packs.length ? (pl.left ? 'Prompt ' + pl.current + ' of ' + pl.total : 'Add more') : 'To do');
     var unfair = check && check.unfair.length;
-    chipState(refs.s3, unfair ? 'fix' : check && (check.factChecked || !check.factCases) ? 'done' : 'todo', unfair ? 'Needs a fix' : check && (check.factChecked || !check.factCases) ? 'Done' : 'Recommended');
+    var hasCases = !!(state.built && state.built.all.length);
+    chipState(refs.s3, unfair ? 'fix' : hasCases ? 'done' : 'todo', unfair ? 'Needs a fix' : hasCases ? 'Done' : 'To do');
     var coverOk = !!state.cover && !state.coverBlock;
     chipState(refs.s5, coverOk ? 'done' : 'todo', coverOk ? 'Ready' : 'To do');
     var can = check && check.canDownload;
@@ -594,9 +702,12 @@
 
   // Forget per-project screen state (a new or opened project).
   function reset() {
-    refs.caseKey = null; refs.thumbKey = null; refs.auditPart = 0;
-    refs.result2.innerHTML = ''; refs.result3.innerHTML = '';
-    refs.paste.value = ''; refs.auditPaste.value = '';
+    refs.caseKey = null;
+    if (refs.designs) refs.designs.forEach(function (d) { d.key = null; });
+    refs.result2.innerHTML = '';
+    refs.paste.value = '';
+    ai.view = 0;
+    ai.fixFor = 0;
   }
 
   function init(app) {
@@ -604,7 +715,7 @@
     var list = document.getElementById('steps');
     refs.s1 = stepShell(1, 'Set up your book', 1);
     refs.s2 = stepShell(2, 'Add your own puzzles with AI', 2);
-    refs.s3 = stepShell(3, 'Review and fact-check', 3);
+    refs.s3 = stepShell(3, 'Review the cases', 3);
     refs.s5 = stepShell(5, 'Design the cover', '');
     refs.s4 = stepShell(4, 'Check and download', 4);
     refs.s5.li.classList.add('solo');

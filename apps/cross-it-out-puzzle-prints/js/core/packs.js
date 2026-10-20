@@ -1,6 +1,7 @@
 /*
- * Puzzle packs: the raw material the AI writes (or the starter library ships).
- *   { id, topic, cases:[{ title, story }], options:[text], facts:[{ clue, not, yes:[index], maybe:[index] }], source }
+ * Puzzle packs: the raw material the AI writes.
+ *   { id, topic, cases:[{ title, story }], options:[text], facts:[{ clue, not, yes:[index], maybe:[index] }], source, batch }
+ * batch: which AI reply (prompt) the pack came from; 0 for packs from before prompts were counted.
  * This file reads packs out of a pasted AI reply, cleans every part, maps fact lists onto the
  * options, and reports what was fixed or dropped, in plain words, so the fix prompt can ask
  * the AI for exactly what is missing.
@@ -175,7 +176,7 @@
 
   // A clean copy for saving (no cached engine data).
   function plain(pack) {
-    return { id: pack.id, topic: pack.topic, cases: U.clone(pack.cases), options: pack.options.slice(), facts: U.clone(pack.facts), source: pack.source || 'ai', off: !!pack.off };
+    return { id: pack.id, topic: pack.topic, cases: U.clone(pack.cases), options: pack.options.slice(), facts: U.clone(pack.facts), source: pack.source || 'ai', off: !!pack.off, batch: pack.batch || 0 };
   }
 
   // Packs from a saved file, checked again so a hand-edited file cannot break the engine.
@@ -193,23 +194,11 @@
       if (r.error || !r.pack) return;
       r.pack.source = p.source || 'ai';
       r.pack.off = !!p.off;
+      r.pack.batch = Math.max(0, parseInt(p.batch, 10) || 0);
       out.push(r.pack);
     });
     return out;
   }
 
-  // Marks an option as debatable for a fact (after a fact-check). Returns true when it changed.
-  function markDebatable(pack, factIndex, optIndex) {
-    var f = pack.facts[factIndex];
-    if (!f) return false;
-    var changed = false;
-    var yi = f.yes.indexOf(optIndex);
-    if (yi !== -1) { f.yes.splice(yi, 1); changed = true; }
-    if (f.maybe.indexOf(optIndex) === -1) { f.maybe.push(optIndex); f.maybe.sort(function (a, b) { return a - b; }); changed = true; }
-    // a fact left with no firm options is simply never used (indices of the others stay put)
-    if (changed) { delete pack._prep; delete pack._hash; }
-    return changed;
-  }
-
-  CX.packs = { MIN_OPTIONS: MIN_OPTIONS, GOOD_OPTIONS: GOOD_OPTIONS, normalize: normalize, read: read, summary: summary, plain: plain, fromSaved: fromSaved, markDebatable: markDebatable, key: key };
+  CX.packs = { MIN_OPTIONS: MIN_OPTIONS, GOOD_OPTIONS: GOOD_OPTIONS, normalize: normalize, read: read, summary: summary, plain: plain, fromSaved: fromSaved, key: key };
 })(typeof window !== 'undefined' ? window : globalThis);
