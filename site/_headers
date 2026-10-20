@@ -1,0 +1,17 @@
+# Cloudflare static asset headers. Docs:
+# https://developers.cloudflare.com/workers/static-assets/headers/
+#
+# No Content-Security-Policy on purpose: the apps use inline scripts and call
+# outside APIs, and a strict policy would break them.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: SAMEORIGIN
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  X-Robots-Tag: noindex, nofollow
+
+# Script file without an extension: give it a JavaScript type, or nosniff
+# makes the browser refuse to run it.
+/color-by-line-generator/a4e2/7c91
+  Content-Type: text/javascript; charset=utf-8

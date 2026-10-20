@@ -1,0 +1,139 @@
+{
+  "site": {
+    "title": "Bonus4U",
+    "tagline": "Your bonus tools for Amazon KDP. Pick one and start making books."
+  },
+  "apps": [
+    {
+      "slug": "baby-boomer-crossword",
+      "title": "Crossword Prints",
+      "entry": "crossword-prints.html",
+      "description": "Crossword puzzle book interiors, ready to upload to KDP."
+    },
+    {
+      "slug": "binario-puzzle-prints",
+      "title": "Binario Puzzle Prints",
+      "description": "Binario (Takuzu) puzzle books with answer keys, ready for KDP."
+    },
+    {
+      "slug": "brainy-kids-prompt-vault",
+      "title": "Brainy Kids Prompt Vault",
+      "description": "Browse, search and copy the Brainy Kids prompt library."
+    },
+    {
+      "slug": "coaster-empire",
+      "title": "Coaster Empire",
+      "description": "Two tools for planning and choosing coaster designs.",
+      "tools": [
+        {
+          "path": "launch-calendar",
+          "title": "365-Day Coaster Launch Calendar",
+          "description": "Find the dates and events worth launching coasters for."
+        },
+        {
+          "path": "niche-profit-scanner",
+          "title": "Coaster Niche Profit Scanner",
+          "description": "Filter coaster niches and copy their keywords, tags and SEO text."
+        }
+      ]
+    },
+    {
+      "slug": "color-by-line-generator",
+      "title": "Color By Line Generator",
+      "description": "Colouring pages with coloured outlines and white interiors."
+    },
+    {
+      "slug": "cozy-mystery-book-maker",
+      "title": "Cozy Mystery Word Search Book Maker",
+      "description": "Cozy mystery word search books, ready for KDP."
+    },
+    {
+      "slug": "cryptogram",
+      "title": "Cryptogram Prints",
+      "entry": "cryptogram-prints.html",
+      "description": "Cryptogram puzzle book interiors, ready for KDP."
+    },
+    {
+      "slug": "find-the-killer-puzzle-books",
+      "title": "Mystery Story Weaver",
+      "entry": "mystery-story-weaver.html",
+      "description": "Write the mystery stories behind find-the-killer puzzle books."
+    },
+    {
+      "slug": "jigsaw-sudoku-prints",
+      "title": "Jigsaw Sudoku Book Maker",
+      "description": "Irregular sudoku books from 6×6 to 10×10, with diagonal variants and four levels."
+    },
+    {
+      "slug": "kakuro-puzzle-prints",
+      "title": "Kakuro Puzzle Prints",
+      "entry": "kakuro-prints.html",
+      "description": "Kakuro puzzle book interiors, ready for KDP."
+    },
+    {
+      "slug": "killer-sudoku-prints",
+      "title": "Killer Sudoku Book Maker",
+      "description": "Killer sudoku book interiors, ready for KDP."
+    },
+    {
+      "slug": "kuronazo",
+      "title": "Kuro Nazo Listing Launchpad",
+      "entry": "launchpad.html",
+      "description": "Build Amazon listings for Kuro Nazo puzzle books."
+    },
+    {
+      "slug": "murder-archive-studio",
+      "title": "Murder Archive Studio",
+      "description": "Thousands of suspects, a few clues, one killer: eight kinds of cross-out mystery books."
+    },
+    {
+      "slug": "murder-mystery-word-search",
+      "title": "Murder Mystery Word Search",
+      "description": "Murder mystery word search books, ready for KDP."
+    },
+    {
+      "slug": "number-code-breaker-generator",
+      "title": "Number Code Breaker",
+      "description": "Number code breaker puzzle books, ready for KDP."
+    },
+    {
+      "slug": "numbrix-puzzle-prints",
+      "title": "Numbrix Puzzle Prints",
+      "description": "Two tools for planning a Numbrix book series.",
+      "tools": [
+        {
+          "path": "numbrix-series-architect.html",
+          "title": "Numbrix Series Architect",
+          "description": "Plan a full series of Numbrix puzzle books."
+        },
+        {
+          "path": "numbrix-title-decoder.html",
+          "title": "Numbrix Title Formula Decoder",
+          "description": "Break down the titles that work for Numbrix books."
+        }
+      ]
+    },
+    {
+      "slug": "samurai-sudoku",
+      "title": "Samurai Sudoku Prints",
+      "description": "Samurai sudoku paperback interiors, ready for KDP."
+    },
+    {
+      "slug": "school-posters-empire",
+      "title": "Worksheet Companion Studio",
+      "entry": "worksheet-companion-studio/index.html",
+      "description": "Turn any school topic into a print-ready 7-page lesson packet PDF."
+    },
+    {
+      "slug": "shigai-listing-launchpad",
+      "title": "Shigai Listing Launchpad",
+      "entry": "launchpad.html",
+      "description": "Build Amazon listings for Shigai puzzle books."
+    },
+    {
+      "slug": "word-fill-in-prints",
+      "title": "Word Fill-In Prints",
+      "description": "Word fill-in puzzle books, with word lists from any AI chat."
+    }
+  ]
+}

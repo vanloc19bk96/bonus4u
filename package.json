@@ -1,0 +1,18 @@
+{
+  "name": "bonus4u",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bonus tools hub served at https://bonus4u.fastaifactory.com on Cloudflare.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "wrangler": "4.151.2"
+  }
+}

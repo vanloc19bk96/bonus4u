@@ -1,0 +1,3 @@
+# Bonus tools are for buyers only; keep them out of search results.
+User-agent: *
+Disallow: /

@@ -2,7 +2,7 @@
 node_modules/
 
 # Files over GitHub's 100MB limit
-baby-boomer-crossword/video demo.mp4
+apps/baby-boomer-crossword/video demo.mp4
 
 # Editor / OS
 .cursor/
@@ -14,3 +14,8 @@ desktop.ini
 # Logs
 *.log
 npm-debug.log*
+
+# Build output
+dist/
+.wrangler/
+.dev.vars*
