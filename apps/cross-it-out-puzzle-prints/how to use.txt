@@ -1,0 +1,22 @@
+CROSS IT OUT PUZZLE PRINTS
+==========================
+
+Double-click index.html. It opens in your web browser (Chrome, Edge, Firefox or Safari)
+and works without the internet. Nothing to install. The AI chat in step 2 is the only part
+that needs the internet, and you open that yourself.
+
+1. Set up your book: title, pen name, readers, page layout and how many cases each level has.
+2. Add your own puzzles with AI: click "Copy prompt", paste it into ChatGPT, Claude or Gemini,
+   then paste the whole reply back into the app and click "Add these packs". Repeat until the
+   book has all its cases. Each pack gives two cases.
+3. Review and fact-check: copy the fact-check prompt into a new AI chat and paste the reply
+   back. Any clue a reader could argue with is fixed for you.
+4. Open the Cover tab, pick a design and colors, and click "Download cover PDF".
+5. Check and download: when every item is green, click "Download PDF" and upload it to KDP
+   as the paperback manuscript (no bleed, black & white).
+
+Click "Save project file" to keep your work; open it later with "Open project file".
+At least two thirds of a published book must come from your own packs, so your book is
+different from every other book made with this app.
+
+If you have any questions, feel free to let me know.

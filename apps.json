@@ -47,6 +47,11 @@
       "description": "Cozy mystery word search books, ready for KDP."
     },
     {
+      "slug": "cross-it-out-puzzle-prints",
+      "title": "Cross It Out Puzzle Prints",
+      "description": "“Cross it out if…” elimination puzzle books, with puzzle packs from any AI chat."
+    },
+    {
       "slug": "cryptogram",
       "title": "Cryptogram Prints",
       "entry": "cryptogram-prints.html",
