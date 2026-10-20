@@ -406,6 +406,7 @@
     dom.registerFonts().then(start, start);
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
-  else boot();
+  function begin() { CX.gate.open(boot); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', begin);
+  else begin();
 })(window);

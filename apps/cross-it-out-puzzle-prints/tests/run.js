@@ -266,6 +266,19 @@ function project(o) {
     }
   });
 
+  await test('access key: SHA-256 matches Node, only hashes are stored, wrong keys are refused', () => {
+    env.load('js/ui/gate.js');
+    const G = CX.gate, crypto = require('crypto');
+    ['', 'abc', 'x'.repeat(55), 'y'.repeat(56), 'z'.repeat(64), 'é漢字 test'.repeat(9)].forEach((s) =>
+      eq(G.sha256(s), crypto.createHash('sha256').update(s, 'utf8').digest('hex'), 'sha256 of ' + s.length + ' chars'));
+    assert(G.KEY_HASHES.length > 0, 'at least one key');
+    G.KEY_HASHES.forEach((h) => assert(/^[0-9a-f]{64}$/.test(h), 'hash ' + h));
+    const src = fs.readFileSync(path.join(env.ROOT, 'js/ui/gate.js'), 'utf8');
+    assert(!/CXO-[A-HJ-NP-Z2-9]{4}-/.test(src.replace(/CXO-ABCD-EFGH/g, '')), 'a plain key is written in gate.js');
+    ['', 'CXO-AAAA-AAAA-AAAA-AAAA', 'cxo'].forEach((k) => assert(!G.isKnownHash(G.hashKey(k)), 'accepted ' + JSON.stringify(k)));
+    eq(G.hashKey('cxo abcd efgh-2345'), G.hashKey('CXO-ABCD-EFGH-2345'), 'case, spaces and dashes are ignored');
+  });
+
   console.log('\n' + passed + ' passed, ' + failed + ' failed');
   process.exit(failed ? 1 : 0);
 })();

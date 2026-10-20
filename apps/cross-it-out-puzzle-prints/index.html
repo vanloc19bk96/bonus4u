@@ -8,7 +8,7 @@
 </head>
 <body>
 <noscript><p class="noscript">This app needs JavaScript. Please allow scripts for this page and reload it.</p></noscript>
-<div class="app" id="app" aria-busy="true">
+<div class="app" id="app" aria-busy="true" hidden>
   <aside class="sidebar" aria-label="Book steps">
     <header class="brand">
       <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><rect x="6" y="5" width="28" height="30" rx="3" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M11 13h18M11 20h18M11 27h11" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".45"/><path d="M9.5 13.5l21-1M9.5 20.8l21-1.4" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><ellipse cx="16.5" cy="27" rx="8" ry="4" fill="none" stroke="currentColor" stroke-width="2"/></svg>
@@ -69,6 +69,18 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="loading" id="loading">Opening the casebook&hellip;</div>
 
+<div class="gate" id="gate" hidden>
+  <form class="gate-card" id="gateForm" novalidate>
+    <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><rect x="6" y="5" width="28" height="30" rx="3" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M11 13h18M11 20h18M11 27h11" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".45"/><path d="M9.5 13.5l21-1M9.5 20.8l21-1.4" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><ellipse cx="16.5" cy="27" rx="8" ry="4" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    <h1>Cross It Out Puzzle Prints</h1>
+    <p class="lead">Type the access key that came with your purchase. You only need to do this once on each computer.</p>
+    <label class="field-label" for="gateKey">Access key</label>
+    <input class="input" id="gateKey" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CXO-XXXX-XXXX-XXXX-XXXX" aria-describedby="gateError">
+    <p class="gate-error" id="gateError" role="alert"></p>
+    <button type="submit" class="btn btn-primary block" id="gateSubmit">Open the app</button>
+  </form>
+</div>
+
 <script src="js/vendor/jspdf.umd.min.js"></script>
 <script src="js/fonts.js"></script>
 <script src="js/core/util.js"></script>
@@ -87,6 +99,7 @@
 <script src="js/core/checklist.js"></script>
 <script src="js/render/svg.js"></script>
 <script src="js/render/pdf.js"></script>
+<script src="js/ui/gate.js"></script>
 <script src="js/ui/dom.js"></script>
 <script src="js/ui/preview.js"></script>
 <script src="js/ui/sidebar.js"></script>

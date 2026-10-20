@@ -5,6 +5,9 @@ Double-click index.html. It opens in your web browser (Chrome, Edge, Firefox or 
 and works without the internet. Nothing to install. The AI chat in step 2 is the only part
 that needs the internet, and you open that yourself.
 
+The first time it opens, type the access key that came with your purchase and click
+"Open the app". It is remembered on that computer, so you only type it once.
+
 1. Set up your book: title, pen name, readers, page layout and how many cases each level has.
 2. Add your own puzzles with AI: click "Copy prompt", paste it into ChatGPT, Claude or Gemini,
    then paste the whole reply back into the app and click "Add these packs". Repeat until the
