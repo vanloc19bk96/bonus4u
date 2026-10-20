@@ -55,19 +55,25 @@ npm run deploy   # build, then deploy to Cloudflare
    Add `"entry": "file.html"` when the start page isn't `index.html`.
 3. Run `npm run dev` and check it, then commit and push.
 
-## First deployment on Cloudflare
+## Deployment
 
 Needs `fastaifactory.com` to be a zone in the same Cloudflare account.
 
-**From GitHub (recommended, deploys on every push to `main`)**
+**Automatic (GitHub Actions)**: [.github/workflows/deploy.yml](.github/workflows/deploy.yml)
+builds every push and pull request and deploys every push to `main`. On the first deploy,
+Wrangler attaches `bonus4u.fastaifactory.com` from `wrangler.jsonc` and creates the DNS
+record and certificate.
 
-1. Cloudflare dashboard → **Workers & Pages** → **Create** → **Import a repository** →
-   pick `vanloc19bk96/bonus4u`.
-2. Build command: `npm run build`. Deploy command: `npx wrangler deploy`.
-3. Deploy. Wrangler attaches `bonus4u.fastaifactory.com` from `wrangler.jsonc`
-   and creates the DNS record and certificate.
+One-time setup, in GitHub → repo **Settings** → **Secrets and variables** → **Actions**:
 
-**From this computer**
+| Secret | Where to get it |
+| --- | --- |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare → My Profile → API Tokens → Create Token → template **Edit Cloudflare Workers**; Account = your account, Zone = `fastaifactory.com` |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare → Workers & Pages → Account ID on the right |
+
+Without the secrets, the workflow still builds and shows a "Not deployed" warning.
+
+**Manual, from this computer**
 
 ```bash
 npx wrangler login
