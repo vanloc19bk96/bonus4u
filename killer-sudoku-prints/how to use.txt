@@ -1,0 +1,7 @@
+KILLER SUDOKU BOOK MAKER
+========================
+
+Double-click index.html. It opens in your web browser (Chrome, Edge, Firefox or Safari)
+and works without the internet. Nothing to install.
+
+If you have any questions, feel free to let me know.

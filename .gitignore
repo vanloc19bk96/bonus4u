@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Files over GitHub's 100MB limit
+baby-boomer-crossword/video demo.mp4
+
+# Editor / OS
+.cursor/
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*

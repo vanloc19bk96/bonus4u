@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Samurai Sudoku Prints</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="Book settings">
+      <header class="brand">
+        <h1>Samurai Sudoku Prints</h1>
+        <p>Print-ready puzzle book interiors for Amazon KDP.</p>
+      </header>
+
+      <form id="settings" novalidate>
+        <!-- 1. Book -->
+        <section class="group">
+          <h2>Book</h2>
+
+          <div class="field">
+            <label for="trim">Trim size</label>
+            <select id="trim" name="trim"></select>
+            <p class="help">The finished page size of your paperback.</p>
+          </div>
+
+          <div class="field toggle-field">
+            <label class="switch">
+              <input type="checkbox" id="bleed" name="bleed">
+              <span class="slider" aria-hidden="true"></span>
+              <span class="switch-label">Bleed
+                <span class="tip" tabindex="0" role="note" aria-label="Bleed: printing right up to the paper edge. The page gets 0.125 in wider and 0.25 in taller so the printer can trim it." data-tip="Bleed: printing right up to the paper edge. The page gets 0.125 in wider and 0.25 in taller so the printer can trim it.">?</span>
+              </span>
+            </label>
+            <p class="help">Leave off for puzzle books. Nothing here prints to the edge.</p>
+          </div>
+
+          <div class="field">
+            <label for="marginPreset">Margins
+              <span class="tip" tabindex="0" role="note" aria-label="Gutter: extra inside margin for the binding. KDP makes it wider as the page count grows. The app sets it for you." data-tip="Gutter: extra inside margin for the binding. KDP makes it wider as the page count grows. The app sets it for you.">?</span>
+            </label>
+            <select id="marginPreset" name="marginPreset">
+              <option value="comfortable">Comfortable (recommended)</option>
+              <option value="minimum">KDP minimum</option>
+            </select>
+            <p class="help">Comfortable adds 0.125 in to every side for a safer print.</p>
+          </div>
+        </section>
+
+        <!-- 2. Puzzles -->
+        <section class="group">
+          <h2>Puzzles</h2>
+
+          <div class="field">
+            <label for="count">Number of puzzles</label>
+            <input type="number" id="count" name="count" min="1" max="500" step="1" inputmode="numeric" aria-describedby="count-error count-help">
+            <p class="help" id="count-help">From 1 to 500.</p>
+            <p class="error" id="count-error" role="alert"></p>
+          </div>
+
+          <div class="field">
+            <label for="difficulty">Difficulty</label>
+            <select id="difficulty" name="difficulty">
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+              <option value="expert">Expert</option>
+              <option value="mixed">Mixed (Easy to Expert)</option>
+            </select>
+            <p class="help" id="difficulty-help"></p>
+          </div>
+
+          <fieldset class="field">
+            <legend>Puzzles per page</legend>
+            <div class="segmented" id="perPage">
+              <label><input type="radio" name="perPage" value="1"><span>1</span></label>
+              <label><input type="radio" name="perPage" value="2"><span>2</span></label>
+            </div>
+            <p class="help" id="perPage-help"></p>
+          </fieldset>
+        </section>
+
+        <!-- 3. Solutions -->
+        <section class="group">
+          <h2>Solutions</h2>
+          <div class="field toggle-field">
+            <label class="switch">
+              <input type="checkbox" id="includeSolutions" name="includeSolutions">
+              <span class="slider" aria-hidden="true"></span>
+              <span class="switch-label">Include solutions</span>
+            </label>
+            <p class="help">Added after the last puzzle, with their own title page.</p>
+          </div>
+          <fieldset class="field" id="solutionsPerPage-field">
+            <legend>Solutions per page</legend>
+            <div class="segmented" id="solutionsPerPage">
+              <label><input type="radio" name="solutionsPerPage" value="1"><span>1</span></label>
+              <label><input type="radio" name="solutionsPerPage" value="2"><span>2</span></label>
+              <label><input type="radio" name="solutionsPerPage" value="4"><span>4</span></label>
+              <label><input type="radio" name="solutionsPerPage" value="6"><span>6</span></label>
+            </div>
+            <p class="help" id="solutionsPerPage-help"></p>
+          </fieldset>
+        </section>
+
+        <!-- 4. Extras -->
+        <section class="group">
+          <h2>Extras</h2>
+          <div class="field toggle-field">
+            <label class="switch">
+              <input type="checkbox" id="pageNumbers" name="pageNumbers">
+              <span class="slider" aria-hidden="true"></span>
+              <span class="switch-label">Page numbers</span>
+            </label>
+          </div>
+          <div class="field toggle-field">
+            <label class="switch">
+              <input type="checkbox" id="shadeShared" name="shadeShared">
+              <span class="slider" aria-hidden="true"></span>
+              <span class="switch-label">Shade shared boxes</span>
+            </label>
+            <p class="help">Light gray on the 4 boxes that belong to two grids.</p>
+          </div>
+          <div class="field toggle-field">
+            <label class="switch">
+              <input type="checkbox" id="howToPlay" name="howToPlay">
+              <span class="slider" aria-hidden="true"></span>
+              <span class="switch-label">"How to Play" page</span>
+            </label>
+            <p class="help">Rules and a small diagram at the front of the book.</p>
+          </div>
+          <div class="field toggle-field">
+            <label class="switch">
+              <input type="checkbox" id="copyrightPage" name="copyrightPage" aria-controls="copyright-fields">
+              <span class="slider" aria-hidden="true"></span>
+              <span class="switch-label">Copyright page</span>
+            </label>
+            <p class="help">Page 1 of the book: your name, the year and "All rights reserved".</p>
+          </div>
+          <div class="subfields" id="copyright-fields">
+            <div class="field">
+              <label for="bookTitle">Book title <span class="optional">(optional)</span></label>
+              <input type="text" id="bookTitle" name="bookTitle" maxlength="80" autocomplete="off" aria-describedby="bookTitle-error">
+              <p class="error" id="bookTitle-error" role="alert"></p>
+            </div>
+            <div class="field">
+              <label for="copyrightHolder">Author or publisher</label>
+              <input type="text" id="copyrightHolder" name="copyrightHolder" maxlength="60" autocomplete="off" placeholder="Your name" aria-describedby="copyrightHolder-help copyrightHolder-error">
+              <p class="help" id="copyrightHolder-help">Printed after "Copyright ©" and the year.</p>
+              <p class="error" id="copyrightHolder-error" role="alert"></p>
+            </div>
+            <div class="field">
+              <label for="copyrightYear">Year</label>
+              <input type="number" id="copyrightYear" name="copyrightYear" min="1900" max="2100" step="1" inputmode="numeric" aria-describedby="copyrightYear-error">
+              <p class="error" id="copyrightYear-error" role="alert"></p>
+            </div>
+            <div class="field">
+              <label for="copyrightNotes">Extra lines <span class="optional">(optional)</span></label>
+              <textarea id="copyrightNotes" name="copyrightNotes" rows="3" maxlength="400" placeholder="ISBN: 979-8-000000-00-0&#10;First edition" aria-describedby="copyrightNotes-help copyrightNotes-error"></textarea>
+              <p class="help" id="copyrightNotes-help">One item per line, such as an ISBN, edition or website.</p>
+              <p class="error" id="copyrightNotes-error" role="alert"></p>
+            </div>
+          </div>
+          <div class="field">
+            <label for="titlePrefix">Puzzle title</label>
+            <input type="text" id="titlePrefix" name="titlePrefix" maxlength="24" autocomplete="off" aria-describedby="titlePrefix-help titlePrefix-error">
+            <p class="help" id="titlePrefix-help">Shown above each grid, followed by its number.</p>
+            <p class="error" id="titlePrefix-error" role="alert"></p>
+          </div>
+        </section>
+
+        <!-- 5. Advanced -->
+        <details class="group advanced" id="advanced">
+          <summary><h2>Advanced</h2></summary>
+          <div class="field">
+            <label for="seed">Seed
+              <span class="tip" tabindex="0" role="note" aria-label="Seed: a code that decides which puzzles you get. The same seed with the same settings always builds the same book." data-tip="Seed: a code that decides which puzzles you get. The same seed with the same settings always builds the same book.">?</span>
+            </label>
+            <input type="text" id="seed" name="seed" maxlength="40" autocomplete="off" placeholder="Blank = random" aria-describedby="seed-help">
+            <p class="help" id="seed-help">Leave blank for new puzzles each time.</p>
+            <p class="help seed-used" id="seed-used" hidden></p>
+          </div>
+          <div class="field toggle-field">
+            <label class="switch">
+              <input type="checkbox" id="symmetric" name="symmetric">
+              <span class="slider" aria-hidden="true"></span>
+              <span class="switch-label">Symmetric givens
+                <span class="tip" tabindex="0" role="note" aria-label="Givens: the digits printed in the puzzle. Symmetric means the pattern looks the same when the page is turned upside down." data-tip="Givens: the digits printed in the puzzle. Symmetric means the pattern looks the same when the page is turned upside down.">?</span>
+              </span>
+            </label>
+          </div>
+        </details>
+      </form>
+
+      <!-- 6. Summary + 7. Actions: pinned to the bottom of the sidebar so they are always visible -->
+      <div class="dock">
+      <section class="summary" aria-labelledby="summary-title">
+        <h2 id="summary-title" class="visually-hidden">Summary</h2>
+        <dl class="summary-stats" aria-live="polite">
+          <div><dt>Pages</dt><dd id="sum-pages">-</dd></div>
+          <div><dt>Gutter
+            <span class="tip tip-up" tabindex="0" role="note" aria-label="Gutter: extra inside margin for the binding, set from KDP's page-count table." data-tip="Gutter: extra inside margin for the binding, set from KDP's page-count table.">?</span>
+          </dt><dd id="sum-inside">-</dd></div>
+          <div><dt>Outside</dt><dd id="sum-outside">-</dd></div>
+        </dl>
+        <h3 class="checks-title">KDP check</h3>
+        <ul class="checks" id="checks"></ul>
+        <ul class="check-problems" id="check-problems" role="alert"></ul>
+      </section>
+
+      <div class="actions">
+        <p class="notice" id="stale-notice" hidden>Settings changed. Click Generate to apply them.</p>
+        <div class="progress" id="progress" hidden>
+          <div class="progress-row">
+            <span id="progress-text">Generating 0 / 0</span>
+            <button type="button" class="btn-link" id="cancel">Cancel</button>
+          </div>
+          <div class="bar" role="progressbar" aria-labelledby="progress-text" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-bar"><span></span></div>
+        </div>
+        <p class="error" id="action-error" role="alert"></p>
+        <div class="buttons">
+          <button type="button" class="btn btn-primary" id="generate">Generate</button>
+          <button type="button" class="btn" id="download" disabled>Download PDF</button>
+        </div>
+      </div>
+      </div>
+    </aside>
+
+    <main class="content">
+      <div class="toolbar" role="toolbar" aria-label="Preview controls">
+        <div class="tool-group">
+          <button type="button" class="icon-btn" id="prev" aria-label="Previous page" title="Previous page">&#8249;</button>
+          <label class="page-input"><span class="visually-hidden">Page</span>
+            <input type="number" id="page-input" min="1" value="1" inputmode="numeric">
+          </label>
+          <span id="page-total" class="page-total">/ 0</span>
+          <button type="button" class="icon-btn" id="next" aria-label="Next page" title="Next page">&#8250;</button>
+        </div>
+        <div class="tool-group segmented small" role="radiogroup" aria-label="Zoom">
+          <label><input type="radio" name="zoom" value="fit" checked><span>Fit</span></label>
+          <label><input type="radio" name="zoom" value="100"><span>100%</span></label>
+        </div>
+        <div class="tool-group segmented small" role="radiogroup" aria-label="View">
+          <label><input type="radio" name="view" value="single" checked><span>Single</span></label>
+          <label><input type="radio" name="view" value="spread"><span>Spread</span></label>
+        </div>
+        <label class="check-inline"><input type="checkbox" id="show-margins"> Show margins</label>
+      </div>
+
+      <div class="stage" id="stage" tabindex="0" aria-label="Page preview. Use the left and right arrow keys to change pages.">
+        <div class="empty" id="empty">
+          <h2>Your book preview appears here</h2>
+          <ol>
+            <li><strong>Set up your book</strong> in the panel on the left. Every option already has a sensible default.</li>
+            <li><strong>Click Generate</strong>, check the pages here, then click Download PDF.</li>
+          </ol>
+        </div>
+        <div class="pages" id="pages" hidden></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="lib/jspdf.umd.min.js"></script>
+  <script src="js/fonts.js"></script>
+  <script src="js/generator.js"></script>
+  <script src="js/kdp.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/preview.js"></script>
+  <script src="js/pdf.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

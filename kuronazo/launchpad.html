@@ -1,0 +1,2439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kuro Nazo Listing Launchpad</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #F5F6F8;
+      --bg-alt: #FFFFFF;
+      --bg-dark: #1B141C;
+      --color-primary: #C8102E;
+      --color-primary-dark: #990B22;
+      --color-steel: #27406E;
+      --color-accent: #B08326;
+      --color-accent-soft: #FDF3E0;
+      --text-strong: #0F1115;
+      --text-body: #3A3F4A;
+      --text-muted: #5A616E;
+      --success: #2F9E6E;
+      --warn: #C2607A;
+      --card-border: rgba(200, 16, 46, 0.14);
+      --shadow: 0 4px 24px rgba(27, 20, 28, 0.08);
+      --radius: 12px;
+      --font-body: 'Inter', system-ui, sans-serif;
+      --font-display: 'Sora', system-ui, sans-serif;
+      --font-mono: 'Space Mono', 'Consolas', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--text-body);
+      background: var(--bg-base);
+      min-height: 100vh;
+    }
+
+    h1, h2, h3 { color: var(--text-strong); margin: 0; }
+    button { font-family: inherit; cursor: pointer; }
+    input, select, textarea { font-family: inherit; }
+
+    .screen { display: none; min-height: 100vh; }
+    .screen.active { display: flex; flex-direction: column; }
+
+    /* Screen 1 */
+    #screen-setup {
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: linear-gradient(180deg, var(--bg-dark) 0%, var(--bg-dark) 140px, var(--bg-base) 140px);
+    }
+
+    #screen-setup::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 140px;
+      background: radial-gradient(ellipse at 30% 0%, rgba(200, 16, 46, 0.12) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .setup-card {
+      width: 100%;
+      max-width: 480px;
+      background: white;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 32px;
+      box-shadow: var(--shadow);
+    }
+
+    .setup-brand {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      color: var(--color-primary);
+      margin-bottom: 20px;
+    }
+
+    .setup-card h1 {
+      font-family: var(--font-display);
+      font-size: 1.75rem;
+      margin-bottom: 12px;
+    }
+
+    .setup-card p { margin: 0 0 20px; }
+
+    .input-field {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      background: var(--bg-base);
+      color: var(--text-strong);
+    }
+
+    .input-field.mono { font-family: var(--font-mono); font-size: 0.85rem; }
+
+    .input-field:focus {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 1px;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 14px 0 20px;
+      font-size: 0.9rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      transition: background 0.2s, transform 0.15s, opacity 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--color-primary);
+      color: white;
+      width: 100%;
+    }
+
+    .btn-primary:hover:not(:disabled) { background: var(--color-primary-dark); }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .btn-secondary {
+      background: var(--bg-alt);
+      color: var(--text-strong);
+      border: 1px solid var(--card-border);
+    }
+
+    .btn-secondary:hover { background: #f0f1f4; }
+
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+
+    .btn-copy { background: var(--bg-alt); color: var(--text-strong); border: 1px solid var(--card-border); }
+    .btn-copy.copied { background: #e8f5ef; color: var(--success); border-color: var(--success); }
+
+    .inline-error {
+      color: var(--warn);
+      font-size: 0.875rem;
+      margin-top: 10px;
+    }
+
+    .success-msg {
+      color: var(--success);
+      font-size: 0.9rem;
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .collapsible-link {
+      background: none;
+      border: none;
+      color: var(--color-primary);
+      font-size: 0.85rem;
+      padding: 12px 0 0;
+      text-decoration: underline;
+    }
+
+    .collapsible-content {
+      display: none;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 8px;
+      padding: 12px;
+      background: var(--bg-alt);
+      border-radius: 8px;
+    }
+
+    .collapsible-content.open { display: block; }
+
+    /* Screen 2 */
+    .header-bar {
+      background: var(--bg-dark);
+      color: white;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .header-title {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+    }
+
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+
+    .ai-badge {
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+    }
+
+    .ai-badge.connected { background: rgba(47, 158, 110, 0.2); color: #7ddeb0; }
+    .ai-badge.disconnected { background: rgba(255,255,255,0.1); color: var(--text-muted); }
+
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: transparent;
+      color: white;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .icon-btn:hover { background: rgba(255,255,255,0.1); }
+
+    .error-banner {
+      background: #fdf0f3;
+      border-bottom: 1px solid var(--warn);
+      color: var(--text-strong);
+      padding: 12px 24px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .error-banner.visible { display: flex; }
+
+    .flow-container {
+      flex: 1;
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .step-card {
+      background: white;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .step-card.locked { opacity: 0.55; pointer-events: none; }
+
+    .step-summary {
+      display: none;
+      padding: 16px 20px;
+      cursor: pointer;
+      background: var(--bg-alt);
+      border-bottom: 1px solid var(--card-border);
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .step-card.collapsed .step-summary { display: flex; }
+    .step-card.collapsed .step-body { display: none; }
+
+    .step-summary-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-primary);
+    }
+
+    .step-summary-text {
+      font-size: 0.9rem;
+      color: var(--text-strong);
+      flex: 1;
+    }
+
+    .step-summary-edit {
+      font-size: 0.8rem;
+      color: var(--color-primary);
+      font-weight: 600;
+    }
+
+    .step-body { padding: 24px; }
+
+    .step-headline {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .step-subline {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .cascade-warning {
+      background: var(--color-accent-soft);
+      border: 1px solid rgba(245, 165, 36, 0.35);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.85rem;
+      margin-bottom: 14px;
+      display: none;
+    }
+
+    .cascade-warning.visible { display: block; }
+
+    .segment-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-strong);
+      margin-bottom: 8px;
+    }
+
+    .btn-inline { width: auto; margin-top: 8px; }
+
+    .btn-primary.btn-inline { width: auto; }
+
+    .kw-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .kw-search {
+      flex: 1;
+      min-width: 140px;
+      padding: 8px 12px;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+
+    .kw-sort-select {
+      padding: 8px 10px;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      font-size: 0.8rem;
+      background: white;
+    }
+
+    .kw-table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    .kw-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    .kw-table th {
+      background: var(--bg-alt);
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--text-strong);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .kw-table th.no-sort { cursor: default; }
+
+    .kw-table td {
+      padding: 10px 12px;
+      border-top: 1px solid var(--card-border);
+      vertical-align: middle;
+    }
+
+    .kw-table tr.selected-row { background: rgba(200, 16, 46, 0.07); }
+    .kw-table tr:hover:not(.selected-row) { background: rgba(200, 16, 46, 0.03); }
+
+    .kw-table .mono { font-family: var(--font-mono); font-size: 0.82rem; }
+
+    .color-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .color-dot.green { background: var(--success); }
+    .color-dot.yellow { background: var(--color-accent); }
+    .color-dot.red { background: var(--warn); }
+
+    .kw-legend {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px 16px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .kw-legend-label {
+      font-weight: 600;
+      color: var(--text-body);
+    }
+
+    .kw-legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .info-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--bg-alt);
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      cursor: help;
+      position: relative;
+      margin-left: 6px;
+    }
+
+    .info-icon .tooltip {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-dark);
+      color: white;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 0.72rem;
+      white-space: nowrap;
+      z-index: 50;
+      line-height: 1.5;
+      font-family: var(--font-body);
+    }
+
+    .info-icon:hover .tooltip { display: block; }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px;
+      font-size: 0.85rem;
+    }
+
+    .pagination button {
+      padding: 6px 12px;
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      background: white;
+      font-size: 0.8rem;
+    }
+
+    .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .slots-panel {
+      background: var(--bg-alt);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .slots-panel h4 {
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
+
+    .slot-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      background: white;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .slot-card.empty {
+      border-style: dashed;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .slot-remove {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      padding: 0 4px;
+      line-height: 1;
+    }
+
+    .slot-remove:hover { color: var(--warn); }
+
+    .selection-summary {
+      background: white;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 0.85rem;
+      margin-bottom: 16px;
+    }
+
+    .selection-summary .accent-stat { color: var(--color-accent); font-weight: 700; }
+    .root-warn { color: var(--warn); margin-top: 8px; font-size: 0.82rem; }
+
+    .keywords-recap {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      background: var(--bg-alt);
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      word-break: break-word;
+    }
+
+    .variation-card.selectable { cursor: pointer; }
+    .variation-card.selectable.selected-var {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 2px rgba(200, 16, 46, 0.2);
+    }
+
+    .global-bar {
+      padding: 16px 0 0;
+      margin-top: 8px;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(30, 35, 64, 0.04);
+    }
+
+    .card h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .card-sub { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 14px; }
+
+    .option-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    @media (max-width: 480px) {
+      .option-grid { grid-template-columns: 1fr; }
+    }
+
+    .option-card {
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 12px;
+      background: var(--bg-base);
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+      text-align: left;
+    }
+
+    .option-card:hover {
+      border-color: var(--color-primary);
+      box-shadow: 0 4px 12px rgba(200, 16, 46, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .option-card.selected {
+      border-color: var(--color-primary);
+      background: rgba(200, 16, 46, 0.06);
+      box-shadow: 0 0 0 2px rgba(200, 16, 46, 0.2);
+    }
+
+    .option-card .label { font-weight: 600; font-size: 0.85rem; color: var(--text-strong); display: block; }
+    .option-card .stat { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+
+    .form-row { margin-bottom: 12px; }
+    .form-row label { display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 4px; color: var(--text-strong); }
+
+    .fallback-notice {
+      background: var(--color-accent-soft);
+      border: 1px solid rgba(245, 165, 36, 0.3);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.8rem;
+      color: var(--text-body);
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    .fallback-notice.visible { display: block; }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--text-muted);
+    }
+
+    .empty-state .icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.5; }
+
+    .output-section { margin-bottom: 20px; }
+
+    .section-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .section-header h2 { font-size: 1.1rem; font-weight: 700; }
+    .section-header .note { font-size: 0.8rem; color: var(--text-muted); font-weight: 400; }
+
+    .variation-card {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px;
+      background: white;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .variation-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .variation-title-text {
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--text-strong);
+      word-break: break-word;
+    }
+
+    .variation-counter-stack {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .combined-counter {
+      font-size: 0.72rem;
+      font-family: var(--font-mono);
+      line-height: 1.4;
+    }
+
+    .combined-counter.ok { color: var(--success); }
+    .combined-counter.over { color: var(--warn); }
+
+    .title-only-counter {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      line-height: 1.4;
+    }
+
+    .title-only-counter.ok { color: var(--success); }
+    .title-only-counter.warn { color: var(--warn); }
+
+    .subtitle-only-counter {
+      font-size: 0.72rem;
+      font-family: var(--font-mono);
+      line-height: 1.4;
+    }
+
+    .subtitle-only-counter.ok { color: var(--success); }
+    .subtitle-only-counter.over { color: var(--warn); }
+
+    .variation-card .btn-copy {
+      flex-shrink: 0;
+      align-self: flex-start;
+    }
+
+    .variation-meta {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--color-primary);
+      margin-bottom: 6px;
+    }
+
+    .char-counter {
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+    }
+
+    .char-counter.ok { color: var(--success); }
+    .char-counter.over { color: var(--warn); }
+
+    .keyword-row {
+      display: grid;
+      grid-template-columns: 28px 1fr auto;
+      gap: 8px;
+      align-items: start;
+      padding: 12px;
+      background: white;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .slot-num {
+      font-weight: 700;
+      color: var(--color-primary);
+      font-size: 0.85rem;
+      padding-top: 2px;
+    }
+
+    .keyword-text {
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      color: var(--text-strong);
+      word-break: break-word;
+    }
+
+    .keyword-stats {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .keyword-actions { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+
+    .swap-select {
+      font-size: 0.7rem;
+      padding: 4px 6px;
+      border: 1px solid var(--card-border);
+      border-radius: 4px;
+      background: var(--bg-base);
+      max-width: 120px;
+    }
+
+    .why-panel {
+      background: var(--bg-base);
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 0.85rem;
+      margin-top: 12px;
+    }
+
+    .why-panel .accent-stat { color: var(--color-accent); font-weight: 700; }
+
+    .tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--card-border);
+      margin-bottom: 14px;
+    }
+
+    .tab-btn {
+      padding: 8px 16px;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      font-weight: 500;
+      font-size: 0.85rem;
+    }
+
+    .tab-btn.active {
+      color: var(--color-primary);
+      border-bottom-color: var(--color-primary);
+    }
+
+    .style-pill {
+      display: inline-block;
+      padding: 4px 10px;
+      background: var(--color-accent-soft);
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-strong);
+      margin-bottom: 10px;
+    }
+
+    .desc-preview {
+      background: white;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 16px;
+      line-height: 1.7;
+    }
+
+    .desc-html {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      background: var(--bg-dark);
+      color: #e8e4e6;
+      border-radius: 8px;
+      padding: 16px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .desc-html .tag { color: #7ddeb0; }
+    .desc-html .attr { color: #f5a524; }
+
+    .skeleton {
+      background: linear-gradient(90deg, #eceef2 25%, #f5f6f8 50%, #eceef2 75%);
+      background-size: 200% 100%;
+      animation: pulse 1.5s ease-in-out infinite;
+      border-radius: 6px;
+      height: 20px;
+      margin-bottom: 8px;
+    }
+
+    .skeleton.tall { height: 80px; }
+
+    .skeleton-card {
+      padding: 14px;
+      background: white;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .skeleton-card .skeleton:last-child { margin-bottom: 0; }
+
+    .generating-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .generating-label::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--color-primary);
+      animation: pulse-dot 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 0.35; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1); }
+    }
+
+    .btn.is-loading { opacity: 0.75; cursor: wait; }
+
+    @keyframes pulse {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes checkPop {
+      0% { transform: scale(0.8); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+
+    .fade-in { animation: fadeIn 0.35s ease-out; }
+    .check-pop { animation: checkPop 0.3s ease-out; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .skeleton { animation: none; background: #eceef2; }
+      .fade-in, .check-pop { animation: none; }
+      .option-card:hover { transform: none; }
+      .generating-label::before { animation: none; opacity: 0.7; }
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(22, 26, 46, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 24px;
+    }
+
+    .modal-overlay.visible { display: flex; }
+
+    .modal {
+      background: white;
+      border-radius: var(--radius);
+      padding: 24px;
+      max-width: 440px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow);
+    }
+
+    .modal h2 { font-size: 1.1rem; margin-bottom: 16px; }
+
+    .modal-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+
+    .faq-item { margin-bottom: 16px; }
+    .faq-item strong { display: block; font-size: 0.9rem; margin-bottom: 4px; color: var(--text-strong); }
+    .faq-item p { margin: 0; font-size: 0.85rem; color: var(--text-body); }
+
+    .masked-key {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      background: var(--bg-alt);
+      padding: 10px;
+      border-radius: 6px;
+      margin: 10px 0;
+    }
+
+    .ai-error-inline {
+      color: var(--warn);
+      font-size: 0.85rem;
+      padding: 10px;
+      background: #fdf0f3;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+
+    .header-copy-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    .data-error {
+      background: #fdf0f3;
+      color: var(--warn);
+      padding: 16px;
+      border-radius: 8px;
+      margin: 16px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Screen 1: API Key Setup -->
+  <div id="screen-setup" class="screen active">
+    <div class="setup-card">
+      <div class="setup-brand">Kuro Nazo Listing Launchpad</div>
+      <h1>Welcome. One quick step before we start.</h1>
+      <p>Paste the API key that came with your bonus to unlock AI-powered listing generation.</p>
+      <input type="password" id="api-key-input" class="input-field mono" placeholder="Paste your API key here (starts with sk-...)" autocomplete="off">
+      <label class="checkbox-row">
+        <input type="checkbox" id="remember-key" checked>
+        Remember this key on this device
+      </label>
+      <button type="button" id="save-key-btn" class="btn btn-primary">Save &amp; Continue</button>
+      <div id="setup-error" class="inline-error" hidden></div>
+      <div id="setup-success" class="success-msg" hidden></div>
+      <button type="button" id="key-help-toggle" class="collapsible-link">Where do I find my key?</button>
+      <div id="key-help-content" class="collapsible-content">
+        Contact <a href="mailto:david@fastaifactory.com">david@fastaifactory.com</a> to receive your activate key.
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: Main Workspace -->
+  <div id="screen-workspace" class="screen">
+    <header class="header-bar">
+      <div class="header-title">Kuro Nazo Listing Launchpad</div>
+      <div class="header-actions">
+        <button type="button" id="ai-badge" class="ai-badge connected">AI: Connected ✓</button>
+        <button type="button" id="faq-btn" class="icon-btn" title="Help">?</button>
+      </div>
+    </header>
+
+    <div id="error-banner" class="error-banner">
+      <span>Your AI key isn't responding. Contact support at <a href="mailto:david@fastaifactory.com">david@fastaifactory.com</a> to get an updated key.</span>
+      <button type="button" id="enter-new-key-btn" class="btn btn-secondary btn-sm">Enter a new key</button>
+    </div>
+
+    <div id="data-load-error" class="data-error" hidden></div>
+
+    <div class="flow-container">
+      <!-- Step 1 -->
+      <div id="step-1" class="step-card">
+        <div id="step-1-summary" class="step-summary">
+          <span class="step-summary-label">Step 1</span>
+          <span id="step-1-summary-text" class="step-summary-text"></span>
+          <span class="step-summary-edit">Edit</span>
+        </div>
+        <div class="step-body">
+          <div class="step-headline">Step 1 — Set up your mystery book</div>
+          <div class="step-subline">Tell the tool what kind of whodunit you're building. This filters the keyword pool.</div>
+          <div id="step1-cascade-warn" class="cascade-warning">Changing this will reset your keyword selection and generated listing.</div>
+
+          <div class="segment-label">Keyword focus</div>
+          <div id="category-options" class="option-grid" style="margin-bottom:20px"></div>
+
+          <div class="segment-label">Target buyer</div>
+          <div id="audience-options" class="option-grid" style="margin-bottom:20px"></div>
+
+          <div class="segment-label">Book details (optional)</div>
+          <div class="form-row">
+            <label for="case-count">Number of cases</label>
+            <input type="number" id="case-count" class="input-field" min="1" placeholder="e.g. 30">
+          </div>
+          <div class="form-row">
+            <label for="difficulty">Difficulty tier</label>
+            <select id="difficulty" class="input-field">
+              <option value="">— Select —</option>
+              <option value="Easy">Easy</option>
+              <option value="Medium">Medium</option>
+              <option value="Hard">Hard</option>
+              <option value="Expert">Expert</option>
+              <option value="Nightmare">Nightmare</option>
+              <option value="Mixed">Mixed</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="suspect-count">Number of suspects</label>
+            <input type="number" id="suspect-count" class="input-field" min="1" placeholder="e.g. 8">
+          </div>
+          <div class="form-row">
+            <label for="mystery-theme">Mystery theme</label>
+            <select id="mystery-theme" class="input-field">
+              <option value="">— Select —</option>
+              <option value="Classic Whodunit">Classic Whodunit</option>
+              <option value="Detective Noir">Detective Noir</option>
+              <option value="Cozy Mystery">Cozy Mystery</option>
+              <option value="True-Crime Style">True-Crime Style</option>
+              <option value="Kids' Mystery">Kids' Mystery</option>
+              <option value="Holiday / Seasonal">Holiday / Seasonal</option>
+              <option value="None / Mixed">None / Mixed</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="author-name">Author name</label>
+            <input type="text" id="author-name" class="input-field" placeholder="Your pen name">
+          </div>
+
+          <button type="button" id="continue-keywords-btn" class="btn btn-primary btn-inline" disabled>Continue to Keywords</button>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div id="step-2" class="step-card locked collapsed">
+        <div id="step-2-summary" class="step-summary">
+          <span class="step-summary-label">Step 2</span>
+          <span id="step-2-summary-text" class="step-summary-text"></span>
+          <span class="step-summary-edit">Edit</span>
+        </div>
+        <div class="step-body">
+          <div class="step-headline">Step 2 — Choose your 7 backend keywords</div>
+          <div class="step-subline">These 7 keywords will be used to generate your title, subtitle, and description — and are what you'll paste into Amazon's 7 backend keyword slots.</div>
+          <div id="step2-cascade-warn" class="cascade-warning">Changing your keywords will reset the generated listing.</div>
+          <div id="fallback-notice" class="fallback-notice">Not many keywords match this exact buyer — showing the full category pool instead.</div>
+
+          <div class="kw-controls">
+            <button type="button" id="suggest-top7-btn" class="btn btn-primary btn-sm">Suggest Top 7</button>
+            <button type="button" id="clear-all-btn" class="btn btn-secondary btn-sm">Clear all</button>
+            <input type="search" id="kw-search" class="kw-search" placeholder="Search keywords…">
+            <select id="kw-sort-select" class="kw-sort-select">
+              <option value="opportunity_desc">Opportunity ↓</option>
+              <option value="opportunity_asc">Opportunity ↑</option>
+              <option value="searches_desc">Searches ↓</option>
+              <option value="searches_asc">Searches ↑</option>
+              <option value="comp_desc">Competitive ↓</option>
+              <option value="comp_asc">Competitive ↑</option>
+              <option value="length_desc">Length ↓</option>
+              <option value="length_asc">Length ↑</option>
+              <option value="keyword_asc">Keyword A–Z</option>
+              <option value="keyword_desc">Keyword Z–A</option>
+            </select>
+          </div>
+
+          <div class="kw-legend" aria-label="Competitive score color guide">
+            <span class="kw-legend-label">Competitive Score:</span>
+            <span class="kw-legend-item"><span class="color-dot green"></span>Green = low competition</span>
+            <span class="kw-legend-item"><span class="color-dot yellow"></span>Orange = moderately competitive</span>
+            <span class="kw-legend-item"><span class="color-dot red"></span>Red = high competition</span>
+          </div>
+
+          <div class="kw-table-wrap">
+            <table class="kw-table">
+              <thead>
+                <tr>
+                  <th class="no-sort" style="width:40px"></th>
+                  <th data-sort="keyword">Keyword</th>
+                  <th data-sort="length">Length</th>
+                  <th data-sort="searches">Est. Searches/Mo</th>
+                  <th data-sort="comp">Competitive Score</th>
+                  <th data-sort="opportunity">Opportunity Score</th>
+                </tr>
+              </thead>
+              <tbody id="kw-table-body"></tbody>
+            </table>
+            <div id="kw-pagination" class="pagination"></div>
+          </div>
+
+          <div class="slots-panel">
+            <h4>Your selected 7 slots</h4>
+            <div id="keyword-slots"></div>
+          </div>
+
+          <div id="selection-summary" class="selection-summary"></div>
+
+          <button type="button" id="continue-generate-btn" class="btn btn-primary btn-inline" disabled>Continue to Generate Listing</button>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div id="step-3" class="step-card locked collapsed">
+        <div id="step-3-summary" class="step-summary">
+          <span class="step-summary-label">Step 3</span>
+          <span id="step-3-summary-text" class="step-summary-text">Generate Listing</span>
+          <span class="step-summary-edit">Edit</span>
+        </div>
+        <div class="step-body">
+          <div class="step-headline">Step 3 — Generate Listing</div>
+          <div class="step-subline">Your 7 keywords will be used to generate title, subtitle, and description options.</div>
+
+          <div class="segment-label">Your 7 keywords</div>
+          <div id="step3-kw-recap-top" class="keywords-recap"></div>
+
+          <button type="button" id="generate-btn" class="btn btn-primary btn-inline">Generate Listing</button>
+
+          <div id="output-empty" class="empty-state">
+            <div class="icon">📋</div>
+            <p>Click Generate Listing to create your title, subtitle, and description.<br>Your 7 keywords will be woven in naturally.</p>
+          </div>
+
+          <div id="output-content" hidden>
+            <div id="section-titles" class="output-section card fade-in" style="margin-top:20px">
+              <div class="section-header">
+                <div>
+                  <h2>Book Title</h2>
+                  <div class="note">KDP limit: Title + Subtitle combined must be under 200 characters. Readable titles stay under 60 characters.</div>
+                </div>
+              </div>
+              <div id="titles-list"></div>
+              <div id="titles-error" class="ai-error-inline" hidden></div>
+              <button type="button" id="regen-titles" class="btn btn-secondary btn-sm">Regenerate titles</button>
+            </div>
+
+            <div id="section-subtitles" class="output-section card fade-in">
+              <div class="section-header">
+                <div>
+                  <h2>Subtitle</h2>
+                  <div class="note">Adds context and 2–3 natural keywords. Counts toward the shared 200-character limit with the title.</div>
+                </div>
+              </div>
+              <div id="subtitles-list"></div>
+              <div id="subtitles-error" class="ai-error-inline" hidden></div>
+              <button type="button" id="regen-subtitles" class="btn btn-secondary btn-sm">Regenerate subtitles</button>
+            </div>
+
+            <div id="section-description" class="output-section card fade-in">
+              <div class="section-header">
+                <div>
+                  <h2>Book Description</h2>
+                  <div class="note">Amazon accepts basic HTML formatting.</div>
+                </div>
+                <div class="header-copy-btns">
+                  <button type="button" id="copy-preview" class="btn btn-copy btn-sm">Copy Preview Text</button>
+                  <button type="button" id="copy-html" class="btn btn-copy btn-sm">Copy HTML</button>
+                </div>
+              </div>
+              <div id="desc-style-row" hidden>
+                <span id="desc-style-pill" class="style-pill"></span>
+                <button type="button" id="try-style-btn" class="btn btn-secondary btn-sm">Try another style</button>
+              </div>
+              <div class="tabs">
+                <button type="button" class="tab-btn active" data-tab="preview">Preview</button>
+                <button type="button" class="tab-btn" data-tab="html">HTML</button>
+              </div>
+              <div id="desc-preview-pane" class="desc-preview"></div>
+              <div id="desc-html-pane" class="desc-html" hidden></div>
+              <div id="desc-length-warn" class="ai-error-inline" hidden></div>
+              <div id="desc-error" class="ai-error-inline" hidden></div>
+              <button type="button" id="regen-desc" class="btn btn-secondary btn-sm" style="margin-top:12px">Regenerate description</button>
+            </div>
+
+            <div id="section-keywords-recap" class="output-section card fade-in">
+              <div class="section-header">
+                <div>
+                  <h2>Backend Keywords Recap</h2>
+                  <div class="note">Copy these into Amazon's 7 backend keyword slots.</div>
+                </div>
+              </div>
+              <div id="step3-kw-recap-bottom" class="keywords-recap"></div>
+              <button type="button" id="copy-all-keywords" class="btn btn-secondary btn-sm">Copy all 7 (comma-separated)</button>
+            </div>
+
+            <div class="global-bar">
+              <button type="button" id="copy-everything" class="btn btn-primary">Copy Everything as One Block</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <div id="key-modal" class="modal-overlay">
+    <div class="modal">
+      <h2>API Key Settings</h2>
+      <p style="font-size:0.85rem;color:var(--text-muted)">Your API key is stored only on this device.</p>
+      <div id="masked-key-display" class="masked-key"></div>
+      <div class="modal-actions">
+        <button type="button" id="replace-key-btn" class="btn btn-primary">Replace API key</button>
+        <button type="button" id="remove-key-btn" class="btn btn-secondary">Remove key from this device</button>
+        <button type="button" id="close-key-modal" class="btn btn-secondary btn-sm">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="faq-modal" class="modal-overlay">
+    <div class="modal">
+      <h2>Quick Help</h2>
+      <div class="faq-item">
+        <strong>Why do I need to paste a key?</strong>
+        <p>The tool uses AI to generate titles and descriptions for you. The key you were given lets that AI work inside this tool.</p>
+      </div>
+      <div class="faq-item">
+        <strong>Is my key safe here?</strong>
+        <p>Your key is stored only in your browser on this device, using the browser's built-in storage. It never leaves your device except to talk directly to the AI service. If you don't want it saved, uncheck "Remember this key on this device" during setup.</p>
+      </div>
+      <div class="faq-item">
+        <strong>What if the key stops working?</strong>
+        <p>You'll see a message at the top of the tool. Contact support and we'll send you an updated key. All the non-AI features (keyword picking, character counting) will still work in the meantime.</p>
+      </div>
+      <div class="faq-item">
+        <strong>Can I use my own OpenAI key instead?</strong>
+        <p>Yes. Click the AI badge in the top-right corner, choose Replace API key, and paste any valid OpenAI key. The tool works the same way.</p>
+      </div>
+      <button type="button" id="close-faq-modal" class="btn btn-secondary" style="margin-top:8px">Close</button>
+    </div>
+  </div>
+
+  <script>
+(function () {
+  'use strict';
+
+  const STORAGE_KEY = 'kn_grsai_activate_key';
+  const LEGACY_STORAGE_KEY = 'kn_launchpad_openai_key';
+  const GRSAI_API_URL = 'https://grsaiapi.com/v1/chat/completions';
+  const GRSAI_MODEL = 'gpt-5.5';
+  const KEYWORD_URLS = [
+    'https://cdn.jsdelivr.net/gh/vanloc19bk96/affiliate-bonuses-data@master/kuronazo-keyword.json',
+    'https://raw.githubusercontent.com/vanloc19bk96/affiliate-bonuses-data/master/kuronazo-keyword.json',
+  ];
+  const SUPPORT_EMAIL = 'david@fastaifactory.com';
+  const TITLE_CHAR_LIMIT = 100;
+  const SUBTITLE_CHAR_LIMIT = 100;
+  const COMBINED_CHAR_LIMIT = 200;
+  const KEYWORD_LIMIT = 50;
+  const PAGE_SIZE = 25;
+  const DESCRIPTION_STYLES = ['Emotional', 'Benefit-focused', 'Professional', 'Story-led'];
+  const BANNED_WORDS = ['best', 'greatest', 'ultimate', '#1', 'official', 'new!', 'on sale', 'amazing', 'must-have', 'must-buy', 'guaranteed'];
+  const ROOT_STOPWORDS = new Set(['for', 'the', 'a', 'an', 'and', 'or', 'of', 'in', 'on', 'to', 'with', 'by', 'book', 'books', 'puzzle', 'puzzles', 'mystery', 'mysteries']);
+  const ALLOWED_HTML_TAGS = new Set(['b', 'i', 'em', 'strong', 'br', 'p', 'ul', 'li', 'h3', 'h4', 'h5', 'h6']);
+
+  const TITLE_SUBTITLE_SYSTEM_PROMPT = `You are an Amazon KDP metadata expert who writes book titles and subtitles that comply with Amazon's official Metadata Guidelines for Books. You write for readers, not for search engines. You never keyword-stuff. You never use promotional or subjective language.
+
+You know these Amazon rules and follow them strictly:
+1. Title and subtitle combined MUST be under 200 characters (spaces and punctuation count).
+2. Readable titles stay under 60 characters — customers skim past longer titles.
+3. Titles must read naturally to a human. If a title looks like a list of search terms, Amazon may treat it as spam.
+4. Never use subjective claims like "best", "greatest", "#1", "official", "ultimate".
+5. Never use time-sensitive words like "new", "on sale", "available now".
+6. Never repeat the same root keyword across title and subtitle just to rank higher.
+7. Never use words already covered by the book's category (e.g. don't put "book" or "puzzle book" in when the category already says so).
+8. Never use HTML tags, emojis, or special characters.
+9. The subtitle should add real context — a benefit, an audience, or a specific hook — not just be a keyword dump.
+10. If a colon separates title from subtitle, KDP adds it automatically on the product page; do not include the colon yourself in either field.
+
+You return strict JSON only. No preamble, no explanation.`;
+
+  const DESCRIPTION_SYSTEM_PROMPT = `You are an Amazon KDP metadata expert who writes book descriptions that comply with Amazon's official Metadata Guidelines for Books. You write descriptions that convert readers into buyers by clearly showing what the book contains and who it's for.
+
+You know these Amazon rules and follow them strictly:
+1. KDP supports ONLY these HTML tags in the description: <b>, <i>, <em>, <strong>, <br>, <p>, <ul>, <li>, <h3>, <h4>, <h5>, <h6>. Do not use any other tags. No <div>, no <span>, no inline styles, no scripts, no classes.
+2. Never use subjective or promotional claims like "best", "greatest", "#1", "must-buy", "guaranteed".
+3. Never use time-sensitive words like "new", "on sale", "limited time".
+4. Never mention "Kindle", "KDP", "Amazon", or the file format.
+5. Never keyword-stuff. Keywords must appear inside natural, human-readable sentences.
+6. Match the tone to the audience: playful/warm for kids, calm/clear for seniors, sharper/more sophisticated for adults, encouraging/challenging for teens, gift-forward for gift buyers.
+7. Never make claims the book cannot deliver (e.g. "will improve your IQ by X%").
+8. Keep descriptions between 200 and 400 words. Longer isn't better.
+
+You return strict JSON only. No preamble, no explanation.`;
+
+  const AUDIENCE_TOKENS = {
+    Adults: ['adult', 'adults', 'grown', 'men', 'women'],
+    Kids: ['kid', 'kids', 'children', 'child'],
+    Teens: ['teen', 'teens', 'teenager', 'teenagers'],
+    Seniors: ['senior', 'seniors', 'elderly', 'retirement'],
+    'Gift buyer': ['gift', 'gifts', 'stocking', 'lover', 'lovers', 'present', 'christmas', 'holiday'],
+  };
+
+  let keywordData = null;
+  let apiKey = null;
+  let aiConnected = false;
+  let sessionKey = null;
+
+  let selectedCategory = null;
+  let selectedAudience = null;
+  let step1Complete = false;
+  let step2Complete = false;
+
+  let filteredPool = [];
+  let usedAudienceFilter = true;
+  let pickedKeywords = new Array(7).fill(null);
+  let tableSearch = '';
+  let tableSort = { col: 'opportunity', dir: 'desc' };
+  let tablePage = 0;
+
+  let titles = [];
+  let subtitles = [];
+  let description = { style: '', html: '', preview: '' };
+  let selectedTitleIdx = 0;
+  let selectedSubtitleIdx = 0;
+  let currentDescStyleIndex = 3;
+  let hasGenerated = false;
+  let isGenerating = false;
+
+  const $ = (id) => document.getElementById(id);
+
+  function showScreen(name) {
+    document.querySelectorAll('.screen').forEach((el) => el.classList.remove('active'));
+    $(name === 'setup' ? 'screen-setup' : 'screen-workspace').classList.add('active');
+  }
+
+  function getStoredKey() {
+    return localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
+  }
+
+  function maskKey(key) {
+    if (!key || key.length < 12) return '••••••••';
+    return key.slice(0, 4) + '…' + key.slice(-4);
+  }
+
+  function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  function escapeAttr(str) {
+    return String(str).replace(/"/g, '&quot;');
+  }
+
+  function parseJsonFromAiContent(content) {
+    const text = String(content || '').trim();
+    if (!text) throw new Error('Empty response');
+    try { return JSON.parse(text); } catch {
+      const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+      if (fenced) return JSON.parse(fenced[1].trim());
+    }
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start !== -1 && end > start) return JSON.parse(text.slice(start, end + 1));
+    throw new SyntaxError('Invalid JSON');
+  }
+
+  function updateAiBadge() {
+    const badge = $('ai-badge');
+    badge.textContent = aiConnected ? 'AI: Connected ✓' : 'AI: Not connected';
+    badge.className = 'ai-badge ' + (aiConnected ? 'connected' : 'disconnected');
+  }
+
+  function syncAiConnectionFromKey() {
+    aiConnected = !!(sessionKey || apiKey || getStoredKey());
+    updateAiBadge();
+    if (aiConnected) setErrorBanner(false);
+  }
+
+  function setErrorBanner(visible) {
+    $('error-banner').classList.toggle('visible', visible);
+  }
+
+  async function callGrsai(userPrompt, keyOverride, systemPrompt) {
+    const key = (keyOverride || sessionKey || apiKey || '').trim();
+    if (!key) throw Object.assign(new Error('API key is required.'), { status: 401 });
+
+    const doFetch = () => fetch(GRSAI_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
+      body: JSON.stringify({
+        model: GRSAI_MODEL,
+        stream: false,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+      }),
+    });
+
+    let response = await doFetch();
+    if ((response.status === 429 || response.status >= 500) && response.status !== 401 && response.status !== 403) {
+      await new Promise((r) => setTimeout(r, 1500));
+      response = await doFetch();
+    }
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        aiConnected = false;
+        updateAiBadge();
+        setErrorBanner(true);
+        throw Object.assign(new Error('Invalid API key.'), { status: 401 });
+      }
+      if (response.status === 429) throw Object.assign(new Error('Rate limit hit.'), { status: 429 });
+      if (response.status >= 500) throw Object.assign(new Error('AI service error.'), { status: response.status });
+      const apiMessage = payload.error?.message || payload.message || 'Generation request failed (' + response.status + ')';
+      throw Object.assign(new Error(apiMessage), { status: response.status });
+    }
+
+    aiConnected = true;
+    updateAiBadge();
+    setErrorBanner(false);
+    const content = payload.choices?.[0]?.message?.content;
+    if (!content) throw new Error('Empty AI response');
+    return parseJsonFromAiContent(content);
+  }
+
+  function normalizeRootPhrase(keyword) {
+    return keyword.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/)
+      .filter((w) => w && !ROOT_STOPWORDS.has(w)).join(' ');
+  }
+
+  function getFilledKeywords() {
+    return pickedKeywords.filter(Boolean);
+  }
+
+  function isKeywordPicked(kw) {
+    return pickedKeywords.some((p) => p && p.keyword === kw.keyword);
+  }
+
+  function filterKeywords(category, audience) {
+    let pool = keywordData.keywords.filter((k) => k.category === category);
+    const tokens = AUDIENCE_TOKENS[audience] || [];
+    const audiencePool = pool.filter((k) => tokens.some((t) => k.keyword.toLowerCase().includes(t)));
+    let usedFilter = true;
+    if (audiencePool.length >= 15) pool = audiencePool;
+    else usedFilter = false;
+    return { pool, usedFilter };
+  }
+
+  function suggestTop7(pool) {
+    const sorted = [...pool].sort((a, b) => b.opportunity_score - a.opportunity_score);
+    const picked = [];
+    const usedRoots = new Set();
+    const usedKeywords = new Set();
+    let strictMode = true;
+
+    for (const kw of sorted) {
+      if (picked.length >= 7) break;
+      const root = normalizeRootPhrase(kw.keyword);
+      if (strictMode && root && usedRoots.has(root)) continue;
+      picked.push(kw);
+      if (root) usedRoots.add(root);
+      usedKeywords.add(kw.keyword);
+    }
+
+    if (picked.length < 7) {
+      for (const kw of sorted) {
+        if (picked.length >= 7) break;
+        if (usedKeywords.has(kw.keyword)) continue;
+        picked.push(kw);
+        usedKeywords.add(kw.keyword);
+      }
+    }
+
+    const slots = new Array(7).fill(null);
+    picked.forEach((kw, i) => { slots[i] = kw; });
+    return slots;
+  }
+
+  function getBookDetails() {
+    return {
+      caseCount: $('case-count').value.trim(),
+      difficulty: $('difficulty').value,
+      suspectCount: $('suspect-count').value.trim(),
+      mysteryTheme: $('mystery-theme').value,
+      authorName: $('author-name').value.trim(),
+    };
+  }
+
+  function formatContextValue(value) {
+    return value && String(value).trim() ? String(value).trim() : 'unspecified';
+  }
+
+  function formatChosenKeywords() {
+    return getFilledKeywords().map((kw, i) => `${i + 1}. ${kw.keyword}`).join('\n');
+  }
+
+  function buildStep1Summary() {
+    const parts = [selectedCategory, selectedAudience];
+    const d = getBookDetails();
+    if (d.caseCount) parts.push(d.caseCount + ' cases');
+    if (d.difficulty) parts.push(d.difficulty);
+    if (d.suspectCount) parts.push(d.suspectCount + ' suspects');
+    if (d.mysteryTheme) parts.push(d.mysteryTheme);
+    if (d.authorName) parts.push(d.authorName);
+    return parts.join(' · ');
+  }
+
+  function buildStep2Summary() {
+    return getFilledKeywords().map((k) => k.keyword).join(', ');
+  }
+
+  function setStepState(stepNum, { locked, collapsed, complete }) {
+    const el = $('step-' + stepNum);
+    el.classList.toggle('locked', !!locked);
+    el.classList.toggle('collapsed', !!collapsed);
+    if (stepNum === 1 && complete) $('step-1-summary-text').textContent = buildStep1Summary();
+    if (stepNum === 2 && complete) $('step-2-summary-text').textContent = buildStep2Summary();
+  }
+
+  function resetStep2() {
+    pickedKeywords = new Array(7).fill(null);
+    step2Complete = false;
+    tableSearch = '';
+    tablePage = 0;
+    $('kw-search').value = '';
+    renderKeywordTable();
+    renderKeywordSlots();
+    renderSelectionSummary();
+    updateContinueGenerateBtn();
+    setStepState(2, { locked: false, collapsed: true, complete: false });
+  }
+
+  function resetStep3() {
+    titles = [];
+    subtitles = [];
+    description = { style: '', html: '', preview: '' };
+    hasGenerated = false;
+    selectedTitleIdx = 0;
+    selectedSubtitleIdx = 0;
+    $('output-empty').hidden = false;
+    $('output-content').hidden = true;
+    ['titles-error', 'subtitles-error', 'desc-error', 'desc-length-warn'].forEach((id) => { $(id).hidden = true; });
+    setStepState(3, { locked: !step2Complete, collapsed: true, complete: false });
+  }
+
+  function resetDownstreamFromStep1() {
+    resetStep2();
+    resetStep3();
+    setStepState(2, { locked: true, collapsed: true, complete: false });
+    setStepState(3, { locked: true, collapsed: true, complete: false });
+    step1Complete = false;
+  }
+
+  function resetDownstreamFromStep2() {
+    resetStep3();
+  }
+
+  function colorDotClass(color) {
+    const c = (color || '').toLowerCase();
+    if (c === 'green') return 'green';
+    if (c === 'yellow') return 'yellow';
+    return 'red';
+  }
+
+  function getSortedFilteredPool() {
+    let rows = filteredPool.filter((k) => !tableSearch || k.keyword.toLowerCase().includes(tableSearch.toLowerCase()));
+    const dir = tableSort.dir === 'asc' ? 1 : -1;
+    rows.sort((a, b) => {
+      switch (tableSort.col) {
+        case 'keyword': return dir * a.keyword.localeCompare(b.keyword);
+        case 'length': return dir * (a.keyword.length - b.keyword.length);
+        case 'searches': return dir * (a.searches_per_month - b.searches_per_month);
+        case 'comp': return dir * (a.competitive_score - b.competitive_score);
+        case 'opportunity': return dir * (a.opportunity_score - b.opportunity_score);
+        default: return 0;
+      }
+    });
+    return rows;
+  }
+
+  function renderKeywordTable() {
+    const rows = getSortedFilteredPool();
+    const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+    if (tablePage >= totalPages) tablePage = totalPages - 1;
+    const pageRows = rows.slice(tablePage * PAGE_SIZE, (tablePage + 1) * PAGE_SIZE);
+    const filled = getFilledKeywords().length;
+
+    $('kw-table-body').innerHTML = pageRows.map((kw) => {
+      const selected = isKeywordPicked(kw);
+      const disabled = !selected && filled >= 7;
+      const len = kw.keyword.length;
+      const lenClass = len <= KEYWORD_LIMIT ? 'ok' : 'over';
+      const tooltip = `Competitors: ${kw.num_competitors?.toLocaleString() || '—'} · Avg price: $${kw.avg_price || '—'} · Avg earnings: $${kw.avg_monthly_earnings?.toLocaleString() || '—'} · Search color: ${kw.search_color || '—'} · Comp color: ${kw.comp_color || '—'}`;
+      return `<tr class="${selected ? 'selected-row' : ''}" data-kw="${escapeAttr(kw.keyword)}">
+        <td><input type="checkbox" ${selected ? 'checked' : ''} ${disabled ? 'disabled' : ''} aria-label="Select keyword"></td>
+        <td class="mono">${escapeHtml(kw.keyword)}<span class="info-icon">ⓘ<span class="tooltip">${escapeHtml(tooltip)}</span></span></td>
+        <td><span class="char-counter ${lenClass}">${len} / ${KEYWORD_LIMIT}</span></td>
+        <td>${kw.searches_display || kw.searches_per_month.toLocaleString()}</td>
+        <td><span class="color-dot ${colorDotClass(kw.comp_color)}"></span>${kw.competitive_score}</td>
+        <td><span class="color-dot ${colorDotClass(kw.search_color)}"></span>${kw.opportunity_score}</td>
+      </tr>`;
+    }).join('');
+
+    $('kw-pagination').innerHTML = `
+      <button type="button" id="kw-prev" ${tablePage === 0 ? 'disabled' : ''}>← Prev</button>
+      <span>Page ${tablePage + 1} of ${totalPages} (${rows.length} keywords)</span>
+      <button type="button" id="kw-next" ${tablePage >= totalPages - 1 ? 'disabled' : ''}>Next →</button>`;
+
+    $('fallback-notice').classList.toggle('visible', !usedAudienceFilter);
+  }
+
+  function renderKeywordSlots() {
+    $('keyword-slots').innerHTML = pickedKeywords.map((kw, i) => {
+      if (!kw) {
+        return `<div class="slot-card empty"><span class="slot-num">${i + 1}</span> Empty — click a keyword above to fill</div>`;
+      }
+      const len = kw.keyword.length;
+      return `<div class="slot-card">
+        <span class="slot-num">${i + 1}</span>
+        <div style="flex:1">
+          <div class="keyword-text">${escapeHtml(kw.keyword)}</div>
+          <div class="keyword-stats">Length: ${len} / ${KEYWORD_LIMIT} · ~${kw.searches_display || kw.searches_per_month.toLocaleString()} monthly searches · opportunity ${kw.opportunity_score}</div>
+        </div>
+        <button type="button" class="slot-remove" data-remove-slot="${i}" aria-label="Remove">×</button>
+      </div>`;
+    }).join('');
+  }
+
+  function findDuplicateRoots() {
+    const filled = getFilledKeywords();
+    const pairs = [];
+    for (let i = 0; i < filled.length; i++) {
+      for (let j = i + 1; j < filled.length; j++) {
+        const r1 = normalizeRootPhrase(filled[i].keyword);
+        const r2 = normalizeRootPhrase(filled[j].keyword);
+        if (r1 && r1 === r2) pairs.push([filled[i].keyword, filled[j].keyword]);
+      }
+    }
+    return pairs;
+  }
+
+  function renderSelectionSummary() {
+    const filled = getFilledKeywords();
+    if (filled.length === 0) {
+      $('selection-summary').innerHTML = '<span style="color:var(--text-muted)">Pick 7 keywords to see your selection summary.</span>';
+      return;
+    }
+    const totalSearches = filled.reduce((s, k) => s + k.searches_per_month, 0);
+    const avgComp = filled.reduce((s, k) => s + k.competitive_score, 0) / filled.length;
+    const avgOpp = filled.reduce((s, k) => s + k.opportunity_score, 0) / filled.length;
+    const dupes = findDuplicateRoots();
+    let warn = '';
+    if (dupes.length) {
+      const [a, b] = dupes[0];
+      warn = `<div class="root-warn">Two of your keywords share a root phrase (${escapeHtml(a)}, ${escapeHtml(b)}). Amazon may penalize duplicate roots — consider swapping one.</div>`;
+    }
+    $('selection-summary').innerHTML = `
+      <div>Combined monthly searches: <span class="accent-stat">${totalSearches.toLocaleString()}</span></div>
+      <div>Average competitive score: ${avgComp.toFixed(1)}</div>
+      <div>Average opportunity score: ${avgOpp.toFixed(1)}</div>
+      ${warn}`;
+  }
+
+  function toggleKeyword(kw) {
+    const idx = pickedKeywords.findIndex((p) => p && p.keyword === kw.keyword);
+    if (idx !== -1) {
+      pickedKeywords[idx] = null;
+      compactSlots();
+    } else if (getFilledKeywords().length < 7) {
+      const empty = pickedKeywords.findIndex((p) => !p);
+      if (empty !== -1) pickedKeywords[empty] = kw;
+    }
+    if (step2Complete) resetDownstreamFromStep2();
+    renderKeywordTable();
+    renderKeywordSlots();
+    renderSelectionSummary();
+    updateContinueGenerateBtn();
+  }
+
+  function compactSlots() {
+    const filled = getFilledKeywords();
+    pickedKeywords = new Array(7).fill(null);
+    filled.forEach((kw, i) => { pickedKeywords[i] = kw; });
+  }
+
+  function removeSlot(index) {
+    pickedKeywords[index] = null;
+    compactSlots();
+    if (step2Complete) resetDownstreamFromStep2();
+    renderKeywordTable();
+    renderKeywordSlots();
+    renderSelectionSummary();
+    updateContinueGenerateBtn();
+  }
+
+  function updateContinueKeywordsBtn() {
+    $('continue-keywords-btn').disabled = !(selectedCategory && selectedAudience);
+  }
+
+  function updateContinueGenerateBtn() {
+    $('continue-generate-btn').disabled = getFilledKeywords().length !== 7;
+  }
+
+  function updateStep3Recap() {
+    const text = buildStep2Summary();
+    $('step3-kw-recap-top').textContent = text;
+    $('step3-kw-recap-bottom').textContent = text;
+  }
+
+  function buildTitlesSubtitlesUserPrompt(options) {
+    const { isRegen = false, titlesOnly = false, subtitlesOnly = false, shorten = false, noBanned = false } = options || {};
+    const details = getBookDetails();
+    let extra = '';
+    if (isRegen) extra += '\nThe user has already seen a previous batch and wants fresh options. Choose distinctly different angles, phrasings, and rhythms from anything you might have generated for this same context before.\n';
+    if (shorten) extra += '\nIMPORTANT: Shorten all titles and subtitles so every title is under 100 chars, every subtitle under 100 chars, and every title+subtitle pair under 200 chars combined.\n';
+    if (noBanned) extra += '\nIMPORTANT: Remove all promotional language (best, greatest, ultimate, #1, official, new, on sale, amazing, must-have).\n';
+
+    const shared = `Generate 3 title options and 3 subtitle options for a whodunit / murder-mystery puzzle book on Amazon KDP.
+
+BOOK CONTEXT
+- Keyword focus: ${selectedCategory}
+- Target buyer: ${selectedAudience}
+- Number of cases: ${formatContextValue(details.caseCount)}
+- Difficulty tier: ${formatContextValue(details.difficulty)}
+- Number of suspects: ${formatContextValue(details.suspectCount)}
+- Mystery theme: ${formatContextValue(details.mysteryTheme)}
+- Author: ${formatContextValue(details.authorName)}
+
+THE USER'S 7 CHOSEN KEYWORDS (in priority order — slot 1 is strongest, slot 7 is weakest)
+${formatChosenKeywords()}
+
+INSTRUCTION ON KEYWORDS
+- These 7 keywords are chosen by the user from real Amazon research data
+- They are ALSO the exact keywords going into Amazon's 7 backend keyword slots — the title and subtitle should feel aligned with them
+- Weave 2–3 of them (not all 7) into the title options and 2–3 (not all 7) into the subtitle options
+- Prioritize keywords 1–3 (strongest opportunity) — they should appear in at least one title option each
+- Never list all keywords in one field — that's keyword stuffing and Amazon will flag it
+
+WHAT MAKES A GOOD WHODUNIT PUZZLE BOOK TITLE
+- A clear, evocative main phrase that tells a reader these are solve-the-mystery / find-the-killer puzzles
+- Optional descriptor of the theme or hook (e.g. "Detective", "Murder Mystery", "Cold Case", "5 Suspects, 1 Killer")
+- Reader-friendly, memorable, easy to say out loud
+- If buyer is Kids or Teens, warmer/playful tone; if Seniors, calm and clear; if Adults, sharper and more sophisticated; if Gift buyer, evoke a great gift for a mystery lover
+
+WHAT MAKES A GOOD SUBTITLE
+- Adds one clear benefit, audience, or hook that the title alone doesn't state (e.g. "Crack the Clues, Name the Killer", "A Deduction Challenge for Armchair Detectives")
+- Naturally weaves in 1–2 of the top keywords above (never all of them)
+- Reads like a real sentence a human would say, not a comma-separated keyword list
+- Complements the title without repeating the same root words
+
+REQUIREMENTS
+- 3 title options, each in a different angle:
+    • Option A: direct and descriptive (what the book IS)
+    • Option B: outcome/experience-led (what the reader GETS or FEELS — the thrill of solving)
+    • Option C: audience-first (who the book is FOR)
+- 3 subtitle options, each pairable with any of the 3 titles
+- Every title under 60 characters if possible, never over 100
+- Every subtitle under 100 characters
+- Every title+subtitle pair (all 9 combinations) under 200 characters combined
+- No colon at the start or end of either field
+- No emojis, no HTML, no all-caps words${extra}`;
+
+    if (titlesOnly) return shared + '\nRETURN JSON: {"titles":[{"angle":"direct","text":"..."},{"angle":"outcome","text":"..."},{"angle":"audience","text":"..."}]}';
+    if (subtitlesOnly) return shared + '\nRETURN JSON: {"subtitles":[{"text":"..."},{"text":"..."},{"text":"..."}]}';
+    return shared + '\nRETURN JSON: {"titles":[{"angle":"direct","text":"..."},{"angle":"outcome","text":"..."},{"angle":"audience","text":"..."}],"subtitles":[{"text":"..."},{"text":"..."},{"text":"..."}]}';
+  }
+
+  function buildDescriptionUserPrompt(style) {
+    const details = getBookDetails();
+    return `Write a book description for a whodunit / murder-mystery puzzle book on Amazon KDP.
+
+BOOK CONTEXT
+- Keyword focus: ${selectedCategory}
+- Target buyer: ${selectedAudience}
+- Number of cases: ${formatContextValue(details.caseCount)}
+- Difficulty tier: ${formatContextValue(details.difficulty)}
+- Number of suspects: ${formatContextValue(details.suspectCount)}
+- Mystery theme: ${formatContextValue(details.mysteryTheme)}
+
+THE USER'S 7 CHOSEN KEYWORDS (in priority order — slot 1 is strongest, slot 7 is weakest)
+${formatChosenKeywords()}
+
+INSTRUCTION ON KEYWORDS
+- These 7 keywords are chosen by the user from real Amazon research data
+- They are the same keywords going into Amazon's 7 backend keyword slots — the description should feel aligned with them
+- Weave 4–6 of them naturally across the description body (never all 7 stuffed in one paragraph, never listed as a comma-separated string)
+- Prioritize keywords 1–4 (strongest opportunity) — at least 3 should appear
+- Each keyword appears at most twice
+- Keywords must appear inside real sentences a human would say — never as a list or an "SEO tag" section
+
+STYLE TO WRITE IN THIS TIME: ${style}
+// - "Emotional": open with a feeling or scene, lean on sensory language
+// - "Benefit-focused": open with what the reader gains, lean on outcomes and skills
+// - "Professional": open with the book's contents, lean on facts and structure
+// - "Story-led": open with a mini scenario or hook, lean on curiosity
+
+STRUCTURE FOR A WHODUNIT PUZZLE BOOK DESCRIPTION
+1. Opening hook (2–3 sentences) — in the chosen style, pull the reader into the mystery without generic marketing language
+2. What's inside (one paragraph OR a <ul> with 3–5 <li> bullets) — number of cases, kinds of themes/settings, difficulty progression, that every case is fair-play with exactly one guilty suspect, full solutions/answer key included
+3. Who this book is for (one paragraph) — the target buyer made explicit, with realistic benefits
+4. Closing nudge (1–2 sentences) — a soft call to action pointing at the reader opening the first case, without saying "buy now"
+
+FORMATTING RULES
+- Use <b> to make the first 1–2 lines of the opening hook bold
+- Use <p> tags to separate paragraphs
+- If you use bullets, use <ul><li>...</li></ul>
+- Use <br> sparingly
+- Do not use headings unless the description has clear labeled sections
+
+REQUIREMENTS
+- 200–400 words total
+- Weave in 4–6 of the keywords above, in natural sentences, never listed
+- Match the buyer tone
+- Match the style specified
+- No banned words (best, greatest, #1, ultimate, must-have, guaranteed, new!, on sale, amazing)
+
+RETURN JSON: {"style":"${style}","html":"<the description with only KDP-supported HTML tags>","preview":"<plain text with paragraph breaks as \\n\\n>","word_count":<integer>}`;
+  }
+
+  function normalizeTitleItems(items) {
+    return (items || []).map((item) => typeof item === 'string' ? { angle: '', text: item } : { angle: item?.angle || '', text: (item?.text || '').trim().replace(/:+$/,'') })
+      .filter((item) => item.text);
+  }
+
+  function normalizeSubtitleItems(items) {
+    return (items || []).map((item) => typeof item === 'string' ? { text: item } : { text: (item?.text || '').trim().replace(/:+$/,'') })
+      .filter((item) => item.text);
+  }
+
+  function getTitleText(item) { return typeof item === 'string' ? item : (item?.text || ''); }
+  function getSubtitleText(item) { return typeof item === 'string' ? item : (item?.text || ''); }
+
+  function getTitleAngleLabel(angle) {
+    return { direct: 'Direct', outcome: 'Outcome', audience: 'Audience' }[angle] || (angle ? angle.charAt(0).toUpperCase() + angle.slice(1) : '');
+  }
+
+  function hasBannedWords(text) {
+    const lower = text.toLowerCase();
+    return BANNED_WORDS.some((w) => lower.includes(w));
+  }
+
+  function validateTitlesSubtitles(t, s) {
+    const violations = { overLimit: false, banned: false };
+    for (const item of t) {
+      const text = getTitleText(item);
+      if (text.length > TITLE_CHAR_LIMIT) violations.overLimit = true;
+      if (hasBannedWords(text)) violations.banned = true;
+    }
+    for (const item of s) {
+      const text = getSubtitleText(item);
+      if (text.length > SUBTITLE_CHAR_LIMIT) violations.overLimit = true;
+      if (hasBannedWords(text)) violations.banned = true;
+    }
+    for (const ti of t) {
+      for (const si of s) {
+        if (getTitleText(ti).length + getSubtitleText(si).length > COMBINED_CHAR_LIMIT) violations.overLimit = true;
+      }
+    }
+    return violations;
+  }
+
+  async function fetchTitlesSubtitles(options) {
+    let result = await callGrsai(buildTitlesSubtitlesUserPrompt(options), undefined, TITLE_SUBTITLE_SYSTEM_PROMPT);
+    let t = normalizeTitleItems(result.titles);
+    let s = normalizeSubtitleItems(result.subtitles);
+    let v = validateTitlesSubtitles(t, s);
+    if (v.overLimit || v.banned) {
+      result = await callGrsai(buildTitlesSubtitlesUserPrompt({ ...options, shorten: v.overLimit, noBanned: v.banned }), undefined, TITLE_SUBTITLE_SYSTEM_PROMPT);
+      t = normalizeTitleItems(result.titles);
+      s = normalizeSubtitleItems(result.subtitles);
+    }
+    return { titles: t, subtitles: s, warnings: validateTitlesSubtitles(t, s) };
+  }
+
+  function sanitizeHtml(html) {
+    const doc = new DOMParser().parseFromString('<body>' + html + '</body>', 'text/html');
+    function clean(node) {
+      [...node.childNodes].forEach((child) => {
+        if (child.nodeType === 3) return;
+        if (child.nodeType === 1) {
+          const tag = child.tagName.toLowerCase();
+          if (!ALLOWED_HTML_TAGS.has(tag)) {
+            while (child.firstChild) child.parentNode.insertBefore(child.firstChild, child);
+            child.remove();
+            return;
+          }
+          [...child.attributes].forEach((a) => child.removeAttribute(a.name));
+          clean(child);
+        }
+      });
+    }
+    clean(doc.body);
+    return doc.body.innerHTML;
+  }
+
+  function countWords(text) {
+    return text.trim().split(/\s+/).filter(Boolean).length;
+  }
+
+  async function fetchDescription(styleOverride) {
+    const style = styleOverride || DESCRIPTION_STYLES[currentDescStyleIndex % DESCRIPTION_STYLES.length];
+    let result = await callGrsai(buildDescriptionUserPrompt(style), undefined, DESCRIPTION_SYSTEM_PROMPT);
+    if (hasBannedWords(result.preview || '')) {
+      result = await callGrsai(buildDescriptionUserPrompt(style) + '\nRemove all promotional/banned words.', undefined, DESCRIPTION_SYSTEM_PROMPT);
+    }
+    result.html = sanitizeHtml(result.html || '');
+    const actualWords = countWords(result.preview || stripHtml(result.html));
+    result.word_count = actualWords;
+    currentDescStyleIndex = (DESCRIPTION_STYLES.indexOf(result.style) + 1) % DESCRIPTION_STYLES.length;
+    return result;
+  }
+
+  function titleOnlyClass(len) {
+    if (len > 100) return 'warn';
+    if (len > 60) return '';
+    return 'ok';
+  }
+
+  function renderTitles() {
+    const subText = getSubtitleText(subtitles[selectedSubtitleIdx] || {});
+    $('titles-list').innerHTML = titles.map((item, index) => {
+      const text = getTitleText(item);
+      const combined = text.length + subText.length;
+      const combinedClass = combined <= COMBINED_CHAR_LIMIT ? 'ok' : 'over';
+      const titleLen = text.length;
+      const selected = index === selectedTitleIdx;
+      return `<div class="variation-card selectable ${selected ? 'selected-var' : ''}" data-select-title="${index}">
+        <div class="variation-main">
+          <div class="variation-meta">${escapeHtml(getTitleAngleLabel(item.angle) || 'Option ' + (index + 1))}</div>
+          <div class="variation-title-text">${escapeHtml(text)}</div>
+          <div class="variation-counter-stack">
+            <span class="combined-counter ${combinedClass}">Title ${titleLen} + Subtitle ${subText.length} = ${combined} / ${COMBINED_CHAR_LIMIT}</span>
+            <span class="title-only-counter ${titleOnlyClass(titleLen)}">Title-only: ${titleLen} chars</span>
+          </div>
+        </div>
+        <button type="button" class="btn btn-copy btn-sm" data-copy="title-${index}">Copy</button>
+      </div>`;
+    }).join('');
+  }
+
+  function renderSubtitles() {
+    const titleText = getTitleText(titles[selectedTitleIdx] || {});
+    $('subtitles-list').innerHTML = subtitles.map((item, index) => {
+      const text = getSubtitleText(item);
+      const combined = titleText.length + text.length;
+      const combinedClass = combined <= COMBINED_CHAR_LIMIT ? 'ok' : 'over';
+      const subLen = text.length;
+      const subClass = subLen <= SUBTITLE_CHAR_LIMIT ? 'ok' : 'over';
+      const selected = index === selectedSubtitleIdx;
+      return `<div class="variation-card selectable ${selected ? 'selected-var' : ''}" data-select-subtitle="${index}">
+        <div class="variation-main">
+          <div class="variation-meta">Subtitle ${index + 1}</div>
+          <div class="variation-title-text">${escapeHtml(text)}</div>
+          <div class="variation-counter-stack">
+            <span class="combined-counter ${combinedClass}">Title ${titleText.length} + Subtitle ${subLen} = ${combined} / ${COMBINED_CHAR_LIMIT}</span>
+            <span class="subtitle-only-counter ${subClass}">Subtitle-only: ${subLen} / ${SUBTITLE_CHAR_LIMIT}</span>
+          </div>
+        </div>
+        <button type="button" class="btn btn-copy btn-sm" data-copy="subtitle-${index}">Copy</button>
+      </div>`;
+    }).join('');
+  }
+
+  function highlightHtml(html) {
+    return escapeHtml(html).replace(/(&lt;\/?)([a-z]+)/gi, '<span class="tag">$1$2</span>').replace(/(&gt;)/g, '<span class="tag">$1</span>');
+  }
+
+  function renderDescription() {
+    $('desc-style-pill').textContent = 'Style: ' + (description.style || '—');
+    $('desc-style-row').hidden = !description.html;
+    $('desc-preview-pane').innerHTML = description.html || '<p style="color:var(--text-muted)">No description yet.</p>';
+    $('desc-html-pane').innerHTML = description.html ? highlightHtml(description.html) : '';
+    const words = countWords(description.preview || stripHtml(description.html));
+    const warnEl = $('desc-length-warn');
+    if (words && (words < 150 || words > 500)) {
+      warnEl.textContent = `This description is on the ${words < 150 ? 'short' : 'long'} side — try regenerating for a different length.`;
+      warnEl.hidden = false;
+    } else warnEl.hidden = true;
+  }
+
+  function stripHtml(html) {
+    const d = document.createElement('div');
+    d.innerHTML = html;
+    return d.textContent || '';
+  }
+
+  function showVariationSkeleton(elId, count) {
+    $(elId).innerHTML = '<div class="generating-label">Generating…</div>' +
+      Array.from({ length: count }, () => '<div class="skeleton-card"><div class="skeleton" style="height:22px;width:88%"></div><div class="skeleton" style="height:14px;width:30%"></div></div>').join('');
+  }
+
+  function showDescriptionLoading() {
+    $('desc-style-row').hidden = true;
+    document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+    document.querySelector('.tab-btn[data-tab="preview"]').classList.add('active');
+    $('desc-preview-pane').hidden = false;
+    $('desc-html-pane').hidden = true;
+    $('desc-preview-pane').innerHTML = '<div class="generating-label">Generating…</div><div class="skeleton tall"></div><div class="skeleton"></div>';
+  }
+
+  function showAiError(elId, message) {
+    const el = $(elId);
+    el.textContent = message;
+    el.hidden = false;
+  }
+
+  async function runGeneration() {
+    if (getFilledKeywords().length !== 7 || isGenerating) return;
+    isGenerating = true;
+    $('generate-btn').textContent = 'Generating Listing…';
+    $('generate-btn').classList.add('is-loading');
+    $('generate-btn').disabled = true;
+    $('output-empty').hidden = true;
+    $('output-content').hidden = false;
+    updateStep3Recap();
+    showVariationSkeleton('titles-list', 3);
+    showVariationSkeleton('subtitles-list', 3);
+    showDescriptionLoading();
+    ['titles-error', 'subtitles-error', 'desc-error'].forEach((id) => { $(id).hidden = true; });
+
+    try {
+      try {
+        const ts = await fetchTitlesSubtitles({});
+        titles = ts.titles;
+        subtitles = ts.subtitles;
+        selectedTitleIdx = 0;
+        selectedSubtitleIdx = 0;
+        renderTitles();
+        renderSubtitles();
+      } catch (err) {
+        console.error(err);
+        showAiError('titles-error', err.status === 401 ? 'Your AI key isn\'t working. Enter a new key to generate titles.' : err instanceof SyntaxError ? 'Something went wrong reading the AI response. Try regenerating.' : 'AI is busy right now, try again in a moment.');
+      }
+      try {
+        description = await fetchDescription();
+        renderDescription();
+      } catch (err) {
+        console.error(err);
+        showAiError('desc-error', err.status === 401 ? 'Your AI key isn\'t working.' : err instanceof SyntaxError ? 'Something went wrong reading the AI response. Try regenerating.' : 'AI is busy right now, try again in a moment.');
+      }
+      hasGenerated = true;
+    } finally {
+      isGenerating = false;
+      $('generate-btn').textContent = 'Generate Listing';
+      $('generate-btn').classList.remove('is-loading');
+      $('generate-btn').disabled = false;
+    }
+  }
+
+  async function regenTitles() {
+    if (isGenerating) return;
+    showVariationSkeleton('titles-list', 3);
+    $('regen-titles').disabled = true;
+    try {
+      const ts = await fetchTitlesSubtitles({ isRegen: true, titlesOnly: true });
+      titles = ts.titles.length ? ts.titles : titles;
+      renderTitles();
+      renderSubtitles();
+    } catch (err) {
+      showAiError('titles-error', 'AI is busy right now, try again in a moment.');
+      if (titles.length) renderTitles();
+    } finally { $('regen-titles').disabled = false; }
+  }
+
+  async function regenSubtitles() {
+    if (isGenerating) return;
+    showVariationSkeleton('subtitles-list', 3);
+    $('regen-subtitles').disabled = true;
+    try {
+      const ts = await fetchTitlesSubtitles({ isRegen: true, subtitlesOnly: true });
+      subtitles = ts.subtitles.length ? ts.subtitles : subtitles;
+      renderSubtitles();
+      renderTitles();
+    } catch (err) {
+      showAiError('subtitles-error', 'AI is busy right now, try again in a moment.');
+      if (subtitles.length) renderSubtitles();
+    } finally { $('regen-subtitles').disabled = false; }
+  }
+
+  async function regenDescription(styleOverride) {
+    if (isGenerating) return;
+    showDescriptionLoading();
+    $('regen-desc').disabled = true;
+    try {
+      description = await fetchDescription(styleOverride);
+      renderDescription();
+    } catch (err) {
+      showAiError('desc-error', 'AI is busy right now, try again in a moment.');
+      if (description.html) renderDescription();
+    } finally { $('regen-desc').disabled = false; }
+  }
+
+  async function copyText(text, button) {
+    try { await navigator.clipboard.writeText(text); } catch {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    if (button) {
+      const orig = button.textContent;
+      button.textContent = 'Copied ✓';
+      button.classList.add('copied', 'check-pop');
+      setTimeout(() => { button.textContent = orig; button.classList.remove('copied', 'check-pop'); }, 1500);
+    }
+  }
+
+  function getCopyText(id) {
+    if (id.startsWith('title-')) return getTitleText(titles[parseInt(id.split('-')[1], 10)]);
+    if (id.startsWith('subtitle-')) return getSubtitleText(subtitles[parseInt(id.split('-')[1], 10)]);
+    return '';
+  }
+
+  function buildEverythingBlock() {
+    const title = getTitleText(titles[selectedTitleIdx] || {});
+    const subtitle = getSubtitleText(subtitles[selectedSubtitleIdx] || {});
+    const lines = [
+      '=== BOOK TITLE ===', title, '',
+      '=== SUBTITLE ===', subtitle, '',
+      '=== BACKEND KEYWORDS ===',
+      ...getFilledKeywords().map((k, i) => `${i + 1}. ${k.keyword}`), '',
+      '=== DESCRIPTION (Preview) ===', description.preview || stripHtml(description.html), '',
+      '=== DESCRIPTION (HTML) ===', description.html || '',
+    ];
+    return lines.join('\n');
+  }
+
+  function initCategoryOptions() {
+    $('category-options').innerHTML = keywordData.categories.map((cat) => {
+      const count = keywordData.keywords.filter((k) => k.category === cat).length;
+      return `<button type="button" class="option-card" data-category="${escapeAttr(cat)}"><span class="label">${escapeHtml(cat)}</span><span class="stat">${count} keywords available</span></button>`;
+    }).join('');
+  }
+
+  function initAudienceOptions() {
+    $('audience-options').innerHTML = ['Adults', 'Kids', 'Teens', 'Seniors', 'Gift buyer'].map((a) =>
+      `<button type="button" class="option-card" data-audience="${escapeAttr(a)}"><span class="label">${escapeHtml(a)}</span></button>`
+    ).join('');
+  }
+
+  async function loadKeywords() {
+    let lastError = null;
+    for (const url of KEYWORD_URLS) {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        keywordData = await response.json();
+        if (!keywordData?.keywords?.length) throw new Error('Invalid keyword data');
+        initCategoryOptions();
+        initAudienceOptions();
+        return;
+      } catch (err) {
+        console.warn('Keyword load failed:', url, err);
+        lastError = err;
+      }
+    }
+    console.error(lastError);
+    $('data-load-error').hidden = false;
+    $('data-load-error').innerHTML = 'Could not load keyword data. Check your internet connection and refresh. Contact <a href="mailto:' + SUPPORT_EMAIL + '">' + SUPPORT_EMAIL + '</a>.';
+  }
+
+  async function initApp() {
+    await loadKeywords();
+    const stored = getStoredKey();
+    if (stored) {
+      apiKey = stored;
+      sessionKey = stored;
+      syncAiConnectionFromKey();
+      showScreen('workspace');
+    } else {
+      aiConnected = false;
+      updateAiBadge();
+      showScreen('setup');
+    }
+  }
+
+  // Events: Setup
+  $('key-help-toggle').addEventListener('click', () => $('key-help-content').classList.toggle('open'));
+
+  $('save-key-btn').addEventListener('click', () => {
+    const key = $('api-key-input').value.trim();
+    const errEl = $('setup-error');
+    const successEl = $('setup-success');
+    errEl.hidden = true;
+    successEl.hidden = true;
+    if (!key) {
+      errEl.textContent = 'Please paste your API key to continue.';
+      errEl.hidden = false;
+      return;
+    }
+    if (!key.startsWith('sk-') || key.length < 20) {
+      errEl.textContent = 'That doesn\'t look like a valid key. Please double-check and try again.';
+      errEl.hidden = false;
+      return;
+    }
+
+    sessionKey = key;
+    apiKey = key;
+    if ($('remember-key').checked) {
+      localStorage.setItem(STORAGE_KEY, key);
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+    }
+
+    syncAiConnectionFromKey();
+    successEl.innerHTML = '<span class="check-pop">✓</span> You\'re all set. Loading Launchpad…';
+    successEl.hidden = false;
+    setTimeout(() => showScreen('workspace'), 1000);
+  });
+
+  // Step 1
+  $('category-options').addEventListener('click', (e) => {
+    const card = e.target.closest('[data-category]');
+    if (!card) return;
+    if (step1Complete && card.dataset.category !== selectedCategory) {
+      $('step1-cascade-warn').classList.add('visible');
+      resetDownstreamFromStep1();
+    }
+    selectedCategory = card.dataset.category;
+    document.querySelectorAll('[data-category]').forEach((c) => c.classList.toggle('selected', c.dataset.category === selectedCategory));
+    updateContinueKeywordsBtn();
+  });
+
+  $('audience-options').addEventListener('click', (e) => {
+    const card = e.target.closest('[data-audience]');
+    if (!card) return;
+    if (step1Complete && card.dataset.audience !== selectedAudience) {
+      $('step1-cascade-warn').classList.add('visible');
+      resetDownstreamFromStep1();
+    }
+    selectedAudience = card.dataset.audience;
+    document.querySelectorAll('[data-audience]').forEach((c) => c.classList.toggle('selected', c.dataset.audience === selectedAudience));
+    updateContinueKeywordsBtn();
+  });
+
+  ['case-count', 'difficulty', 'suspect-count', 'mystery-theme', 'author-name'].forEach((id) => {
+    $(id).addEventListener('input', () => {
+      if (step1Complete) $('step-1-summary-text').textContent = buildStep1Summary();
+    });
+  });
+
+  $('continue-keywords-btn').addEventListener('click', () => {
+    if (!selectedCategory || !selectedAudience) return;
+    const { pool, usedFilter } = filterKeywords(selectedCategory, selectedAudience);
+    filteredPool = pool;
+    usedAudienceFilter = usedFilter;
+    step1Complete = true;
+    tablePage = 0;
+    resetStep2();
+    setStepState(1, { locked: false, collapsed: true, complete: true });
+    setStepState(2, { locked: false, collapsed: false, complete: false });
+    renderKeywordTable();
+    renderKeywordSlots();
+    renderSelectionSummary();
+  });
+
+  $('step-1-summary').addEventListener('click', () => {
+    setStepState(1, { locked: false, collapsed: false, complete: step1Complete });
+  });
+
+  // Step 2
+  $('suggest-top7-btn').addEventListener('click', () => {
+    pickedKeywords = suggestTop7(filteredPool);
+    if (step2Complete) resetDownstreamFromStep2();
+    renderKeywordTable();
+    renderKeywordSlots();
+    renderSelectionSummary();
+    updateContinueGenerateBtn();
+  });
+
+  $('clear-all-btn').addEventListener('click', () => {
+    pickedKeywords = new Array(7).fill(null);
+    if (step2Complete) resetDownstreamFromStep2();
+    renderKeywordTable();
+    renderKeywordSlots();
+    renderSelectionSummary();
+    updateContinueGenerateBtn();
+  });
+
+  $('kw-search').addEventListener('input', (e) => {
+    tableSearch = e.target.value.trim();
+    tablePage = 0;
+    renderKeywordTable();
+  });
+
+  $('kw-sort-select').addEventListener('change', (e) => {
+    const [col, dir] = e.target.value.split('_');
+    tableSort = { col, dir };
+    tablePage = 0;
+    renderKeywordTable();
+  });
+
+  document.querySelector('.kw-table thead').addEventListener('click', (e) => {
+    const th = e.target.closest('[data-sort]');
+    if (!th) return;
+    const col = th.dataset.sort;
+    if (tableSort.col === col) tableSort.dir = tableSort.dir === 'asc' ? 'desc' : 'asc';
+    else { tableSort.col = col; tableSort.dir = col === 'keyword' ? 'asc' : 'desc'; }
+    $('kw-sort-select').value = tableSort.col + '_' + tableSort.dir;
+    renderKeywordTable();
+  });
+
+  $('kw-table-body').addEventListener('click', (e) => {
+    const row = e.target.closest('tr[data-kw]');
+    if (!row) return;
+    const kw = filteredPool.find((k) => k.keyword === row.dataset.kw);
+    if (kw) toggleKeyword(kw);
+  });
+
+  $('kw-pagination').addEventListener('click', (e) => {
+    if (e.target.id === 'kw-prev' && tablePage > 0) { tablePage--; renderKeywordTable(); }
+    if (e.target.id === 'kw-next') { tablePage++; renderKeywordTable(); }
+  });
+
+  $('keyword-slots').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove-slot]');
+    if (btn) removeSlot(parseInt(btn.dataset.removeSlot, 10));
+  });
+
+  $('continue-generate-btn').addEventListener('click', () => {
+    if (getFilledKeywords().length !== 7) return;
+    step2Complete = true;
+    updateStep3Recap();
+    resetStep3();
+    setStepState(2, { locked: false, collapsed: true, complete: true });
+    setStepState(3, { locked: false, collapsed: false, complete: false });
+  });
+
+  $('step-2-summary').addEventListener('click', () => {
+    $('step2-cascade-warn').classList.add('visible');
+    setStepState(2, { locked: false, collapsed: false, complete: step2Complete });
+  });
+
+  $('step-3-summary').addEventListener('click', () => {
+    if (!step2Complete) return;
+    setStepState(3, { locked: false, collapsed: false, complete: hasGenerated });
+  });
+
+  // Step 3
+  $('generate-btn').addEventListener('click', runGeneration);
+  $('regen-titles').addEventListener('click', regenTitles);
+  $('regen-subtitles').addEventListener('click', regenSubtitles);
+  $('regen-desc').addEventListener('click', () => regenDescription());
+  $('try-style-btn').addEventListener('click', () => regenDescription(DESCRIPTION_STYLES[currentDescStyleIndex % DESCRIPTION_STYLES.length]));
+
+  document.addEventListener('click', (e) => {
+    const copyBtn = e.target.closest('[data-copy]');
+    if (copyBtn) { copyText(getCopyText(copyBtn.dataset.copy), copyBtn); return; }
+    const titleCard = e.target.closest('[data-select-title]');
+    if (titleCard) { selectedTitleIdx = parseInt(titleCard.dataset.selectTitle, 10); renderTitles(); renderSubtitles(); return; }
+    const subCard = e.target.closest('[data-select-subtitle]');
+    if (subCard) { selectedSubtitleIdx = parseInt(subCard.dataset.selectSubtitle, 10); renderTitles(); renderSubtitles(); }
+  });
+
+  $('copy-all-keywords').addEventListener('click', (e) => copyText(getFilledKeywords().map((k) => k.keyword).join(', '), e.target));
+  $('copy-preview').addEventListener('click', (e) => copyText(description.preview || stripHtml(description.html), e.target));
+  $('copy-html').addEventListener('click', (e) => copyText(description.html, e.target));
+  $('copy-everything').addEventListener('click', (e) => copyText(buildEverythingBlock(), e.target));
+
+  document.querySelectorAll('.tab-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      const isPreview = btn.dataset.tab === 'preview';
+      $('desc-preview-pane').hidden = !isPreview;
+      $('desc-html-pane').hidden = isPreview;
+    });
+  });
+
+  $('ai-badge').addEventListener('click', () => {
+    $('masked-key-display').textContent = maskKey(sessionKey || apiKey || getStoredKey());
+    $('key-modal').classList.add('visible');
+  });
+  $('close-key-modal').addEventListener('click', () => $('key-modal').classList.remove('visible'));
+  $('key-modal').addEventListener('click', (e) => { if (e.target === $('key-modal')) $('key-modal').classList.remove('visible'); });
+  $('replace-key-btn').addEventListener('click', () => { $('key-modal').classList.remove('visible'); $('api-key-input').value = ''; showScreen('setup'); });
+  $('remove-key-btn').addEventListener('click', () => {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
+    apiKey = null; sessionKey = null; aiConnected = false;
+    updateAiBadge();
+    $('key-modal').classList.remove('visible');
+    showScreen('setup');
+  });
+  $('faq-btn').addEventListener('click', () => $('faq-modal').classList.add('visible'));
+  $('close-faq-modal').addEventListener('click', () => $('faq-modal').classList.remove('visible'));
+  $('faq-modal').addEventListener('click', (e) => { if (e.target === $('faq-modal')) $('faq-modal').classList.remove('visible'); });
+  $('enter-new-key-btn').addEventListener('click', () => { setErrorBanner(false); showScreen('setup'); });
+
+  initApp();
+})();
+
+</script>
+
+</body>
+</html>

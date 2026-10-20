@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>KDP margin &amp; layout tests — WYR Book Studio</title>
+<style>
+  body { font: 14px/1.6 system-ui, sans-serif; margin: 24px; max-width: 900px; }
+  h1 { font-size: 20px; }
+  .summary { padding: 12px 16px; border-radius: 10px; font-weight: 700; margin: 16px 0; }
+  .summary.pass { background: #e6f6ec; color: #17864a; }
+  .summary.fail { background: #fdeaea; color: #c0392b; }
+  .summary.busy { background: #f1f1f5; color: #555; }
+  ol { padding-left: 22px; }
+  li { margin-bottom: 4px; }
+  .PASS { color: #17864a; font-weight: 700; }
+  .FAIL { color: #c0392b; font-weight: 700; }
+  .why { color: #777; }
+</style>
+</head>
+<body>
+<h1>KDP margin &amp; layout engine tests</h1>
+<p>Double-click this file to run it in a browser. It takes a few seconds because it really does build a 500 question book.</p>
+<div id="summary" class="summary busy">Running…</div>
+<ol id="results"></ol>
+
+<script src="../js/namespace.js"></script>
+<script src="../lib/jspdf.umd.min.js"></script>
+<script src="../fonts/baloo2-bold.js"></script>
+<script src="../fonts/nunito-regular.js"></script>
+<script src="../fonts/nunito-bold.js"></script>
+<script src="../fonts/nunito-italic.js"></script>
+<script src="../js/config.js"></script>
+<script src="../js/state.js"></script>
+<script src="../js/prompt.js"></script>
+<script src="../js/parser.js"></script>
+<script src="../js/kdp.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/render-pdf.js"></script>
+<script src="../sample/sample-data.js"></script>
+<script>
+(function () {
+  var W = window.WYR, C = W.config, K = W.kdp;
+  var results = [];
+
+  function test(name, fn) {
+    try { fn(); results.push({ name: name, ok: true, why: '' }); }
+    catch (e) { results.push({ name: name, ok: false, why: e.message }); }
+  }
+  function assert(c, m) { if (!c) throw new Error(m || 'assert failed'); }
+  function eq(a, b, m) {
+    if (a !== b) throw new Error((m || 'mismatch') + ': ' + JSON.stringify(a) + ' ≠ ' + JSON.stringify(b));
+  }
+  function near(a, b, m) {
+    if (Math.abs(a - b) > 0.0005) throw new Error((m || 'mismatch') + ': ' + a + ' ≠ ' + b);
+  }
+
+  function project(overrides) {
+    var d = W.state.defaults();
+    d.questions = W.sample.questions.map(function (q) { return JSON.parse(JSON.stringify(q)); });
+    d.book.title = 'Would You Rather Book for Kids';
+    d.book.subtitle = '200 Hilarious Questions';
+    d.book.author = 'Test Studio';
+    if (overrides) overrides(d);
+    return d;
+  }
+
+  /* ---------------- the KDP margin table ---------------- */
+  test('Gutter table by page count', function () {
+    eq(K.minGutter(24), 0.375, '24 pages');
+    eq(K.minGutter(150), 0.375, '150 pages');
+    eq(K.minGutter(151), 0.5, '151 pages');
+    eq(K.minGutter(300), 0.5, '300 pages');
+    eq(K.minGutter(301), 0.625, '301 pages');
+    eq(K.minGutter(500), 0.625, '500 pages');
+    eq(K.minGutter(501), 0.75, '501 pages');
+    eq(K.minGutter(701), 0.875, '701 pages');
+    eq(K.minGutter(828), 0.875, '828 pages');
+  });
+
+  test('Printed margins are safer than the minimum', function () {
+    var m = K.margins('6x9', 120);
+    near(m.gutter, 0.5, 'gutter = 0.375 + 0.125');
+    assert(m.gutter > K.minGutter(120), 'must beat the KDP minimum');
+    near(m.outside, 0.5, 'outside margin, small trim');
+    near(K.margins('8.5x11', 120).outside, 0.6, 'outside margin, large trim');
+  });
+
+  test('Mirrored margins: odd on the right, even on the left', function () {
+    var m = K.margins('6x9', 120);
+    var odd = K.safeArea('6x9', 1, m);
+    var even = K.safeArea('6x9', 2, m);
+    near(odd.x, m.gutter, 'odd page: gutter on the left');
+    near(even.x, m.outside, 'even page: outside margin on the left');
+    near(odd.w, 6 - m.gutter - m.outside, 'safe area width');
+    near(odd.w, even.w, 'both sides are equally wide');
+  });
+
+  test('Items outside the safe area are caught', function () {
+    var m = K.margins('6x9', 100);
+    var page = { no: 1, ops: [{ type: 'rect', x: 0.1, y: 0.1, w: 1, h: 1 }] };
+    assert(K.assertInSafeArea(page, '6x9', m).length === 1, 'should catch the box outside');
+    var page2 = { no: 1, ops: [{ type: 'rect', x: m.gutter, y: m.top, w: 1, h: 1 }] };
+    eq(K.assertInSafeArea(page2, '6x9', m).length, 0, 'a box inside the margins is fine');
+  });
+
+  /* ---------------- the engine ---------------- */
+  var book = null;
+  test('The sample book builds at 6x9', function () {
+    book = W.layout.build(project());
+    assert(book.pages.length > 0, 'there must be pages');
+    eq(book.trim, '6x9', 'trim size');
+    assert(book.audit.ok, 'audit: ' + book.audit.errors.join(' | '));
+  });
+
+  test('Every item sits inside the safe area', function () {
+    var bad = 0;
+    for (var i = 0; i < book.pages.length; i++) {
+      bad += K.assertInSafeArea(book.pages[i], book.trim, book.margins).length;
+    }
+    eq(bad, 0, 'items outside the safe area');
+  });
+
+  test('No text under 9pt and no line thinner than 0.75pt', function () {
+    var tiny = 0, thin = 0;
+    book.pages.forEach(function (p) {
+      p.ops.forEach(function (op) {
+        if (op.type === 'text' && op.size < C.MIN_FONT_PT - 0.001) tiny++;
+        if (op.lineWidth && op.lineWidth < C.MIN_LINE_PT - 0.001) thin++;
+      });
+    });
+    eq(tiny, 0, 'text that is too small');
+    eq(thin, 0, 'lines that are too thin');
+  });
+
+  test('Title and copyright pages carry no folio', function () {
+    var numbered = book.pages.filter(function (p) {
+      return p.ops.some(function (op) {
+        return op.type === 'text' && op.lines.length === 1 && op.lines[0] === String(p.no);
+      });
+    });
+    assert(numbered.indexOf(book.pages[0]) < 0, 'page 1 must have no page number');
+    assert(numbered.indexOf(book.pages[1]) < 0, 'page 2 must have no page number');
+    assert(numbered.length > 10, 'content pages must be numbered');
+  });
+
+  test('Never two blank pages in a row', function () {
+    var run = 0, worst = 0;
+    book.pages.forEach(function (p) {
+      if (p.ops.length === 0) { run++; worst = Math.max(worst, run); } else run = 0;
+    });
+    assert(worst <= 1, 'longest run of blanks is ' + worst);
+  });
+
+  test('The page count is always even', function () {
+    eq(book.pages.length % 2, 0, 'total pages');
+  });
+
+  test('Gutter matches the KDP table once the page count is known', function () {
+    near(book.margins.gutter, K.minGutter(book.pages.length) + C.GUTTER_SAFETY, 'final gutter');
+  });
+
+  test('A book under 24 pages is rejected', function () {
+    var thin = W.layout.build(project(function (d) {
+      d.questions = d.questions.slice(0, 3);
+      d.layout.sections = { howTo: false, answers: false, chapters: false, yourTurn: false, thankYou: false };
+    }));
+    assert(thin.pages.length < C.MIN_PAGES, 'the test book must be thin');
+    assert(!thin.audit.ok, 'the audit must fail');
+    assert(thin.audit.errors.join(' ').indexOf('24') >= 0, 'the error should mention the 24 page floor');
+  });
+
+  test('Two per page uses fewer pages than one per page', function () {
+    var one = W.layout.build(project(function (d) { d.layout.perPage = 1; }));
+    var two = W.layout.build(project(function (d) { d.layout.perPage = 2; }));
+    assert(two.pages.length < one.pages.length,
+      'two per page: ' + two.pages.length + ', one per page: ' + one.pages.length);
+    assert(two.audit.ok, 'audit, two per page: ' + two.audit.errors.join(' | '));
+  });
+
+  test('A Vietnamese book lays out with its diacritics intact', function () {
+    var vi = W.layout.build(project(function (d) {
+      d.setup.language = 'vi';
+      d.questions.forEach(function (q) {
+        q.a = 'được bay lượn nhưng chỉ cách mặt đất hai gang tay';
+        q.b = 'tàng hình nhưng chỉ khi không ai nhìn bạn';
+      });
+    }));
+    assert(vi.audit.ok, 'audit: ' + vi.audit.errors.join(' | '));
+    var found = false;
+    vi.pages.forEach(function (p) {
+      p.ops.forEach(function (op) {
+        if (op.type === 'text' && op.lines.join(' ').indexOf('tàng hình') >= 0) found = true;
+      });
+    });
+    assert(found, 'accented Vietnamese should appear in the display list');
+  });
+
+  test('Every trim size builds', function () {
+    C.TRIM_ORDER.forEach(function (id) {
+      var b = W.layout.build(project(function (d) {
+        d.layout.trim = id;
+        d.layout.perPage = C.TRIMS[id].perPage;
+      }));
+      assert(b.audit.ok, id + ': ' + b.audit.errors.join(' | '));
+    });
+  });
+
+  test('A 500 question book still complies, with a wider gutter', function () {
+    var big = W.layout.build(project(function (d) {
+      var base = d.questions.slice();
+      d.questions = [];
+      for (var i = 0; i < 500; i++) {
+        var src = base[i % base.length];
+        d.questions.push({
+          id: i + 1, cat: src.cat,
+          a: src.a + ' number ' + (i + 1), b: src.b + ' version ' + (i + 1),
+          why_hard: src.why_hard, a_plus: src.a_plus, b_plus: src.b_plus,
+          bonus: src.bonus, warnings: []
+        });
+      }
+      d.layout.trim = '8.5x11';
+      d.layout.perPage = 2;
+    }));
+    assert(big.pages.length > 150, 'should be thick: ' + big.pages.length + ' pages');
+    assert(big.audit.ok, 'audit: ' + big.audit.errors.join(' | '));
+    near(big.margins.gutter, K.minGutter(big.pages.length) + C.GUTTER_SAFETY, 'gutter');
+  });
+
+  test('The PDF page is exactly the trim size', function () {
+    var doc = W.typeset.newDoc(6, 9);
+    var size = doc.internal.pageSize;
+    near(size.getWidth(), 6, 'width in inches');
+    near(size.getHeight(), 9, 'height in inches');
+    var list = doc.getFontList();
+    assert(list.Baloo2 && list.Nunito, 'both fonts must be registered with jsPDF');
+  });
+
+  test('Preview and PDF break lines the same way', function () {
+    // Both renderers consume the very same pre-wrapped lines, so this checks
+    // that every text op really does carry its lines instead of raw strings.
+    var strings = 0;
+    book.pages.forEach(function (p) {
+      p.ops.forEach(function (op) {
+        if (op.type === 'text' && !Array.isArray(op.lines)) strings++;
+      });
+    });
+    eq(strings, 0, 'text ops that were not pre-wrapped');
+  });
+
+  /* ---------------- report ---------------- */
+  var host = document.getElementById('results');
+  var failed = 0;
+  results.forEach(function (r) {
+    if (!r.ok) failed++;
+    var li = document.createElement('li');
+    li.innerHTML = '<span class="' + (r.ok ? 'PASS' : 'FAIL') + '">' + (r.ok ? 'PASS' : 'FAIL') +
+      '</span> ' + r.name + (r.ok ? '' : ' <span class="why">— ' + r.why + '</span>');
+    host.appendChild(li);
+  });
+  var box = document.getElementById('summary');
+  box.className = 'summary ' + (failed ? 'fail' : 'pass');
+  box.textContent = failed
+    ? failed + ' of ' + results.length + ' tests FAILED'
+    : 'All ' + results.length + ' tests PASSED ✓';
+})();
+</script>
+</body>
+</html>

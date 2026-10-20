@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coaster Niche Profit Scanner</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Fraunces', 'Georgia', 'serif'],
+            body: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            peach: { DEFAULT: '#f89a87', light: '#fae8e5' },
+            sage: '#dae7e2',
+            taupe: { DEFAULT: '#856149', light: '#a6846f' },
+            base: '#fdf9f1',
+            slate: '#5c6e83',
+            export: { DEFAULT: '#ef9e82', hover: '#e78f71' },
+            success: '#5d9c70',
+            warning: '#e58a4d',
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    :root {
+      --color-peach: #f89a87;
+      --color-peach-light: #fae8e5;
+      --color-sage: #dae7e2;
+      --color-taupe: #856149;
+      --color-taupe-light: #a6846f;
+      --color-base: #fdf9f1;
+      --color-slate: #5c6e83;
+      --color-yellow: #f2ad4d;
+      --color-export-btn: #ef9e82;
+      --color-success: #5d9c70;
+      --color-card-border: rgba(133, 97, 73, 0.12);
+    }
+    body { background: var(--color-base); color: var(--color-taupe-light); }
+    *:focus-visible { outline: 2px solid var(--color-peach); outline-offset: 2px; }
+    .niche-card { transition: transform 200ms ease, box-shadow 200ms ease; border: 1px solid var(--color-card-border); }
+    .niche-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(133, 97, 73, 0.12); }
+    .niche-card.selected { border-color: var(--color-peach); box-shadow: 0 0 0 1px var(--color-peach); }
+    #mobile-detail-panel { transition: transform 250ms ease-out; transform: translateY(100%); }
+    #mobile-detail-panel.open { transform: translateY(0); }
+    .chip-copied { background: var(--color-success) !important; color: white !important; }
+    .score-dots .filled { color: var(--color-taupe); }
+    .score-dots .empty { color: rgba(133, 97, 73, 0.2); }
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    input[type="range"] { accent-color: var(--color-peach); }
+    .filter-toggle:active { transform: scale(0.97); }
+    .toast-enter { animation: toastIn 250ms ease-out; }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    .comp-accent-low { border-top: 3px solid #5d9c70; }
+    .comp-accent-medium { border-top: 3px solid #f2ad4d; }
+    .comp-accent-high { border-top: 3px solid #e58a4d; }
+    .comp-accent-very_high { border-top: 3px solid #b08080; }
+    .stat-label { font-size: 10px; letter-spacing: 0.04em; line-height: 1.25; overflow-wrap: break-word; }
+    .stat-box { min-width: 0; min-height: 4.25rem; }
+  </style>
+</head>
+<body class="font-body text-sm antialiased">
+  <!-- Loading / error states -->
+  <div id="loading-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-base">
+    <div class="text-center">
+      <div class="font-display text-2xl text-taupe mb-2">Loading niches…</div>
+      <p class="text-slate">Reading market research data</p>
+    </div>
+  </div>
+  <div id="error-screen" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-base p-6">
+    <div class="max-w-md text-center bg-white rounded-md p-8 border border-[rgba(133,97,73,0.12)]">
+      <h2 class="font-display text-xl text-taupe mb-3">Could not load niche data</h2>
+      <p class="text-slate mb-4">Please check your internet connection and try again. This tool loads market data from an online source.</p>
+      <button id="retry-load-btn" type="button" class="bg-export hover:bg-export-hover text-white px-6 py-2.5 rounded font-medium transition-colors">Try again</button>
+    </div>
+  </div>
+
+  <div id="app" class="hidden min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="border-b border-[rgba(133,97,73,0.12)] bg-white/80 backdrop-blur-sm sticky top-0 z-30">
+      <div class="max-w-[1400px] mx-auto px-4 py-5 md:py-6">
+        <div class="flex flex-wrap items-start gap-4 justify-between">
+          <div>
+            <div class="flex items-center gap-3 mb-1">
+              <span class="font-display text-lg font-semibold text-peach italic">CE</span>
+              <span class="text-xs uppercase tracking-wider text-slate bg-peach-light px-2 py-0.5 rounded">Bonus for Coaster Empire owners</span>
+            </div>
+            <h1 id="tool-title" class="font-display text-2xl md:text-[32px] font-semibold text-taupe leading-tight">Coaster Niche Profit Scanner</h1>
+            <p id="tool-subtitle" class="text-slate mt-1 max-w-2xl italic font-display text-base">51 researched coaster niches with real Etsy market data. Find your next profitable design.</p>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Stats bar -->
+    <section class="bg-sage/40 border-b border-[rgba(133,97,73,0.08)]" aria-label="Statistics">
+      <div class="max-w-[1400px] mx-auto px-4 py-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+          <div><span id="stat-niches" class="font-display text-2xl font-semibold text-taupe">0</span><p class="text-xs uppercase tracking-wider text-slate mt-0.5">Niches researched</p></div>
+          <div><span id="stat-categories" class="font-display text-2xl font-semibold text-taupe">0</span><p class="text-xs uppercase tracking-wider text-slate mt-0.5">Categories covered</p></div>
+          <div><span id="stat-low-comp" class="font-display text-2xl font-semibold text-taupe">0</span><p class="text-xs uppercase tracking-wider text-slate mt-0.5">Low-competition opportunities</p></div>
+          <div><span id="stat-trends" class="font-display text-2xl font-semibold text-taupe">0</span><p class="text-xs uppercase tracking-wider text-slate mt-0.5">Exploding/rising trends</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mobile filter toggle -->
+    <div class="md:hidden sticky top-[var(--header-offset,0)] z-20 bg-white border-b border-[rgba(133,97,73,0.12)] px-4 py-2">
+      <button id="mobile-filter-toggle" class="w-full flex items-center justify-between py-2 text-taupe font-medium" aria-expanded="false" aria-controls="filters-sidebar">
+        <span>Filters &amp; Sort</span>
+        <span id="filter-toggle-icon" aria-hidden="true">▼</span>
+      </button>
+    </div>
+
+    <main class="flex-1 max-w-[1400px] mx-auto w-full px-4 py-5">
+      <div class="flex flex-col md:flex-row gap-5">
+        <!-- Filters sidebar -->
+        <aside id="filters-sidebar" class="hidden md:block w-full md:w-[260px] flex-shrink-0 md:sticky md:top-28 md:self-start md:max-h-[calc(100vh-8rem)] md:overflow-y-auto" aria-label="Filters">
+          <div class="bg-white rounded-md border border-[rgba(133,97,73,0.12)] p-4 space-y-5">
+            <div>
+              <label for="search-input" class="text-xs uppercase tracking-wider text-slate font-medium block mb-1.5">Search</label>
+              <input type="search" id="search-input" placeholder="Search niches, keywords, or occasions…" class="w-full border border-[rgba(133,97,73,0.2)] rounded px-3 py-2 text-taupe bg-base focus:border-peach">
+            </div>
+
+            <fieldset>
+              <legend class="text-xs uppercase tracking-wider text-slate font-medium mb-2">Category</legend>
+              <div id="category-filters" class="space-y-1.5"></div>
+            </fieldset>
+
+            <fieldset>
+              <legend class="text-xs uppercase tracking-wider text-slate font-medium mb-2">Competition</legend>
+              <div id="competition-filters" class="space-y-1.5"></div>
+            </fieldset>
+
+            <div>
+              <label for="score-slider" class="text-xs uppercase tracking-wider text-slate font-medium block mb-2">Opportunity score</label>
+              <input type="range" id="score-slider" min="1" max="10" value="1" class="w-full">
+              <p id="score-label" class="text-taupe mt-1">Min opportunity: 1+</p>
+            </div>
+
+            <fieldset>
+              <legend class="text-xs uppercase tracking-wider text-slate font-medium mb-2">Trend signal</legend>
+              <div id="trend-filters" class="space-y-1.5"></div>
+            </fieldset>
+
+            <fieldset>
+              <legend class="text-xs uppercase tracking-wider text-slate font-medium mb-2">Format</legend>
+              <div id="format-filters" class="space-y-1.5"></div>
+            </fieldset>
+
+            <div>
+              <label for="sort-select" class="text-xs uppercase tracking-wider text-slate font-medium block mb-1.5">Sort by</label>
+              <select id="sort-select" class="w-full border border-[rgba(133,97,73,0.2)] rounded px-3 py-2 text-taupe bg-base">
+                <option value="score_desc">Opportunity score (high → low)</option>
+                <option value="price_desc">Price max (high → low)</option>
+                <option value="competition_asc">Competition (low → high)</option>
+                <option value="trend_desc">Trend signal (exploding first)</option>
+                <option value="name_asc">Name (A → Z)</option>
+              </select>
+            </div>
+
+            <button id="reset-filters" type="button" class="w-full border border-[rgba(133,97,73,0.2)] text-taupe py-2 rounded hover:bg-peach-light transition-colors filter-toggle">Reset filters</button>
+          </div>
+        </aside>
+
+        <!-- Grid + detail -->
+        <div class="flex-1 flex gap-5 min-w-0">
+          <section class="flex-1 min-w-0" aria-label="Niche results">
+            <p id="results-count" class="text-slate text-xs uppercase tracking-wider mb-3"></p>
+            <div id="niche-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-5"></div>
+            <div id="empty-state" class="hidden text-center py-16 px-4">
+              <div class="text-4xl mb-4" aria-hidden="true">🔍</div>
+              <h2 class="font-display text-xl text-taupe mb-2">No niches match your filters</h2>
+              <p class="text-slate mb-4">Try widening competition or lowering opportunity score.</p>
+              <button type="button" id="empty-reset" class="bg-export hover:bg-export-hover text-white px-6 py-2.5 rounded font-medium">Reset filters</button>
+            </div>
+          </section>
+
+          <!-- Detail panel (desktop sticky) -->
+          <aside id="detail-panel" class="hidden md:flex md:flex-col w-[420px] flex-shrink-0 md:sticky md:top-28 md:self-start md:min-h-[420px] md:max-h-[calc(100vh-8rem)] overflow-y-auto bg-white rounded-md border border-[rgba(133,97,73,0.12)]" aria-label="Niche details" aria-hidden="true">
+            <div id="detail-content" class="p-5 hidden"></div>
+            <div id="detail-placeholder" class="flex flex-1 flex-col items-center justify-center p-8 text-center text-slate">
+              <p class="font-display text-lg text-taupe mb-2">Select a niche</p>
+              <p class="text-sm max-w-[260px]">Click a card to view keywords, tags, and pro tips.</p>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </main>
+
+    <!-- Mobile detail overlay -->
+    <div id="mobile-detail-overlay" class="fixed inset-0 z-40 hidden md:hidden" role="dialog" aria-modal="true" aria-labelledby="mobile-detail-title">
+      <div id="mobile-backdrop" class="absolute inset-0 bg-black/40"></div>
+      <div id="mobile-detail-panel" class="absolute inset-x-0 bottom-0 top-12 bg-white rounded-t-md overflow-y-auto">
+        <div id="mobile-detail-content" class="p-5 pb-8"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-taupe text-white px-5 py-2.5 rounded-md shadow-lg text-sm toast-enter" role="status" aria-live="polite"></div>
+
+  <script>
+    /* ============================================================
+       BRAND CONSTANTS — update these before distributing
+       ============================================================ */
+    const BRAND = {
+      toolName: 'Coaster Niche Profit Scanner',
+      brandName: '[YOUR BRAND NAME — update this]',
+      brandUrl: '[YOUR BRAND URL]',
+      bonusFor: 'Coaster Empire',
+      bonusForUrl: 'https://warriorplus.com/o2/buy/vxjjj3/tk6qdn/nvsp5f',
+      supportEmail: '[YOUR SUPPORT EMAIL]',
+      releaseDate: 'June 2026',
+    };
+
+    const DATA_URL = 'https://raw.githubusercontent.com/vanloc19bk96/affiliate-bonuses-data/refs/heads/master/coaster-empire-data.json';
+
+    const CATEGORY_LABELS = {
+      occasion: 'Occasions',
+      interest: 'Interests',
+      aesthetic: 'Aesthetic',
+      seasonal: 'Seasonal',
+      car: 'Car Coasters',
+      sport_hobby: 'Sport/Hobby',
+      animal: 'Animal',
+      humor: 'Humor',
+      personalization: 'Personalization',
+    };
+
+    const CATEGORY_COLORS = {
+      occasion: 'bg-peach-light text-taupe',
+      interest: 'bg-sage text-taupe',
+      aesthetic: 'bg-[#d6e2e9] text-taupe',
+      seasonal: 'bg-[#f2e8d4] text-taupe',
+      car: 'bg-[#e8ddd4] text-taupe',
+      sport_hobby: 'bg-[#dae7e2] text-taupe',
+      animal: 'bg-peach-light text-taupe',
+      humor: 'bg-[#f2e8d4] text-taupe',
+      personalization: 'bg-sage text-taupe',
+    };
+
+    const COMPETITION_LABELS = {
+      low: 'Low',
+      medium: 'Medium',
+      high: 'High',
+      very_high: 'Very High',
+    };
+
+    const COMPETITION_ORDER = { low: 0, medium: 1, high: 2, very_high: 3 };
+
+    const TREND_CONFIG = {
+      exploding: { emoji: '🚀', label: 'Exploding' },
+      rising: { emoji: '📈', label: 'Rising' },
+      steady: { emoji: '➡️', label: 'Steady' },
+      declining: { emoji: '📉', label: 'Declining' },
+    };
+
+    const TREND_ORDER = { exploding: 0, rising: 1, steady: 2, declining: 3 };
+
+    const FORMAT_CONFIG = {
+      physical_coaster: { label: 'Physical coaster', icon: '🥤' },
+      digital_png_template: { label: 'Digital PNG template', icon: '🖼️' },
+      sublimation: { label: 'Sublimation', icon: '🎨' },
+      pod_printify: { label: 'POD (Printify)', icon: '🏷️' },
+    };
+
+    const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const STORAGE_KEY = 'coasterScannerFilters';
+
+    // First load: show all niches (acceptance criteria). Reset applies recommended defaults.
+    const INITIAL_FILTERS = {
+      search: '',
+      categories: null,
+      competition: null,
+      minScore: 1,
+      trends: null,
+      formats: null,
+      sort: 'score_desc',
+    };
+
+    const RESET_FILTERS = {
+      search: '',
+      categories: null,
+      competition: ['low'],
+      minScore: 7,
+      trends: null,
+      formats: null,
+      sort: 'score_desc',
+    };
+
+    let db = null;
+    let filters = { ...INITIAL_FILTERS };
+    let selectedNicheId = null;
+    let searchDebounceTimer = null;
+    let focusTrapHandler = null;
+
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => document.querySelectorAll(sel);
+
+    function safeArray(val) {
+      return Array.isArray(val) ? val : [];
+    }
+
+    function safeString(val) {
+      return typeof val === 'string' ? val : '';
+    }
+
+    function formatPrice(niche) {
+      const min = niche.price_min ?? 0;
+      const max = niche.price_max ?? 0;
+      const unit = safeString(niche.price_unit) || 'per item';
+      return `$${min.toFixed(2)}–$${max.toFixed(2)} (${unit})`;
+    }
+
+    function formatPriceShort(niche) {
+      const min = niche.price_min ?? 0;
+      const max = niche.price_max ?? 0;
+      return `$${min.toFixed(2)}–$${max.toFixed(2)}`;
+    }
+
+    function getScoreColor(score) {
+      if (score >= 9) return 'text-success';
+      if (score >= 7) return 'text-[#f2ad4d]';
+      if (score >= 5) return 'text-warning';
+      return 'text-slate';
+    }
+
+    function getScoreDescriptor(score) {
+      if (score >= 9) return 'Excellent opportunity';
+      if (score >= 7) return 'High opportunity';
+      if (score >= 5) return 'Moderate opportunity';
+      return 'Lower opportunity';
+    }
+
+    function renderScoreDots(score) {
+      const filled = Math.min(10, Math.max(0, Math.round(score)));
+      let html = '';
+      for (let i = 1; i <= 10; i++) {
+        html += `<span class="${i <= filled ? 'filled' : 'empty'}">●</span>`;
+      }
+      return html;
+    }
+
+    function renderCompDots(tier) {
+      const map = { low: 2, medium: 3, high: 4, very_high: 4 };
+      const filled = map[tier] ?? 2;
+      let html = '';
+      for (let i = 1; i <= 4; i++) {
+        html += `<span class="${i <= filled ? 'filled' : 'empty'}">●</span>`;
+      }
+      return html;
+    }
+
+    function formatPeakMonths(months) {
+      const arr = safeArray(months);
+      if (!arr.length) return 'Year-round';
+      const sorted = [...arr].sort((a, b) => a - b);
+      const groups = [];
+      let start = sorted[0];
+      let end = sorted[0];
+      for (let i = 1; i < sorted.length; i++) {
+        if (sorted[i] === end + 1) {
+          end = sorted[i];
+        } else {
+          groups.push(start === end ? MONTH_NAMES[start - 1] : `${MONTH_NAMES[start - 1]}–${MONTH_NAMES[end - 1]}`);
+          start = end = sorted[i];
+        }
+      }
+      groups.push(start === end ? MONTH_NAMES[start - 1] : `${MONTH_NAMES[start - 1]}–${MONTH_NAMES[end - 1]}`);
+      return groups.join(' · ');
+    }
+
+    function getCategoryCounts() {
+      const counts = {};
+      safeArray(db?.niches).forEach((n) => {
+        const cat = n.category || 'other';
+        counts[cat] = (counts[cat] || 0) + 1;
+      });
+      return counts;
+    }
+
+    function getActiveCategories() {
+      return Object.keys(CATEGORY_LABELS).filter((c) =>
+        safeArray(db?.niches).some((n) => n.category === c)
+      );
+    }
+
+    function isFilterActive(selected, value) {
+      if (selected === null) return true;
+      return selected.includes(value);
+    }
+
+    function nicheMatchesSearch(niche, query) {
+      if (!query) return true;
+      const q = query.toLowerCase();
+      const fields = [
+        safeString(niche.name),
+        safeString(niche.design_angles),
+        ...safeArray(niche.top_keywords),
+        ...safeArray(niche.gift_occasions),
+      ].join(' ').toLowerCase();
+      return fields.includes(q);
+    }
+
+    function nicheMatchesFormat(niche, selectedFormats) {
+      if (selectedFormats === null) return true;
+      const formats = safeArray(niche.formats);
+      return selectedFormats.some((f) => formats.includes(f));
+    }
+
+    function filterNiches() {
+      return safeArray(db?.niches).filter((niche) => {
+        if (!nicheMatchesSearch(niche, filters.search)) return false;
+        if (filters.categories !== null && !filters.categories.includes(niche.category)) return false;
+        if (filters.competition !== null && !filters.competition.includes(niche.competition_tier)) return false;
+        if ((niche.opportunity_score ?? 0) < filters.minScore) return false;
+        if (filters.trends !== null && !filters.trends.includes(niche.trend_signal)) return false;
+        if (!nicheMatchesFormat(niche, filters.formats)) return false;
+        return true;
+      });
+    }
+
+    function sortNiches(niches) {
+      const sorted = [...niches];
+      const compOrder = COMPETITION_ORDER;
+      const trendOrder = TREND_ORDER;
+
+      sorted.sort((a, b) => {
+        switch (filters.sort) {
+          case 'price_desc':
+            return (b.price_max ?? 0) - (a.price_max ?? 0) || (b.opportunity_score ?? 0) - (a.opportunity_score ?? 0);
+          case 'competition_asc':
+            return (compOrder[a.competition_tier] ?? 9) - (compOrder[b.competition_tier] ?? 9) || (b.opportunity_score ?? 0) - (a.opportunity_score ?? 0);
+          case 'trend_desc':
+            return (trendOrder[a.trend_signal] ?? 9) - (trendOrder[b.trend_signal] ?? 9) || (b.opportunity_score ?? 0) - (a.opportunity_score ?? 0);
+          case 'name_asc':
+            return safeString(a.name).localeCompare(safeString(b.name));
+          case 'score_desc':
+          default:
+            return (b.opportunity_score ?? 0) - (a.opportunity_score ?? 0) || safeString(a.name).localeCompare(safeString(b.name));
+        }
+      });
+      return sorted;
+    }
+
+    function animateCounter(el, target, duration = 800) {
+      const start = performance.now();
+      const from = 0;
+      function tick(now) {
+        const progress = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.round(from + (target - from) * eased);
+        if (progress < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    function updateStats() {
+      const niches = safeArray(db?.niches);
+      const categories = new Set(niches.map((n) => n.category)).size;
+      const lowComp = niches.filter((n) => n.competition_tier === 'low').length;
+      const risingTrends = niches.filter((n) => ['rising', 'exploding'].includes(n.trend_signal)).length;
+
+      animateCounter($('#stat-niches'), niches.length);
+      animateCounter($('#stat-categories'), categories);
+      animateCounter($('#stat-low-comp'), lowComp);
+      animateCounter($('#stat-trends'), risingTrends);
+    }
+
+    function buildCheckboxGroup(containerId, items, filterKey, prefix) {
+      const container = $(containerId);
+      container.innerHTML = items.map(({ value, label }) => {
+        const id = `${prefix}-${value}`;
+        const checked = isFilterActive(filters[filterKey], value);
+        const isChecked = filters[filterKey] === null ? true : checked;
+        return `<label class="flex items-center gap-2 cursor-pointer filter-toggle text-taupe">
+          <input type="checkbox" id="${id}" data-filter="${filterKey}" data-value="${value}" ${isChecked ? 'checked' : ''} class="rounded border-[rgba(133,97,73,0.3)] text-peach focus:ring-peach">
+          <span>${label}</span>
+        </label>`;
+      }).join('');
+    }
+
+    function renderFilterUI() {
+      const catCounts = getCategoryCounts();
+      const categories = getActiveCategories().map((cat) => ({
+        value: cat,
+        label: `${CATEGORY_LABELS[cat] || cat} (${catCounts[cat] || 0})`,
+      }));
+
+      buildCheckboxGroup('#category-filters', categories, 'categories', 'cat');
+
+      buildCheckboxGroup('#competition-filters', [
+        { value: 'low', label: 'Low' },
+        { value: 'medium', label: 'Medium' },
+        { value: 'high', label: 'High' },
+        { value: 'very_high', label: 'Very High' },
+      ], 'competition', 'comp');
+
+      buildCheckboxGroup('#trend-filters', [
+        { value: 'exploding', label: '🚀 Exploding' },
+        { value: 'rising', label: '📈 Rising' },
+        { value: 'steady', label: '➡️ Steady' },
+        { value: 'declining', label: '📉 Declining' },
+      ], 'trends', 'trend');
+
+      buildCheckboxGroup('#format-filters', Object.entries(FORMAT_CONFIG).map(([value, cfg]) => ({
+        value,
+        label: cfg.label,
+      })), 'formats', 'fmt');
+
+      $('#score-slider').value = filters.minScore;
+      $('#score-label').textContent = `Min opportunity: ${filters.minScore}+`;
+      $('#sort-select').value = filters.sort;
+      $('#search-input').value = filters.search;
+    }
+
+    function readMultiSelectFilter(filterKey, allValues) {
+      const checkboxes = $$(`input[data-filter="${filterKey}"]`);
+      const checked = [...checkboxes].filter((cb) => cb.checked).map((cb) => cb.dataset.value);
+      if (checked.length === 0 || checked.length === allValues.length) return null;
+      return checked;
+    }
+
+    function syncFiltersFromUI() {
+      filters.search = $('#search-input').value.trim();
+      filters.minScore = parseInt($('#score-slider').value, 10);
+      filters.sort = $('#sort-select').value;
+
+      const activeCats = getActiveCategories();
+      filters.categories = readMultiSelectFilter('categories', activeCats);
+      filters.competition = readMultiSelectFilter('competition', ['low', 'medium', 'high', 'very_high']);
+      filters.trends = readMultiSelectFilter('trends', ['exploding', 'rising', 'steady', 'declining']);
+      filters.formats = readMultiSelectFilter('formats', Object.keys(FORMAT_CONFIG));
+
+      saveFilters();
+    }
+
+    function saveFilters() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(filters));
+      } catch (_) { /* private mode — fail silently */ }
+    }
+
+    function loadSavedFilters() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          filters = { ...INITIAL_FILTERS, ...JSON.parse(saved) };
+          return true;
+        }
+      } catch (_) { /* ignore */ }
+      return false;
+    }
+
+    function renderNicheCard(niche) {
+      const trend = TREND_CONFIG[niche.trend_signal] || TREND_CONFIG.steady;
+      const catClass = CATEGORY_COLORS[niche.category] || 'bg-peach-light text-taupe';
+      const catLabel = CATEGORY_LABELS[niche.category] || niche.category;
+      const compLabel = COMPETITION_LABELS[niche.competition_tier] || niche.competition_tier;
+      const score = niche.opportunity_score ?? 0;
+      const keywords = safeArray(niche.top_keywords).slice(0, 3).join(' · ');
+      const isSelected = selectedNicheId === niche.id;
+
+      return `<article class="niche-card comp-accent-${niche.competition_tier || 'medium'} bg-white rounded-md p-4 cursor-pointer ${isSelected ? 'selected' : ''}" data-id="${niche.id}" tabindex="0" role="button" aria-pressed="${isSelected}">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs uppercase tracking-wider px-2 py-0.5 rounded ${catClass}">${catLabel}</span>
+          <span title="${trend.label}" aria-label="Trend: ${trend.label}">${trend.emoji}</span>
+        </div>
+        <h3 class="font-display text-lg text-taupe font-semibold line-clamp-2 mb-3 leading-snug">${safeString(niche.name)}</h3>
+        <div class="grid grid-cols-2 gap-2 mb-3 text-xs">
+          <div class="stat-box bg-base rounded p-2.5 flex flex-col">
+            <span class="stat-label text-slate uppercase block mb-1">Opportunity</span>
+            <span class="font-display font-semibold ${getScoreColor(score)}">${score}/10</span>
+            <div class="score-dots text-[8px] leading-none mt-auto pt-0.5">${renderScoreDots(score)}</div>
+          </div>
+          <div class="stat-box bg-base rounded p-2.5 flex flex-col">
+            <span class="stat-label text-slate uppercase block mb-1">Competition</span>
+            <span class="font-medium text-taupe">${compLabel}</span>
+            <div class="score-dots text-[8px] leading-none mt-auto pt-0.5">${renderCompDots(niche.competition_tier)}</div>
+          </div>
+        </div>
+        <p class="text-slate text-xs mb-2">Avg price: ${formatPriceShort(niche)}</p>
+        <p class="text-xs text-taupe-light truncate mb-3" title="${keywords}">Top keywords: ${keywords || '—'}</p>
+        <span class="text-peach text-xs font-medium">→ View details</span>
+      </article>`;
+    }
+
+    function renderCopyChip(text, index, type) {
+      const id = `${type}-chip-${index}`;
+      return `<button type="button" class="copy-chip inline-flex items-center gap-1.5 bg-base border border-[rgba(133,97,73,0.15)] rounded px-2.5 py-1 text-xs text-taupe hover:border-peach transition-colors" data-copy="${encodeURIComponent(text)}" id="${id}" aria-label="Copy ${type}: ${text}">
+        <span>${text}</span>
+        <svg class="w-3.5 h-3.5 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+      </button>`;
+    }
+
+    function renderDetailPanel(niche) {
+      if (!niche) return '';
+      const trend = TREND_CONFIG[niche.trend_signal] || TREND_CONFIG.steady;
+      const catLabel = CATEGORY_LABELS[niche.category] || niche.category;
+      const compLabel = COMPETITION_LABELS[niche.competition_tier] || niche.competition_tier;
+      const score = niche.opportunity_score ?? 0;
+      const keywords = safeArray(niche.top_keywords);
+      const tags = safeArray(niche.suggested_tags);
+      const occasions = safeArray(niche.gift_occasions);
+      const seoPhrases = safeArray(niche.seo_search_phrases);
+      const formats = safeArray(niche.formats);
+
+      const formatIcons = formats.map((f) => {
+        const cfg = FORMAT_CONFIG[f];
+        return cfg ? `<span title="${cfg.label}">${cfg.icon} ${cfg.label.split(' ')[0]}</span>` : `<span>${f}</span>`;
+      }).join(' · ');
+
+      const tagChips = tags.map((tag, i) =>
+        `<div class="flex items-center gap-2"><span class="text-slate w-5 text-xs">${i + 1}.</span>${renderCopyChip(tag, i, 'tag')}</div>`
+      ).join('');
+
+      const keywordChips = keywords.map((kw, i) => renderCopyChip(kw, i, 'keyword')).join('');
+
+      const seoList = seoPhrases.map((p) =>
+        `<li class="flex items-start gap-2"><span class="text-slate">•</span><span>${p}</span></li>`
+      ).join('');
+
+      return `<div class="detail-niche" data-niche-id="${niche.id}">
+        <button type="button" id="mobile-back-btn" class="md:hidden mb-4 text-taupe font-medium flex items-center gap-1">← Back to grid</button>
+
+        <!-- A. Header -->
+        <header class="mb-5">
+          <h2 id="mobile-detail-title" class="font-display text-2xl font-semibold text-taupe mb-2">${safeString(niche.name)}</h2>
+          <div class="flex flex-wrap gap-2 mb-3">
+            <span class="text-xs uppercase tracking-wider px-2 py-0.5 rounded ${CATEGORY_COLORS[niche.category] || 'bg-peach-light text-taupe'}">${catLabel}</span>
+            <span class="text-xs uppercase tracking-wider px-2 py-0.5 rounded bg-base text-taupe">${compLabel}</span>
+            <span>${trend.emoji} ${trend.label}</span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="font-display text-4xl font-semibold ${getScoreColor(score)}">${score}/10</span>
+            <span class="text-slate italic">${getScoreDescriptor(score)}</span>
+          </div>
+        </header>
+
+        <!-- B. Quick stats -->
+        <div class="grid grid-cols-2 gap-3 mb-5 text-xs">
+          <div class="bg-base rounded p-3"><span class="text-slate uppercase tracking-wider block mb-1">Price range</span><span class="text-taupe font-medium">${formatPriceShort(niche)}</span></div>
+          <div class="bg-base rounded p-3"><span class="text-slate uppercase tracking-wider block mb-1">Personalized max</span><span class="text-taupe font-medium">up to $${(niche.personalized_price_max ?? 0).toFixed(2)}</span></div>
+          <div class="bg-base rounded p-3 col-span-2"><span class="text-slate uppercase tracking-wider block mb-1">Peak months</span><span class="text-taupe">${formatPeakMonths(niche.peak_months)}</span></div>
+          <div class="bg-base rounded p-3 col-span-2"><span class="text-slate uppercase tracking-wider block mb-1">Best formats</span><span class="text-taupe">${formatIcons || '—'}</span></div>
+        </div>
+
+        <!-- C. Competition context -->
+        <div class="border border-[rgba(133,97,73,0.12)] rounded p-4 mb-5 bg-base/50">
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-medium text-taupe">${compLabel} competition</span>
+            <span class="score-dots text-sm">${renderCompDots(niche.competition_tier)}</span>
+          </div>
+          <p class="text-sm text-taupe-light">${safeString(niche.competition_note) || 'No competition notes available.'}</p>
+        </div>
+
+        <!-- D. Keywords -->
+        <section class="mb-5">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-display text-lg text-taupe font-semibold">Top Keywords</h3>
+            <button type="button" class="copy-bulk text-xs bg-export hover:bg-export-hover text-white px-3 py-1 rounded" data-type="keywords" data-niche="${niche.id}">Copy all keywords</button>
+          </div>
+          <div class="flex flex-wrap gap-2">${keywordChips}</div>
+        </section>
+
+        <!-- E. Tags -->
+        <section class="mb-5">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-display text-lg text-taupe font-semibold">Suggested Etsy Tags</h3>
+            <button type="button" class="copy-bulk text-xs bg-export hover:bg-export-hover text-white px-3 py-1 rounded" data-type="tags" data-niche="${niche.id}">Copy all 13 tags</button>
+          </div>
+          <p class="text-xs text-slate mb-2 italic">Etsy allows max 13 tags per listing — use all of them</p>
+          <div class="space-y-1.5">${tagChips}</div>
+        </section>
+
+        <!-- F. Design angles -->
+        <section class="mb-5">
+          <h3 class="font-display text-lg text-taupe font-semibold mb-2">Design Angles</h3>
+          <p class="text-sm text-taupe-light leading-relaxed mb-3">${safeString(niche.design_angles) || '—'}</p>
+          ${occasions.length ? `<div><span class="text-xs uppercase tracking-wider text-slate block mb-1.5">Gift occasions</span><div class="flex flex-wrap gap-1.5">${occasions.map((o) => `<span class="bg-peach-light text-taupe text-xs px-2 py-0.5 rounded">${o}</span>`).join('')}</div></div>` : ''}
+        </section>
+
+        <!-- G. Buyer persona -->
+        <section class="mb-5">
+          <h3 class="font-display text-lg text-taupe font-semibold mb-2">Who's buying this?</h3>
+          <p class="text-sm text-taupe-light leading-relaxed">${safeString(niche.buyer_persona) || '—'}</p>
+        </section>
+
+        <!-- H. Pro tips -->
+        <section class="mb-5 bg-[#fef6e8] border border-[#f2ad4d]/30 rounded p-4">
+          <h3 class="font-display text-lg text-taupe font-semibold mb-2">💡 Pro Tips</h3>
+          <p class="text-sm text-taupe-light leading-relaxed">${safeString(niche.pro_tips) || '—'}</p>
+        </section>
+
+        <!-- I. SEO phrases -->
+        <section class="mb-5">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-display text-lg text-taupe font-semibold">SEO Search Phrases</h3>
+            <button type="button" class="copy-bulk text-xs bg-export hover:bg-export-hover text-white px-3 py-1 rounded" data-type="seo" data-niche="${niche.id}">Copy all</button>
+          </div>
+          <p class="text-xs text-slate mb-2">Phrases buyers are actually typing on Etsy:</p>
+          <ul class="text-sm text-taupe-light space-y-1">${seoList || '<li>—</li>'}</ul>
+        </section>
+
+        <!-- J. Footer actions -->
+        <footer class="pt-4 border-t border-[rgba(133,97,73,0.12)]">
+          <button type="button" class="copy-bulk w-full bg-export hover:bg-export-hover text-white py-3 rounded font-medium text-sm" data-type="brief" data-niche="${niche.id}">Copy full niche brief</button>
+        </footer>
+      </div>`;
+    }
+
+    function buildNicheBrief(niche) {
+      const trend = TREND_CONFIG[niche.trend_signal]?.label || niche.trend_signal;
+      const catLabel = CATEGORY_LABELS[niche.category] || niche.category;
+      const compLabel = COMPETITION_LABELS[niche.competition_tier] || niche.competition_tier;
+      const keywords = safeArray(niche.top_keywords).join(', ');
+      const tags = safeArray(niche.suggested_tags).join(', ');
+      const seo = safeArray(niche.seo_search_phrases).map((p) => `- ${p}`).join('\n');
+
+      return `# ${safeString(niche.name)}
+
+**Category:** ${catLabel} | **Competition:** ${compLabel} | **Opportunity:** ${niche.opportunity_score ?? '—'}/10 | **Trend:** ${trend}
+
+## Price range
+- Standard: ${formatPrice(niche)}
+- Personalized: up to $${(niche.personalized_price_max ?? 0).toFixed(2)}
+
+## Top keywords
+${keywords}
+
+## Suggested Etsy tags (13)
+${tags}
+
+## Design angles
+${safeString(niche.design_angles)}
+
+## Buyer persona
+${safeString(niche.buyer_persona)}
+
+## Pro tips
+${safeString(niche.pro_tips)}
+
+## SEO search phrases
+${seo}
+
+---
+*Researched from Etsy market data, ${BRAND.releaseDate}.*
+*Tool by ${BRAND.brandName} — bonus for ${BRAND.bonusFor} buyers.*`;
+    }
+
+    function getNicheById(id) {
+      return safeArray(db?.niches).find((n) => n.id === id);
+    }
+
+    function renderGrid() {
+      syncFiltersFromUI();
+      const filtered = sortNiches(filterNiches());
+      const grid = $('#niche-grid');
+      const empty = $('#empty-state');
+
+      $('#results-count').textContent = `${filtered.length} niche${filtered.length !== 1 ? 's' : ''} shown`;
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '';
+        grid.classList.add('hidden');
+        empty.classList.remove('hidden');
+        return;
+      }
+
+      grid.classList.remove('hidden');
+      empty.classList.add('hidden');
+      grid.innerHTML = filtered.map(renderNicheCard).join('');
+
+      if (selectedNicheId && !filtered.find((n) => n.id === selectedNicheId)) {
+        selectedNicheId = null;
+        closeMobileDetail();
+        showDetailPlaceholder();
+      }
+    }
+
+    function showDetailPlaceholder() {
+      $('#detail-content').innerHTML = '';
+      $('#detail-content').classList.add('hidden');
+      $('#detail-placeholder').classList.remove('hidden');
+      $('#detail-panel').setAttribute('aria-hidden', 'true');
+    }
+
+    function openDetail(nicheId) {
+      const niche = getNicheById(nicheId);
+      if (!niche) return;
+
+      selectedNicheId = nicheId;
+      const html = renderDetailPanel(niche);
+
+      $('#detail-placeholder').classList.add('hidden');
+      $('#detail-content').classList.remove('hidden');
+      $('#detail-content').innerHTML = html;
+      $('#detail-panel').setAttribute('aria-hidden', 'false');
+
+      $$('.niche-card').forEach((card) => {
+        const isSel = card.dataset.id === nicheId;
+        card.classList.toggle('selected', isSel);
+        card.setAttribute('aria-pressed', isSel);
+      });
+
+      if (window.innerWidth < 768) {
+        $('#mobile-detail-content').innerHTML = html;
+        $('#mobile-detail-overlay').classList.remove('hidden');
+        requestAnimationFrame(() => {
+          $('#mobile-detail-panel').classList.add('open');
+        });
+        trapFocus($('#mobile-detail-panel'));
+        document.body.style.overflow = 'hidden';
+      }
+
+      bindDetailEvents();
+    }
+
+    function closeMobileDetail() {
+      $('#mobile-detail-panel').classList.remove('open');
+      $('#mobile-detail-overlay').classList.add('hidden');
+      document.body.style.overflow = '';
+      releaseFocusTrap();
+    }
+
+    function trapFocus(container) {
+      releaseFocusTrap();
+      const focusable = container.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      first.focus();
+
+      focusTrapHandler = (e) => {
+        if (e.key === 'Escape') {
+          closeMobileDetail();
+          return;
+        }
+        if (e.key !== 'Tab') return;
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      };
+      document.addEventListener('keydown', focusTrapHandler);
+    }
+
+    function releaseFocusTrap() {
+      if (focusTrapHandler) {
+        document.removeEventListener('keydown', focusTrapHandler);
+        focusTrapHandler = null;
+      }
+    }
+
+    async function copyText(text, toastMsg, chipEl) {
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+        }
+        showToast(toastMsg);
+        if (chipEl) {
+          chipEl.classList.add('chip-copied');
+          const orig = chipEl.innerHTML;
+          chipEl.innerHTML = '<span>Copied ✓</span>';
+          setTimeout(() => {
+            chipEl.classList.remove('chip-copied');
+            chipEl.innerHTML = orig;
+          }, 1500);
+        }
+      } catch (_) {
+        showToast('Copy failed — please select and copy manually');
+      }
+    }
+
+    function showToast(message) {
+      const toast = $('#toast');
+      toast.textContent = message;
+      toast.classList.remove('hidden');
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => toast.classList.add('hidden'), 2500);
+    }
+
+    function bindDetailEvents() {
+      $$('.copy-chip').forEach((chip) => {
+        chip.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const text = decodeURIComponent(chip.dataset.copy);
+          copyText(text, `Copied "${text}"`, chip);
+        });
+      });
+
+      $$('.copy-bulk').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const niche = getNicheById(btn.dataset.niche);
+          if (!niche) return;
+          const type = btn.dataset.type;
+
+          if (type === 'keywords') {
+            const text = safeArray(niche.top_keywords).join(', ');
+            copyText(text, `Copied ${safeArray(niche.top_keywords).length} keywords to clipboard`);
+          } else if (type === 'tags') {
+            const text = safeArray(niche.suggested_tags).join(', ');
+            copyText(text, `Copied ${safeArray(niche.suggested_tags).length} tags to clipboard`);
+          } else if (type === 'seo') {
+            const text = safeArray(niche.seo_search_phrases).join('\n');
+            copyText(text, `Copied ${safeArray(niche.seo_search_phrases).length} SEO phrases to clipboard`);
+          } else if (type === 'brief') {
+            copyText(buildNicheBrief(niche), 'Copied full niche brief to clipboard');
+          }
+        });
+      });
+
+      const backBtn = $('#mobile-back-btn');
+      if (backBtn) backBtn.addEventListener('click', closeMobileDetail);
+    }
+
+    function applyResetFilters(useRecommended = false) {
+      filters = useRecommended ? { ...RESET_FILTERS } : { ...INITIAL_FILTERS };
+      saveFilters();
+      renderFilterUI();
+      renderGrid();
+    }
+
+    function bindEvents() {
+      $('#search-input').addEventListener('input', () => {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(renderGrid, 100);
+      });
+
+      ['#category-filters', '#competition-filters', '#trend-filters', '#format-filters'].forEach((sel) => {
+        $(sel).addEventListener('change', renderGrid);
+      });
+
+      $('#score-slider').addEventListener('input', (e) => {
+        $('#score-label').textContent = `Min opportunity: ${e.target.value}+`;
+        renderGrid();
+      });
+
+      $('#sort-select').addEventListener('change', renderGrid);
+
+      $('#reset-filters').addEventListener('click', () => applyResetFilters(true));
+      $('#empty-reset').addEventListener('click', () => applyResetFilters(true));
+
+      $('#niche-grid').addEventListener('click', (e) => {
+        const card = e.target.closest('.niche-card');
+        if (card) openDetail(card.dataset.id);
+      });
+
+      $('#niche-grid').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          const card = e.target.closest('.niche-card');
+          if (card) {
+            e.preventDefault();
+            openDetail(card.dataset.id);
+          }
+        }
+      });
+
+      $('#mobile-backdrop').addEventListener('click', closeMobileDetail);
+
+      $('#mobile-filter-toggle').addEventListener('click', () => {
+        const sidebar = $('#filters-sidebar');
+        const btn = $('#mobile-filter-toggle');
+        const isOpen = !sidebar.classList.contains('hidden');
+        sidebar.classList.toggle('hidden', isOpen);
+        btn.setAttribute('aria-expanded', !isOpen);
+        $('#filter-toggle-icon').textContent = isOpen ? '▼' : '▲';
+      });
+
+      $('#retry-load-btn').addEventListener('click', async () => {
+        $('#error-screen').classList.add('hidden');
+        $('#loading-screen').classList.remove('hidden');
+        const data = await loadData();
+        if (data) initApp(data);
+        else showError();
+      });
+
+      window.addEventListener('resize', () => {
+        if (window.innerWidth >= 768) closeMobileDetail();
+      });
+    }
+
+    async function loadData() {
+      try {
+        const res = await fetch(DATA_URL);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return await res.json();
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function showError() {
+      $('#loading-screen').classList.add('hidden');
+      $('#error-screen').classList.remove('hidden');
+    }
+
+    function initApp(data) {
+      if (!data?.niches?.length) {
+        showError();
+        return;
+      }
+
+      db = data;
+      $('#loading-screen').classList.add('hidden');
+      $('#error-screen').classList.add('hidden');
+      $('#app').classList.remove('hidden');
+
+      const hasSaved = loadSavedFilters();
+      if (!hasSaved) filters = { ...INITIAL_FILTERS };
+
+      $('#tool-title').textContent = BRAND.toolName;
+
+      updateStats();
+      renderFilterUI();
+      bindEvents();
+      renderGrid();
+      showDetailPlaceholder();
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const data = await loadData();
+      if (data) {
+        initApp(data);
+      } else {
+        showError();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+Double-click index.html to get started. No internet connection or installation needed
+(you only need the internet to use an AI chat such as ChatGPT, Claude, Gemini or Grok
+for your word lists).
+
+1. Click "Add words".
+   - Type your book topic, who it is for, how many puzzles you want and your themes
+     (or click "Fill with random ideas").
+   - The app splits the job into prompts of 10 lists each. Click "Copy" next to
+     prompt 1, paste it into a new AI chat, paste the AI's answer in the box on the
+     right and click "Add". Then copy prompt 2 into the SAME chat (so no theme or word
+     repeats), paste the answer, click "Add", and so on until every prompt is done.
+     If the AI stops early, type "continue" in the same chat and Add that part too.
+   - Prefer your own words? Type them in the "Your word lists" box, a title line then its words:
+       1. Breakfast Foods
+       EGG, HAM, OAT, JAM, TOAST, JUICE, CEREAL, ...
+     or one theme per line:  Farm Animals: cow, horse, sheep, goat, pig, donkey, ...
+   - Click "Use these words".
+2. Pick your trim size, difficulty and extra pages on the left. Every option already has
+   a sensible default.
+3. Click Generate, check the pages in the preview, then click Download PDF and upload
+   it to KDP as your interior file.
+
+Good to know
+- Every puzzle is checked by a solver: it has exactly one solution.
+- Every book gets brand-new grid layouts (random seed). To rebuild the exact same book,
+  copy the seed shown under Advanced and type it in the Seed box.
+- The KDP check in the bottom-left must be all green before you upload
+  (at least 24 pages, text 7 pt or larger, everything inside the margins, fonts embedded).
+- Your words and settings are NOT saved: reloading the page (F5) clears them. Use
+  "Save words to a file" to keep a copy, then load it back next time.
+
+If you have any questions, feel free to let me know.

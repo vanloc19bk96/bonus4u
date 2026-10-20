@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cozy Mystery Word Search Book Maker</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<noscript><p class="noscript">This app needs JavaScript. Please allow scripts for this page and reload it.</p></noscript>
+<div class="app" id="app" aria-busy="true">
+  <aside class="sidebar" aria-label="Book steps">
+    <header class="brand">
+      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><circle cx="17" cy="17" r="10.5" fill="none" stroke="currentColor" stroke-width="3"/><path d="M25 25l9 9" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"/><path d="M12 15.5a6 6 0 0 1 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <div>
+        <h1>Cozy Mystery Book Maker</h1>
+        <p class="brand-sub">Word search puzzle books for Amazon KDP</p>
+      </div>
+    </header>
+    <div class="storage-warning" id="storageWarning" hidden></div>
+    <ol class="steps" id="steps"></ol>
+    <footer class="project-bar">
+      <button type="button" class="btn-quiet" id="btnExport">Export project</button>
+      <button type="button" class="btn-quiet" id="btnImport">Import project</button>
+      <button type="button" class="btn-quiet" id="btnSample">Try the sample book</button>
+      <button type="button" class="btn-quiet danger-text" id="btnStartOver">Start over</button>
+      <input type="file" id="fileImport" accept=".cozymystery,.json,application/json" hidden>
+    </footer>
+  </aside>
+
+  <main class="viewer" aria-label="Book preview">
+    <div class="toolbar" role="toolbar" aria-label="Preview controls">
+      <label class="nav-label"><span class="sr-only">Jump to</span>
+        <select id="navSelect" aria-label="Jump to a part of the book"></select>
+      </label>
+      <div class="tool-group">
+        <button type="button" class="icon-btn" id="btnPrev" aria-label="Previous spread" title="Previous spread (Page Up)">&#8249;</button>
+        <span class="page-indicator" id="pageIndicator" aria-live="polite"></span>
+        <button type="button" class="icon-btn" id="btnNext" aria-label="Next spread" title="Next spread (Page Down)">&#8250;</button>
+      </div>
+      <div class="tool-group">
+        <button type="button" class="icon-btn" id="btnZoomOut" aria-label="Zoom out" title="Zoom out (-)">&minus;</button>
+        <button type="button" class="zoom-value" id="btnZoomFit" title="Fit to window">100%</button>
+        <button type="button" class="icon-btn" id="btnZoomIn" aria-label="Zoom in" title="Zoom in (+)">+</button>
+      </div>
+      <div class="tool-group toggles">
+        <label class="toggle"><input type="checkbox" id="tglMargins"> <span>Show safe margins</span></label>
+        <label class="toggle"><input type="checkbox" id="tglAnswers"> <span>Show answers</span></label>
+      </div>
+      <div class="tool-group">
+        <button type="button" class="btn-quiet small" id="btnUndo" title="Undo (Ctrl+Z)" disabled>Undo</button>
+        <button type="button" class="btn-quiet small" id="btnRedo" title="Redo (Ctrl+Shift+Z)" disabled>Redo</button>
+      </div>
+    </div>
+    <div class="sample-banner" id="sampleBanner" hidden>
+      <strong>Sample book.</strong> This is a finished example. Your own book replaces it as soon as you paste your story plan.
+    </div>
+    <div class="spreads" id="spreads" tabindex="0" aria-label="Book pages, two-page spreads"></div>
+  </main>
+</div>
+
+<aside class="drawer" id="drawer" aria-label="Edit chapter" hidden></aside>
+
+<div class="modal-backdrop" id="modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <h2 id="modalTitle"></h2>
+    <div id="modalBody"></div>
+    <div class="modal-actions" id="modalActions"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="loading" id="loading">Opening your book&hellip;</div>
+
+<script src="js/vendor/jspdf.umd.min.js"></script>
+<script src="js/fonts.js"></script>
+<script src="js/core/util.js"></script>
+<script src="js/core/text.js"></script>
+<script src="js/core/metrics.js"></script>
+<script src="js/core/blocklist.js"></script>
+<script src="js/core/puzzle.js"></script>
+<script src="js/core/validate.js"></script>
+<script src="js/data/themes.js"></script>
+<script src="js/core/book.js"></script>
+<script src="js/core/prompts.js"></script>
+<script src="js/core/layout.js"></script>
+<script src="js/core/checklist.js"></script>
+<script src="js/render/svg.js"></script>
+<script src="js/render/pdf.js"></script>
+<script src="js/data/sample.js"></script>
+<script src="js/ui/dom.js"></script>
+<script src="js/ui/store.js"></script>
+<script src="js/ui/preview.js"></script>
+<script src="js/ui/editor.js"></script>
+<script src="js/ui/sidebar.js"></script>
+<script src="js/ui/app.js"></script>
+</body>
+</html>

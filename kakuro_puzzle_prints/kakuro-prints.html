@@ -1,0 +1,1948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kakuro Puzzle Prints</title>
+<style>
+:root{
+  --bg:#12141a; --panel:#1b1e26; --panel2:#232732; --line:#2f3542;
+  --ink:#e8eaf0; --dim:#9aa3b5; --accent:#5b9cff; --accent2:#2f6fd0;
+  --ok:#3fbf7f; --warn:#e8b23a; --bad:#e8564a;
+  --radius:8px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:13px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  overflow:hidden;
+}
+button,input,select{font:inherit;color:inherit}
+.topbar{
+  height:48px; display:flex; align-items:center; gap:14px; padding:0 14px;
+  background:var(--panel); border-bottom:1px solid var(--line);
+}
+.topbar h1{font-size:14px;margin:0;letter-spacing:.3px;font-weight:600}
+.topbar h1 span{color:var(--dim);font-weight:400}
+.grow{flex:1}
+.layout{display:flex;height:calc(100% - 48px)}
+.side{
+  width:340px; min-width:340px; background:var(--panel); border-right:1px solid var(--line);
+  overflow-y:auto; padding:12px 12px 40px;
+}
+.stage{flex:1;display:flex;flex-direction:column;min-width:0}
+fieldset{border:1px solid var(--line);border-radius:var(--radius);margin:0 0 12px;padding:10px 10px 12px;background:var(--panel2)}
+legend{padding:0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--dim)}
+.row{display:flex;align-items:center;gap:8px;margin:7px 0}
+.row label{flex:1;min-width:0}
+.row .ctl{flex:0 0 132px}
+.row.wide .ctl{flex:1}
+input[type=text],input[type=number],select{
+  width:100%;background:#0f1218;border:1px solid var(--line);border-radius:6px;padding:5px 7px;
+}
+input[type=number]{-moz-appearance:textfield}
+input:focus,select:focus{outline:none;border-color:var(--accent)}
+input[type=checkbox]{width:15px;height:15px;accent-color:var(--accent);margin:0}
+.hint{color:var(--dim);font-size:11px;margin:2px 0 6px}
+.btn{
+  background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:6px 11px;cursor:pointer;
+}
+.btn:hover:not(:disabled){border-color:var(--accent);color:#fff}
+.btn:disabled{opacity:.42;cursor:not-allowed}
+.btn.primary{background:var(--accent2);border-color:var(--accent2);color:#fff;font-weight:600}
+.btn.primary:hover:not(:disabled){background:var(--accent)}
+.btn.sm{padding:4px 8px;font-size:12px}
+.toolbar,.exportbar{
+  display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--panel);
+  border-bottom:1px solid var(--line);flex-wrap:wrap;
+}
+.exportbar{border-bottom:none;border-top:1px solid var(--line)}
+.canvasWrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;padding:16px;background:#0c0e13}
+#preview{background:#fff;box-shadow:0 6px 26px rgba(0,0,0,.6)}
+.emptyHint{text-align:center;color:var(--dim);max-width:340px;line-height:1.55;padding:24px}
+.emptyHint b{display:block;color:var(--ink);font-size:15px;font-weight:600;margin-bottom:6px}
+.emptyHint kbd{
+  display:inline-block;padding:1px 7px;border:1px solid var(--line);border-radius:5px;
+  background:var(--panel2);color:var(--ink);font:inherit;font-weight:600;
+}
+.pill{font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--dim)}
+.pill.recto{border-color:var(--accent);color:var(--accent)}
+.pflist{list-style:none;margin:0;padding:0}
+.pflist li{display:flex;gap:7px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05);align-items:flex-start}
+.pflist li:last-child{border-bottom:none}
+.dot{width:8px;height:8px;border-radius:99px;margin-top:5px;flex:0 0 8px}
+.dot.ok{background:var(--ok)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
+.pf-l{font-weight:600;flex:0 0 108px}
+.pf-m{color:var(--dim);flex:1;min-width:0}
+.progress{height:6px;background:#0f1218;border-radius:99px;overflow:hidden;width:180px;border:1px solid var(--line)}
+.progress > i{display:block;height:100%;width:0;background:var(--accent);transition:width .12s linear}
+.status{color:var(--dim);font-size:12px;min-width:150px}
+.mixgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.mixgrid label{font-size:11px;color:var(--dim);display:block;margin-bottom:2px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Kakuro Puzzle Prints <span>&nbsp;v1.0 &middot; KDP interior generator</span></h1>
+  <div class="grow"></div>
+  <div class="status" id="status">Ready.</div>
+  <div class="progress"><i id="progbar"></i></div>
+  <button class="btn" id="cancelBtn" disabled>Cancel</button>
+  <button class="btn primary" id="genBtn">Generate book</button>
+</div>
+
+<div class="layout">
+  <aside class="side">
+
+    <fieldset>
+      <legend>Book</legend>
+      <div class="row"><label for="trim">Trim size</label><span class="ctl"><select id="trim"></select></span></div>
+      <div class="row" id="customTrimRow" style="display:none">
+        <label>Custom W &times; H (in)</label>
+        <span class="ctl" style="display:flex;gap:5px">
+          <input type="number" id="customW" step="0.01" min="3" max="12" value="8.5">
+          <input type="number" id="customH" step="0.01" min="3" max="12" value="11">
+        </span>
+      </div>
+      <div class="row"><label for="bleed">Bleed</label><span class="ctl"><input type="checkbox" id="bleed"></span></div>
+      <div class="row"><label for="frontMatter">Front matter allowance</label><span class="ctl"><input type="number" id="frontMatter" min="0" max="40" step="1" value="4"></span></div>
+      <div class="hint">Pages you will add yourself (title, copyright). Used to pick the correct gutter tier.</div>
+      <div class="row"><label for="mOuter">Outer margin (in)</label><span class="ctl"><input type="number" id="mOuter" step="0.025" min="0.25" value="0.5"></span></div>
+      <div class="row"><label for="mTop">Top margin (in)</label><span class="ctl"><input type="number" id="mTop" step="0.025" min="0.25" value="0.5"></span></div>
+      <div class="row"><label for="mBottom">Bottom margin (in)</label><span class="ctl"><input type="number" id="mBottom" step="0.025" min="0.25" value="0.5"></span></div>
+      <div class="row"><label for="lightClues">Light clue cells</label><span class="ctl"><input type="checkbox" id="lightClues"></span></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Puzzles</legend>
+      <div class="row"><label for="count">Number of puzzles</label><span class="ctl"><input type="number" id="count" min="1" max="400" step="1" value="100"></span></div>
+      <div class="row"><label for="gridSize">Grid size</label><span class="ctl"><select id="gridSize">
+        <option value="9">9 &times; 9</option><option value="11" selected>11 &times; 11</option>
+        <option value="13">13 &times; 13</option><option value="15">15 &times; 15</option></select></span></div>
+      <div class="row"><label for="difficulty">Difficulty</label><span class="ctl"><select id="difficulty">
+        <option>Easy</option><option selected>Medium</option><option>Hard</option><option>Expert</option><option>Mixed</option>
+      </select></span></div>
+      <div id="mixRow" style="display:none">
+        <div class="hint">Mixed ramp, % per tier, ordered easiest-first through the book.</div>
+        <div class="mixgrid">
+          <div><label>Easy</label><input type="number" id="mixEasy" min="0" max="100" value="25"></div>
+          <div><label>Medium</label><input type="number" id="mixMedium" min="0" max="100" value="25"></div>
+          <div><label>Hard</label><input type="number" id="mixHard" min="0" max="100" value="25"></div>
+          <div><label>Expert</label><input type="number" id="mixExpert" min="0" max="100" value="25"></div>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Output</legend>
+      <div class="row"><label for="header">Header</label><span class="ctl"><input type="checkbox" id="header" checked></span></div>
+      <div class="row wide"><span class="ctl"><input type="text" id="headerTpl" value="Puzzle {n}"></span></div>
+      <div class="hint">Tokens: <code>{n}</code>, <code>{difficulty}</code></div>
+      <div class="row"><label for="pageNumbers">Page numbers</label><span class="ctl"><input type="checkbox" id="pageNumbers" checked></span></div>
+      <div class="row"><label for="startPage">Starting page number</label><span class="ctl"><input type="number" id="startPage" min="1" max="999" value="1"></span></div>
+      <div class="hint">Odd = recto (gutter on the left). Set this to match the page this interior starts on.</div>
+      <div class="row"><label for="solutions">Include solutions</label><span class="ctl"><input type="checkbox" id="solutions" checked></span></div>
+      <div class="row"><label for="solPerPage">Solutions per page</label><span class="ctl"><select id="solPerPage">
+        <option value="1">1</option><option value="2">2</option><option value="4" selected>4</option><option value="6">6</option>
+      </select></span></div>
+      <div class="row"><label for="dpi">Export DPI</label><span class="ctl"><select id="dpi">
+        <option value="300" selected>300</option><option value="600">600</option></select></span></div>
+      <div class="row"><label for="jpegQ">JPEG quality</label><span class="ctl"><input type="number" id="jpegQ" min="0.5" max="1" step="0.01" value="0.92"></span></div>
+      <div class="row"><label for="slug">File name prefix</label><span class="ctl"><input type="text" id="slug" value="kakuro"></span></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Preflight</legend>
+      <ul class="pflist" id="preflight"></ul>
+    </fieldset>
+
+  </aside>
+
+  <section class="stage">
+    <div class="toolbar">
+      <button class="btn sm" id="pFirst">&#8676;</button>
+      <button class="btn sm" id="pPrev">&#8592;</button>
+      <input type="number" id="pJump" value="1" min="1" style="width:70px">
+      <span class="status" id="pOf">of 0</span>
+      <button class="btn sm" id="pNext">&#8594;</button>
+      <button class="btn sm" id="pLast">&#8677;</button>
+      <span class="pill" id="sideInd">&mdash;</span>
+      <div class="grow"></div>
+      <label style="display:flex;align-items:center;gap:6px;color:var(--dim)">
+        <input type="checkbox" id="guides" checked> Guides
+      </label>
+    </div>
+    <div class="canvasWrap" id="canvasWrap">
+      <canvas id="preview" style="display:none"></canvas>
+      <div class="emptyHint" id="emptyHint">
+        <b>No book generated yet</b>
+        Press <kbd>Generate book</kbd> to create the interior.
+      </div>
+    </div>
+    <div class="exportbar">
+      <button class="btn primary" id="expPdf" disabled>Export PDF (KDP)</button>
+      <button class="btn" id="expPngOne" disabled>PNG (page)</button>
+      <button class="btn" id="expPngAll" disabled>PNG (all &rarr; zip)</button>
+      <button class="btn" id="expJpgOne" disabled>JPG (page)</button>
+      <button class="btn" id="expJpgAll" disabled>JPG (all &rarr; zip)</button>
+      <div class="grow"></div>
+      <span class="status">PDF is the KDP upload file. PNG/JPG are preview &amp; marketing assets.</span>
+    </div>
+  </section>
+</div>
+
+<script>
+'use strict';
+/* =====================================================================
+   KAKURO PUZZLE PRINTS v1.0 — single file, file:// safe, zero deps
+   1 CONSTANTS  2 RNG  3 KAKURO CORE  4 SOLVER  5 GENERATOR
+   6 LAYOUT  7 RENDER  8 PDF  9 ZIP  10 UI
+   Sections 3-6 are pure: no DOM, no canvas, no globals beyond constants.
+   ===================================================================== */
+
+/* ---------------------------------------------------------------
+   1. CONSTANTS
+   --------------------------------------------------------------- */
+var TRIMS = [
+  {id:'5x8',        w:5,    h:8,     max:828, group:'Regular'},
+  {id:'5.06x7.81',  w:5.06, h:7.81,  max:828, group:'Regular'},
+  {id:'5.25x8',     w:5.25, h:8,     max:828, group:'Regular'},
+  {id:'5.5x8.5',    w:5.5,  h:8.5,   max:828, group:'Regular'},
+  {id:'6x9',        w:6,    h:9,     max:828, group:'Regular'},
+  {id:'6.14x9.21',  w:6.14, h:9.21,  max:828, group:'Large'},
+  {id:'6.69x9.61',  w:6.69, h:9.61,  max:828, group:'Large'},
+  {id:'7x10',       w:7,    h:10,    max:828, group:'Large'},
+  {id:'7.44x9.69',  w:7.44, h:9.69,  max:828, group:'Large'},
+  {id:'7.5x9.25',   w:7.5,  h:9.25,  max:828, group:'Large'},
+  {id:'8x10',       w:8,    h:10,    max:828, group:'Large'},
+  {id:'8.25x6',     w:8.25, h:6,     max:800, group:'Large'},
+  {id:'8.25x8.25',  w:8.25, h:8.25,  max:800, group:'Large'},
+  {id:'8.5x8.5',    w:8.5,  h:8.5,   max:590, group:'Large'},
+  {id:'8.5x11',     w:8.5,  h:11,    max:590, group:'Large'},
+  {id:'8.27x11.69', w:8.27, h:11.69, max:780, group:'Large'}
+];
+var MIN_PAGES = 24;
+var GUTTER_TIERS = [
+  {max:150, g:0.375}, {max:300, g:0.5}, {max:500, g:0.625},
+  {max:700, g:0.75},  {max:828, g:0.875}
+];
+var TIERS = ['Easy','Medium','Hard','Expert'];
+/* block density targets per tier: [lo, hi] fraction of interior cells */
+var DENSITY = {Easy:[0.34,0.40], Medium:[0.28,0.34], Hard:[0.24,0.30], Expert:[0.20,0.26]};
+
+/* combos[L][S] = Int16Array of 9-bit digit masks */
+var COMBOS = (function(){
+  var t = [], L, S, m, d;
+  for(L=0;L<=9;L++){ t[L]=[]; for(S=0;S<=45;S++) t[L][S]=[]; }
+  for(m=1;m<512;m++){
+    var n=0, s=0;
+    for(d=1;d<=9;d++) if(m & (1<<(d-1))){ n++; s+=d; }
+    t[n][s].push(m);
+  }
+  for(L=0;L<=9;L++) for(S=0;S<=45;S++) t[L][S]=Int16Array.from(t[L][S]);
+  return t;
+})();
+var EMPTY_COMBOS = new Int16Array(0);
+function combosFor(L,S){
+  if(L<2||L>9||S<0||S>45) return EMPTY_COMBOS;
+  return COMBOS[L][S];
+}
+/* bit -> digit lookup */
+var BIT2D = new Int8Array(513);
+(function(){ for(var d=1;d<=9;d++) BIT2D[1<<(d-1)]=d; })();
+function popcount(x){
+  x = x - ((x>>1)&0x55555555);
+  x = (x&0x33333333) + ((x>>2)&0x33333333);
+  x = (x + (x>>4)) & 0x0f0f0f0f;
+  return (x*0x01010101)>>24;
+}
+
+/* ---------------------------------------------------------------
+   2. RNG — mulberry32, hash32, FNV-1a. Never Math.random in gen path.
+   --------------------------------------------------------------- */
+function fnv1a(str){
+  var h = 0x811c9dc5;
+  for(var i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return h>>>0;
+}
+function hash32(str){ return fnv1a(str); }
+function mulberry32(a){
+  a = a|0;
+  return function(){
+    a = (a + 0x6D2B79F5)|0;
+    var t = Math.imul(a ^ (a>>>15), 1|a);
+    t = (t + Math.imul(t ^ (t>>>7), 61|t)) ^ t;
+    return ((t ^ (t>>>14))>>>0) / 4294967296;
+  };
+}
+function shuffleInPlace(arr, rng){
+  for(var i=arr.length-1;i>0;i--){
+    var j = (rng()*(i+1))|0, t = arr[i]; arr[i]=arr[j]; arr[j]=t;
+  }
+  return arr;
+}
+
+/* ---------------------------------------------------------------
+   3. KAKURO CORE — pattern, repair, fill, clue derivation
+   --------------------------------------------------------------- */
+function mirrorIdx(i, R, C){
+  var r = (i/C)|0, c = i%C;
+  return (R-r)*C + (C-c);
+}
+function countWhite(grid){
+  var n=0; for(var i=0;i<grid.length;i++) if(grid[i]===1) n++;
+  return n;
+}
+
+/* seed a fresh pattern: border clues + random interior blocks */
+function seedPattern(rng, R, C, density, sym){
+  var N = R*C, grid = new Int8Array(N), r, c;
+  for(r=1;r<R;r++) for(c=1;c<C;c++) grid[r*C+c]=1;
+  var interior = (R-1)*(C-1);
+  var target = Math.round(density*interior);
+  var placed = 0, guard = 0, limit = interior*30;
+  while(placed<target && guard++<limit){
+    r = 1 + ((rng()*(R-1))|0);
+    c = 1 + ((rng()*(C-1))|0);
+    var i = r*C+c;
+    if(grid[i]!==1) continue;
+    grid[i]=0; placed++;
+    if(sym){
+      var mi = mirrorIdx(i,R,C);
+      if(mi!==i && grid[mi]===1){ grid[mi]=0; placed++; }
+    }
+  }
+  return grid;
+}
+
+/* largest 4-connected white component; converts every other component to CLUE */
+function fixConnectivity(grid, R, C, setClue){
+  var N=R*C, comp = new Int32Array(N).fill(-1), sizes=[], stack=[], i, r, c;
+  var nComp=0;
+  for(i=0;i<N;i++){
+    if(grid[i]!==1 || comp[i]>=0) continue;
+    var id = nComp++, size=0;
+    stack.length=0; stack.push(i); comp[i]=id;
+    while(stack.length){
+      var k = stack.pop(); size++;
+      r=(k/C)|0; c=k%C;
+      if(r>1 && grid[k-C]===1 && comp[k-C]<0){comp[k-C]=id;stack.push(k-C);}
+      if(r<R-1 && grid[k+C]===1 && comp[k+C]<0){comp[k+C]=id;stack.push(k+C);}
+      if(c>1 && grid[k-1]===1 && comp[k-1]<0){comp[k-1]=id;stack.push(k-1);}
+      if(c<C-1 && grid[k+1]===1 && comp[k+1]<0){comp[k+1]=id;stack.push(k+1);}
+    }
+    sizes[id]=size;
+  }
+  if(nComp<=1) return false;
+  var bestId=0;
+  for(i=1;i<nComp;i++) if(sizes[i]>sizes[bestId]) bestId=i;
+  var changed=false;
+  for(i=0;i<N;i++) if(grid[i]===1 && comp[i]!==bestId){ setClue(i); changed=true; }
+  return changed;
+}
+
+/* repair to fixpoint; returns true when stable */
+function repairPattern(grid, R, C, sym, rng){
+  var interior = (R-1)*(C-1);
+  function setClue(i){
+    if(grid[i]!==1) return false;
+    grid[i]=0;
+    if(sym){ var m=mirrorIdx(i,R,C); if(grid[m]===1) grid[m]=0; }
+    return true;
+  }
+  function setWhite(i){
+    var r=(i/C)|0, c=i%C;
+    if(r<1||c<1||grid[i]===1) return false;
+    grid[i]=1;
+    if(sym){ var m=mirrorIdx(i,R,C); var mr=(m/C)|0, mc=m%C; if(mr>=1&&mc>=1) grid[m]=1; }
+    return true;
+  }
+  for(var pass=0; pass<60; pass++){
+    var changed = false;
+    var ratio = countWhite(grid)/interior;
+    var mayWiden = (ratio < 0.58 && pass < 30);
+    var r, c, s, len, i;
+    /* across runs */
+    for(r=1;r<R;r++){
+      c=1;
+      while(c<C){
+        if(grid[r*C+c]!==1){ c++; continue; }
+        s=c; while(c<C && grid[r*C+c]===1) c++;
+        len = c-s;
+        if(len===1){
+          var done=false;
+          if(mayWiden){
+            var cand=[];
+            if(s-1>=1) cand.push(r*C+s-1);
+            if(s+1<=C-1) cand.push(r*C+s+1);
+            shuffleInPlace(cand,rng);
+            for(var k=0;k<cand.length;k++){ if(setWhite(cand[k])){ done=true; break; } }
+          }
+          if(!done) setClue(r*C+s);
+          changed=true;
+        } else if(len>9){
+          setClue(r*C + s + (len>>1));
+          changed=true;
+        }
+      }
+    }
+    /* down runs */
+    for(c=1;c<C;c++){
+      r=1;
+      while(r<R){
+        if(grid[r*C+c]!==1){ r++; continue; }
+        s=r; while(r<R && grid[r*C+c]===1) r++;
+        len = r-s;
+        if(len===1){
+          var done2=false;
+          if(mayWiden){
+            var cand2=[];
+            if(s-1>=1) cand2.push((s-1)*C+c);
+            if(s+1<=R-1) cand2.push((s+1)*C+c);
+            shuffleInPlace(cand2,rng);
+            for(var k2=0;k2<cand2.length;k2++){ if(setWhite(cand2[k2])){ done2=true; break; } }
+          }
+          if(!done2) setClue(s*C+c);
+          changed=true;
+        } else if(len>9){
+          setClue((s+(len>>1))*C + c);
+          changed=true;
+        }
+      }
+    }
+    if(changed) continue;
+    if(fixConnectivity(grid,R,C,setClue)) continue;
+    /* white ratio band 55%..75% of interior */
+    var w = countWhite(grid)/interior;
+    if(w > 0.75){
+      var need = Math.ceil((w-0.72)*interior), guard=0;
+      while(need>0 && guard++<interior*8){
+        var rr = 1+((rng()*(R-1))|0), cc = 1+((rng()*(C-1))|0), ii = rr*C+cc;
+        if(setClue(ii)) need--;
+      }
+      continue;
+    }
+    return true;
+  }
+  return false;
+}
+
+/* extract across/down runs from a pattern */
+function buildRuns(grid, R, C){
+  var across=[], down=[], N=R*C;
+  var cellAcross = new Int32Array(N).fill(-1);
+  var cellDown   = new Int32Array(N).fill(-1);
+  var r,c,s;
+  for(r=1;r<R;r++){
+    c=1;
+    while(c<C){
+      if(grid[r*C+c]!==1){ c++; continue; }
+      s=c; var cells=[];
+      while(c<C && grid[r*C+c]===1){ cells.push(r*C+c); c++; }
+      var id = across.length;
+      for(var i=0;i<cells.length;i++) cellAcross[cells[i]]=id;
+      across.push({cells:cells, clueCell:r*C+(s-1), L:cells.length, S:0});
+    }
+  }
+  for(c=1;c<C;c++){
+    r=1;
+    while(r<R){
+      if(grid[r*C+c]!==1){ r++; continue; }
+      s=r; var cellsD=[];
+      while(r<R && grid[r*C+c]===1){ cellsD.push(r*C+c); r++; }
+      var idD = down.length;
+      for(var j=0;j<cellsD.length;j++) cellDown[cellsD[j]]=idD;
+      down.push({cells:cellsD, clueCell:(s-1)*C+c, L:cellsD.length, S:0});
+    }
+  }
+  return {across:across, down:down, cellAcross:cellAcross, cellDown:cellDown};
+}
+
+function patternValid(grid, R, C, runs){
+  var interior=(R-1)*(C-1), i;
+  var w = countWhite(grid)/interior;
+  if(w < 0.55 || w > 0.75) return false;
+  for(i=0;i<runs.across.length;i++){ var L=runs.across[i].L; if(L<2||L>9) return false; }
+  for(i=0;i<runs.down.length;i++){ var L2=runs.down[i].L; if(L2<2||L2>9) return false; }
+  /* every white cell in exactly one across and one down run */
+  for(i=0;i<grid.length;i++){
+    if(grid[i]!==1) continue;
+    if(runs.cellAcross[i]<0 || runs.cellDown[i]<0) return false;
+  }
+  /* single 4-connected region */
+  var seen=new Uint8Array(grid.length), stack=[], count=0, start=-1;
+  for(i=0;i<grid.length;i++) if(grid[i]===1){ start=i; break; }
+  if(start<0) return false;
+  stack.push(start); seen[start]=1;
+  while(stack.length){
+    var k=stack.pop(); count++;
+    var r=(k/C)|0, c=k%C;
+    if(r>1   && grid[k-C]===1 && !seen[k-C]){seen[k-C]=1;stack.push(k-C);}
+    if(r<R-1 && grid[k+C]===1 && !seen[k+C]){seen[k+C]=1;stack.push(k+C);}
+    if(c>1   && grid[k-1]===1 && !seen[k-1]){seen[k-1]=1;stack.push(k-1);}
+    if(c<C-1 && grid[k+1]===1 && !seen[k+1]){seen[k+1]=1;stack.push(k+1);}
+  }
+  return count === countWhite(grid);
+}
+
+/* build a white-indexed solver model from a pattern + clue sums */
+function buildModel(grid, R, C, runs){
+  var N=R*C, gridToWhite = new Int32Array(N).fill(-1), whiteToGrid=[], i;
+  for(i=0;i<N;i++) if(grid[i]===1){ gridToWhite[i]=whiteToGrid.length; whiteToGrid.push(i); }
+  var n = whiteToGrid.length;
+  var mRuns=[], cellRuns = new Int32Array(n*2).fill(-1);
+  function addRuns(list, slot){
+    for(var k=0;k<list.length;k++){
+      var run=list[k], cells=new Int32Array(run.L);
+      for(var j=0;j<run.L;j++){
+        var wi = gridToWhite[run.cells[j]];
+        cells[j]=wi; cellRuns[wi*2+slot]=mRuns.length;
+      }
+      mRuns.push({cells:cells, L:run.L, S:run.S, src:run});
+    }
+  }
+  addRuns(runs.across,0);
+  addRuns(runs.down,1);
+  var model = {
+    n:n, runs:mRuns, cellRuns:cellRuns, whiteToGrid:whiteToGrid,
+    gridToWhite:gridToWhite, R:R, C:C
+  };
+  model._queue = new Int32Array(mRuns.length*4+8);
+  model._inQ   = new Uint8Array(mRuns.length);
+  return model;
+}
+
+/* Step 3: fill every white cell so no digit repeats inside a run.
+   Value ordering is biased per run towards low or high digits: extreme run sums
+   have far fewer combinations, which is what makes a Kakuro uniquely solvable.
+   Short runs always take a polarity, long runs are allowed to stay neutral. */
+function fillDigits(rng, model){
+  var n=model.n, nr=model.runs.length;
+  var val = new Int8Array(n);
+  var used = new Int32Array(nr);
+  var cr = model.cellRuns;
+  var nodes = 0, BUDGET = 20000;
+  var pol = new Int8Array(nr);
+  for(var pi=0; pi<nr; pi++){
+    var u=rng();
+    pol[pi] = (model.runs[pi].L<=3) ? (u<0.5?-1:1) : (u<0.36?-1:(u<0.72?1:0));
+  }
+  function rec(assigned){
+    if(assigned===n) return true;
+    if(++nodes > BUDGET) return false;
+    var best=-1, bp=10, i, m, p;
+    for(i=0;i<n;i++){
+      if(val[i]) continue;
+      m = 0x1FF & ~used[cr[i*2]] & ~used[cr[i*2+1]];
+      if(m===0) return false;
+      p = popcount(m);
+      if(p<bp){ bp=p; best=i; if(p===1) break; }
+    }
+    var ra=cr[best*2], rd=cr[best*2+1];
+    var mask = 0x1FF & ~used[ra] & ~used[rd];
+    var digits=[], mm=mask;
+    while(mm){ var b = mm & -mm; mm ^= b; digits.push(b); }
+    shuffleInPlace(digits,rng);
+    var w = pol[ra] + pol[rd];
+    if(w>0)      digits.sort(function(a,b){ return b-a; });
+    else if(w<0) digits.sort(function(a,b){ return a-b; });
+    for(var k=0;k<digits.length;k++){
+      var bit=digits[k];
+      val[best]=BIT2D[bit]; used[ra]|=bit; used[rd]|=bit;
+      if(rec(assigned+1)) return true;
+      val[best]=0; used[ra]&=~bit; used[rd]&=~bit;
+    }
+    return false;
+  }
+  return rec(0) ? val : null;
+}
+
+/* Step 4: clue = sum of its run's digits */
+function deriveClues(model, val){
+  for(var i=0;i<model.runs.length;i++){
+    var run=model.runs[i], s=0;
+    for(var j=0;j<run.L;j++) s += val[run.cells[j]];
+    run.S = s; run.src.S = s;
+  }
+}
+
+/* ---------------------------------------------------------------
+   4. SOLVER — propagation, exact matching, counting, rating
+   --------------------------------------------------------------- */
+var _mDig  = new Int32Array(9);
+var _mMatch= new Int8Array(9);
+var _mSeen = new Uint8Array(9);
+
+function _augment(d, cells, cand, L){
+  var bit=_mDig[d];
+  for(var i=0;i<L;i++){
+    if(_mSeen[i]) continue;
+    if(!(cand[cells[i]] & bit)) continue;
+    _mSeen[i]=1;
+    if(_mMatch[i]<0 || _augment(_mMatch[i],cells,cand,L)){ _mMatch[i]=d; return true; }
+  }
+  return false;
+}
+/* exact placeability: perfect matching between run cells and combo digits */
+function matchOK(mask, run, cand){
+  var L=run.L, cells=run.cells, m=mask, k=0, i;
+  while(m){ var b=m&-m; m^=b; _mDig[k++]=b; }
+  if(k!==L) return false;
+  for(i=0;i<L;i++) _mMatch[i]=-1;
+  for(var d=0; d<L; d++){
+    for(i=0;i<L;i++) _mSeen[i]=0;
+    if(!_augment(d,cells,cand,L)) return false;
+  }
+  return true;
+}
+/* fast placeability screen */
+function fastOK(mask, run, cand){
+  var cells=run.cells, L=run.L, union=0;
+  for(var i=0;i<L;i++){
+    var c = cand[cells[i]];
+    if(!(c & mask)) return false;
+    union |= c;
+  }
+  return (mask & ~union) === 0;
+}
+
+function newStats(nodeCap){
+  return {passes:0, unionPrune:0, naked:0, hidden:0, branchNodes:0, maxDepth:0,
+          uniqueComboRuns:0, nodes:0, nodeCap: nodeCap||20000, aborted:false};
+}
+
+/* AC-3 style propagation over a worklist of runs. Returns false on contradiction. */
+function propagate(model, cand, opts, stats, seedRuns){
+  var queue=model._queue, inQ=model._inQ, head=0, tail=0, nr=model.runs.length;
+  var cr = model.cellRuns, i;
+  function push(ri){
+    if(inQ[ri]) return;
+    if(tail>=queue.length){ /* compact */
+      var rest=tail-head, q2=queue;
+      for(var k=0;k<rest;k++) q2[k]=q2[head+k];
+      head=0; tail=rest;
+    }
+    inQ[ri]=1; queue[tail++]=ri;
+  }
+  function cellChanged(ci){ push(cr[ci*2]); push(cr[ci*2+1]); }
+  if(seedRuns){ for(i=0;i<seedRuns.length;i++) push(seedRuns[i]); }
+  else { for(i=0;i<nr;i++) push(i); }
+
+  /* The worklist runs inside a closure so that an early exit on a contradiction
+     still clears inQ. inQ lives on the model and is reused by every propagate
+     call, so a stale flag would silently disable that run forever. */
+  var ok = (function(){
+  while(head<tail){
+    var ri=queue[head++]; inQ[ri]=0;
+    var run=model.runs[ri], list=combosFor(run.L, run.S);
+    var allowed=0, common=0x1FF, feas=0, j;
+    for(j=0;j<list.length;j++){
+      var m=list[j];
+      if(!fastOK(m,run,cand)) continue;
+      if(opts.exact && !matchOK(m,run,cand)) continue;
+      allowed|=m; common&=m; feas++;
+    }
+    if(feas===0) return false;
+    stats.passes++;
+    if(feas===1) stats.uniqueComboRuns++;
+    for(j=0;j<run.L;j++){
+      var ci=run.cells[j], nc = cand[ci] & allowed;
+      if(nc===0) return false;
+      if(nc!==cand[ci]){ cand[ci]=nc; stats.unionPrune++; cellChanged(ci); }
+    }
+    /* naked singles inside this run */
+    if(opts.naked){
+      for(j=0;j<run.L;j++){
+        var c1=run.cells[j], v=cand[c1];
+        if(v & (v-1)) continue;
+        for(var s=0;s<2;s++){
+          var orun=model.runs[cr[c1*2+s]];
+          for(var t=0;t<orun.L;t++){
+            var c2=orun.cells[t];
+            if(c2===c1) continue;
+            if(cand[c2] & v){
+              cand[c2] &= ~v;
+              if(cand[c2]===0) return false;
+              stats.naked++; cellChanged(c2);
+            }
+          }
+        }
+      }
+    }
+    /* hidden singles: digit present in every feasible combo but in only one cell */
+    if(opts.hidden){
+      var dm=common;
+      while(dm){
+        var b=dm & -dm; dm^=b;
+        var cnt=0, at=-1;
+        for(j=0;j<run.L;j++){ if(cand[run.cells[j]] & b){ cnt++; at=run.cells[j]; } }
+        if(cnt===0) return false;
+        if(cnt===1 && cand[at]!==b){ cand[at]=b; stats.hidden++; cellChanged(at); }
+      }
+    }
+  }
+  return true;
+  })();
+  while(head<tail) inQ[queue[head++]]=0;
+  return ok;
+}
+
+function allSingleton(cand, n){
+  for(var i=0;i<n;i++){ var v=cand[i]; if(v===0 || (v & (v-1))) return false; }
+  return true;
+}
+/* independent check that a fully assigned candidate set satisfies every run */
+function sumsOK(model, cand){
+  for(var i=0;i<model.runs.length;i++){
+    var run=model.runs[i], s=0, seen=0;
+    for(var j=0;j<run.L;j++){
+      var v=cand[run.cells[j]];
+      if(v===0 || (v & (v-1))) return false;
+      if(seen & v) return false;
+      seen|=v; s += BIT2D[v];
+    }
+    if(s !== run.S) return false;
+  }
+  return true;
+}
+function freshCand(model){
+  var c=new Uint16Array(model.n);
+  for(var i=0;i<model.n;i++) c[i]=0x1FF;
+  return c;
+}
+
+/* Count solutions, stopping at stopAt. A node budget keeps the batch from ever
+   hanging: on exhaustion the count is reported as "at least stopAt" and flagged
+   aborted, so a puzzle is only ever accepted when uniqueness was truly proved. */
+function countSolutions(model, stopAt, opts, stats, collect, cand, seedRuns, depth){
+  cand = cand || freshCand(model);
+  depth = depth||0;
+  if(++stats.nodes > stats.nodeCap){ stats.aborted=true; return stopAt; }
+  if(!propagate(model,cand,opts,stats,seedRuns)) return 0;
+  var best=-1, bp=10, i;
+  for(i=0;i<model.n;i++){
+    var p=popcount(cand[i]);
+    if(p>1 && p<bp){ bp=p; best=i; if(p===2) break; }
+  }
+  if(best<0){
+    if(!sumsOK(model,cand)) return 0;
+    if(collect && collect.length<2) collect.push(cand.slice());
+    return 1;
+  }
+  stats.branchNodes++;
+  if(depth+1 > stats.maxDepth) stats.maxDepth = depth+1;
+  var total=0, m=cand[best];
+  var seed=[model.cellRuns[best*2], model.cellRuns[best*2+1]];
+  while(m){
+    var b = m & -m; m ^= b;
+    var c2 = cand.slice(); c2[best]=b;
+    total += countSolutions(model, stopAt-total, opts, stats, collect, c2, seed, depth+1);
+    if(total >= stopAt) return total;
+  }
+  return total;
+}
+
+var OPTS_EASY   = {naked:true, hidden:false, exact:false};
+var OPTS_MEDIUM = {naked:true, hidden:true,  exact:false};
+var OPTS_EXACT  = {naked:true, hidden:true,  exact:true};
+
+function initialUniqueComboRatio(model){
+  var u=0;
+  for(var i=0;i<model.runs.length;i++){
+    if(combosFor(model.runs[i].L, model.runs[i].S).length===1) u++;
+  }
+  return model.runs.length ? u/model.runs.length : 0;
+}
+
+/* 6.3 rating: cheapest technique set that fully solves the puzzle */
+function rateDifficulty(model){
+  var st, cand;
+  var uniqueRatio = initialUniqueComboRatio(model);
+  cand=freshCand(model); st=newStats();
+  if(propagate(model,cand,OPTS_EASY,st,null) && allSingleton(cand,model.n))
+    return {tier: uniqueRatio>=0.15 ? 'Easy' : 'Medium', stats:st, uniqueRatio:uniqueRatio};
+  cand=freshCand(model); st=newStats();
+  if(propagate(model,cand,OPTS_MEDIUM,st,null) && allSingleton(cand,model.n))
+    return {tier:'Medium', stats:st, uniqueRatio:uniqueRatio};
+  cand=freshCand(model); st=newStats();
+  if(propagate(model,cand,OPTS_EXACT,st,null) && allSingleton(cand,model.n))
+    return {tier:'Hard', stats:st, uniqueRatio:uniqueRatio};
+  cand=freshCand(model); st=newStats(6000);
+  countSolutions(model,1,OPTS_EXACT,st,null,cand,null,0);
+  var tier = (st.aborted || st.maxDepth>=2 || st.branchNodes>1) ? 'Expert' : 'Hard';
+  return {tier:tier, stats:st, uniqueRatio:uniqueRatio};
+}
+
+/* ---------------------------------------------------------------
+   5. GENERATOR — per-puzzle pipeline, budgets, dedupe, batching
+   --------------------------------------------------------------- */
+function puzzleFromState(grid,R,C,runs,val,model,tier){
+  var N=R*C;
+  var acrossClue=new Int16Array(N), downClue=new Int16Array(N), sol=new Int8Array(N);
+  var i;
+  for(i=0;i<runs.across.length;i++) acrossClue[runs.across[i].clueCell]=runs.across[i].S;
+  for(i=0;i<runs.down.length;i++)   downClue[runs.down[i].clueCell]=runs.down[i].S;
+  for(i=0;i<model.n;i++) sol[model.whiteToGrid[i]] = val[i];
+  var puz = {R:R,C:C,grid:grid,acrossClue:acrossClue,downClue:downClue,sol:sol,difficulty:tier};
+  puz.hash = puzzleHash(puz);
+  return puz;
+}
+function puzzleHash(puz){
+  var h=0x811c9dc5, N=puz.R*puz.C;
+  function up(v){
+    h ^= (v & 0xff); h = Math.imul(h,0x01000193);
+    h ^= ((v>>8) & 0xff); h = Math.imul(h,0x01000193);
+  }
+  for(var i=0;i<N;i++){ up(puz.grid[i]); up(puz.acrossClue[i]); up(puz.downClue[i]); }
+  return (h>>>0).toString(16);
+}
+/* rebuild a solver model straight from the finished puzzle (independent of generation state) */
+function modelFromPuzzle(puz){
+  var runs = buildRuns(puz.grid, puz.R, puz.C), i;
+  for(i=0;i<runs.across.length;i++) runs.across[i].S = puz.acrossClue[runs.across[i].clueCell];
+  for(i=0;i<runs.down.length;i++)   runs.down[i].S   = puz.downClue[runs.down[i].clueCell];
+  return buildModel(puz.grid, puz.R, puz.C, runs);
+}
+/* independent answer-key verification */
+function verifyAnswer(puz){
+  var model = modelFromPuzzle(puz), cand=new Uint16Array(model.n), i;
+  for(i=0;i<model.n;i++){
+    var d = puz.sol[model.whiteToGrid[i]];
+    if(d<1||d>9) return false;
+    cand[i] = 1<<(d-1);
+  }
+  return sumsOK(model, cand);
+}
+function runLengthsOK(puz){
+  var runs = buildRuns(puz.grid, puz.R, puz.C), i;
+  for(i=0;i<runs.across.length;i++) if(runs.across[i].L<2||runs.across[i].L>9) return false;
+  for(i=0;i<runs.down.length;i++)   if(runs.down[i].L<2||runs.down[i].L>9) return false;
+  return true;
+}
+
+/* digits currently used in a run, optionally ignoring one cell */
+function runDigitMask(model, val, ri, skip){
+  var run=model.runs[ri], mk=0;
+  for(var i=0;i<run.L;i++){ var c=run.cells[i]; if(c!==skip) mk |= 1<<(val[c]-1); }
+  return mk;
+}
+/* how constrained the puzzle is: total candidates left after propagation.
+   Lower means the clues pin more cells, which is what makes a puzzle solvable. */
+function constraintScore(model, resid){
+  var cand=freshCand(model), st=newStats(1);
+  /* fast placeability is enough to rank moves; exact matching is reserved for
+     the uniqueness proof, where correctness actually depends on it */
+  if(!propagate(model,cand,OPTS_MEDIUM,st,null)) return 1e9;
+  var s=0;
+  for(var i=0;i<model.n;i++){
+    var p=popcount(cand[i]);
+    s += p;
+    if(resid && p>1) resid.push(i);
+  }
+  return s;
+}
+
+/* Step 5: drive the fill to a uniquely solvable state.
+
+   A fresh random fill is almost never unique, and re-rolling the whole fill just
+   trades one ambiguity for another. Instead this walks the fill locally: the two
+   solutions returned by the counting solver identify exactly which cells are
+   ambiguous, and re-digiting one of them (legal as long as no digit repeats in
+   its runs, since clues are derived afterwards) kills that ambiguity while
+   leaving every already-resolved part of the grid intact. Candidate moves are
+   scored by constraintScore so the walk climbs towards a pinned grid.
+   Returns the iteration count, or -1 if it did not converge. */
+function lsTriesFor(size){ return size<=13 ? 4 : 3; }
+function localUnique(rng, model, val, maxIter, deadline, tries){
+  var cr = model.cellRuns, i, LS_TRIES = tries||4;
+  for(var it=0; it<maxIter; it++){
+    if(performance.now() > deadline) return -1;
+    deriveClues(model, val);
+    var diff = [];
+    var cur = constraintScore(model, diff);
+    /* every cell pinned by propagation alone: the grid is forced, so the fill is
+       the only solution. Cheap enough to test every iteration. */
+    if(cur === model.n) return it;
+    if(it % 12 === 11){
+      /* the grid may already be unique via a little search; check occasionally */
+      var st = newStats(6000), pair = [];
+      if(countSolutions(model, 2, OPTS_EXACT, st, pair) === 1 && !st.aborted) return it;
+      if(!st.aborted && pair.length === 2){
+        diff = [];
+        for(i=0;i<model.n;i++) if(pair[0][i] !== pair[1][i]) diff.push(i);
+      }
+    }
+    if(!diff.length){ for(i=0;i<model.n;i++) diff.push(i); }
+
+    var bestCell=-1, bestDigit=0, bestScore=Infinity;
+    for(var a=0; a<LS_TRIES; a++){
+      var cell = diff[(rng()*diff.length)|0];
+      var free = 0x1FF & ~runDigitMask(model,val,cr[cell*2],cell)
+                       & ~runDigitMask(model,val,cr[cell*2+1],cell)
+                       & ~(1<<(val[cell]-1));
+      var old = val[cell], mk = free;
+      while(mk){
+        var b = mk & -mk; mk ^= b;
+        val[cell] = BIT2D[b];
+        deriveClues(model, val);
+        var s = constraintScore(model);
+        if(s < bestScore){ bestScore=s; bestCell=cell; bestDigit=val[cell]; }
+      }
+      val[cell] = old;
+    }
+    if(bestCell < 0) return -1;
+    val[bestCell] = bestDigit;
+  }
+  return -1;
+}
+
+/* Step 6: nudge a solved-unique puzzle towards the requested tier. Moves that
+   tighten the grid make it easier, moves that loosen it make it harder; any move
+   that costs uniqueness is reverted. */
+function adjustDifficulty(rng, model, val, targetIdx, deadline, maxMoves, tries){
+  var cr = model.cellRuns, tier = rateDifficulty(model).tier, LS_TRIES = tries||4;
+  for(var mv=0; mv<maxMoves; mv++){
+    var dist = TIERS.indexOf(tier) - targetIdx;
+    if(dist === 0 || performance.now() > deadline) return tier;
+    var wantLower = dist > 0;
+    var moves = [];
+    for(var a=0; a<LS_TRIES; a++){
+      var cell = (rng()*model.n)|0;
+      var free = 0x1FF & ~runDigitMask(model,val,cr[cell*2],cell)
+                       & ~runDigitMask(model,val,cr[cell*2+1],cell)
+                       & ~(1<<(val[cell]-1));
+      var old = val[cell], mk = free;
+      while(mk){
+        var b = mk & -mk; mk ^= b;
+        val[cell] = BIT2D[b];
+        deriveClues(model, val);
+        moves.push({cell:cell, digit:val[cell], score:constraintScore(model)});
+      }
+      val[cell] = old;
+    }
+    if(!moves.length) return tier;
+    moves.sort(function(x,y){ return wantLower ? x.score-y.score : y.score-x.score; });
+    var taken = false;
+    for(var k=0; k<Math.min(3,moves.length) && !taken; k++){
+      var prev = val[moves[k].cell];
+      val[moves[k].cell] = moves[k].digit;
+      deriveClues(model, val);
+      var st = newStats(6000);
+      if(countSolutions(model,2,OPTS_EXACT,st) === 1 && !st.aborted){
+        var t2 = rateDifficulty(model).tier;
+        if(Math.abs(TIERS.indexOf(t2)-targetIdx) <= Math.abs(dist)){ tier = t2; taken = true; }
+        else { val[moves[k].cell] = prev; }
+      } else {
+        val[moves[k].cell] = prev;
+      }
+    }
+    deriveClues(model, val);
+    if(!taken) return tier;
+  }
+  return tier;
+}
+
+/* block density band, adjusted for grid size: bigger grids need shorter runs
+   before a unique solution becomes reachable in a sensible time */
+function densityBand(tier, size){
+  var b = DENSITY[tier] || DENSITY.Medium;
+  var adj = Math.min(0.10, Math.max(0, size-9) * 0.015);
+  return [b[0]+adj, b[1]+adj];
+}
+function maxIterFor(size){ return size<=11 ? 140 : (size<=13 ? 160 : 220); }
+
+/* full per-puzzle pipeline. The wall-clock cap is a backstop only: the attempt
+   counters below are what normally ends the search, which keeps a given seed
+   reproducible across machines. */
+function generatePuzzle(seedStr, target, size, sym, budgetMs){
+  var rng = mulberry32(hash32(seedStr));
+  var R=size, C=size;
+  var deadline = performance.now() + budgetMs;
+  var band = densityBand(target, size);
+  var targetIdx = TIERS.indexOf(target);
+  var maxIter = maxIterFor(size), tries = lsTriesFor(size);
+  var bias = 0, best = null, bestDist = 99;
+
+  /* `attempt` counts real solve attempts; patterns thrown out by the validity
+     rules are cheap and must not use up the budget, or a bias that drifts into
+     an unbuildable density would starve the whole puzzle. */
+  for(var attempt=0, spin=0; attempt<60 && spin<600; spin++){
+    if(performance.now() > deadline) break;
+    var density = band[0] + rng()*(band[1]-band[0]) + bias;
+    density = Math.max(0.16, Math.min(0.44, density));
+    var grid = seedPattern(rng,R,C,density,sym);
+    if(!repairPattern(grid,R,C,sym,rng)){ bias *= 0.8; continue; }
+    var runs = buildRuns(grid,R,C);
+    if(!patternValid(grid,R,C,runs)){ bias *= 0.8; continue; }
+    var model = buildModel(grid,R,C,runs);
+    var val = fillDigits(rng, model);
+    if(!val) continue;
+    attempt++;
+    if(localUnique(rng, model, val, maxIter, deadline, tries) < 0) continue;
+
+    var tier = adjustDifficulty(rng, model, val, targetIdx, deadline - budgetMs*0.15, 12, tries);
+
+    /* Step 5, mandatory: nothing leaves this function without a proved unique
+       solution, whichever path the local search took to get here. */
+    var vst = newStats(40000);
+    if(countSolutions(model, 2, OPTS_EXACT, vst) !== 1 || vst.aborted) continue;
+
+    var puz = puzzleFromState(grid,R,C,runs,val,model,tier);
+    var dist = Math.abs(TIERS.indexOf(tier) - targetIdx);
+    if(dist === 0) return puz;
+    if(dist < bestDist){ bestDist = dist; best = puz; }
+    /* rated harder than asked -> more blocks (shorter runs) on the next pattern */
+    bias += 0.02 * (TIERS.indexOf(tier) - targetIdx);
+    bias = Math.max(-0.08, Math.min(0.08, bias));
+  }
+  return best;
+}
+
+/* difficulty target per puzzle index, easiest-first for Mixed */
+function difficultyPlan(settings){
+  var n = settings.count, plan = new Array(n), i;
+  if(settings.difficulty !== 'Mixed'){
+    for(i=0;i<n;i++) plan[i]=settings.difficulty;
+    return plan;
+  }
+  var pct = settings.mix, total = TIERS.reduce(function(a,t){return a+Math.max(0,pct[t]||0);},0);
+  if(total<=0){ for(i=0;i<n;i++) plan[i]='Medium'; return plan; }
+  var counts = {}, assigned=0;
+  TIERS.forEach(function(t){ counts[t]=Math.floor(n * Math.max(0,pct[t]||0)/total); assigned+=counts[t]; });
+  var k=0;
+  while(assigned<n){ counts[TIERS[k%4]]++; assigned++; k++; }
+  var out=[];
+  TIERS.forEach(function(t){ for(var j=0;j<counts[t];j++) out.push(t); });
+  return out;
+}
+
+function sleep0(){ return new Promise(function(r){ setTimeout(r,0); }); }
+
+async function generateBatch(settings, known, onProgress, job){
+  var plan = difficultyPlan(settings);
+  var puzzles = [], seen = {}, i, k;
+  for(k=0;k<known.length;k++) seen[known[k]]=1;
+  for(i=0;i<settings.count;i++){
+    if(job.cancel) return null;
+    var puz=null;
+    for(var retry=0; retry<8 && !puz; retry++){
+      var seedStr = settings.seed + ':' + i + (retry ? ':r'+retry : '');
+      /* Step 8: 3 s per attempt, then a longer last-resort pass so a stubborn
+         grid size slows the batch down instead of failing it */
+      puz = generatePuzzle(seedStr, plan[i], settings.gridSize, settings.symmetric,
+                           retry>=6 ? 12000 : 3000);
+      if(puz && seen[puz.hash]) puz = null;           /* Step 7 dedupe */
+      if(!puz && retry===2){                          /* fall back one tier once */
+        var idx = Math.max(0, TIERS.indexOf(plan[i])-1);
+        puz = generatePuzzle(settings.seed+':'+i+':fb', TIERS[idx], settings.gridSize, settings.symmetric, 3000);
+        if(puz && seen[puz.hash]) puz = null;
+      }
+      if(!puz){ onProgress(i/settings.count, 'Puzzle '+(i+1)+': retry '+(retry+1)); await sleep0(); }
+      if(job.cancel) return null;
+    }
+    if(!puz) return {error:'Could not generate a unique puzzle at index '+(i+1)+'. Try a different seed, a smaller grid, or an easier tier.'};
+    seen[puz.hash]=1;
+    puz.index = i+1;
+    puzzles.push(puz);
+    onProgress((i+1)/settings.count, 'Generating puzzle '+(i+1)+' of '+settings.count+' ('+puz.difficulty+')');
+    await sleep0();
+  }
+  return {puzzles:puzzles};
+}
+
+/* ---------------------------------------------------------------
+   6. LAYOUT — geometry math, page composition, pagination
+   --------------------------------------------------------------- */
+function trimOf(settings){
+  if(settings.trim==='custom') return {w:settings.customW, h:settings.customH, max:828, id:'custom'};
+  for(var i=0;i<TRIMS.length;i++) if(TRIMS[i].id===settings.trim) return TRIMS[i];
+  return TRIMS[14];
+}
+function tierGutter(totalPages){
+  for(var i=0;i<GUTTER_TIERS.length;i++){
+    var t=GUTTER_TIERS[i];
+    if(totalPages<=t.max){
+      /* round up to the safer tier when within 5 pages of the boundary */
+      if(i<GUTTER_TIERS.length-1 && (t.max-totalPages)<=5) return GUTTER_TIERS[i+1].g;
+      return t.g;
+    }
+  }
+  return GUTTER_TIERS[GUTTER_TIERS.length-1].g;
+}
+function minMargin(bleed){ return bleed ? 0.375 : 0.25; }
+
+/* page list: one puzzle per page, then solution pages */
+function paginate(puzzles, settings){
+  var pages=[], i;
+  for(i=0;i<puzzles.length;i++) pages.push({kind:'puzzle', items:[i]});
+  if(settings.solutions){
+    var per = settings.solPerPage;
+    for(i=0;i<puzzles.length;i+=per){
+      var items=[];
+      for(var j=i;j<Math.min(i+per,puzzles.length);j++) items.push(j);
+      pages.push({kind:'solution', items:items});
+    }
+  }
+  return pages;
+}
+function pageGeometry(pageIndex, totalWithFront, settings){
+  var trim = trimOf(settings);
+  var pageW = settings.bleed ? trim.w + 0.125 : trim.w;
+  var pageH = settings.bleed ? trim.h + 0.25  : trim.h;
+  var pageNum = settings.startPage + pageIndex;
+  var isRecto = (pageNum % 2) === 1;
+  var gutter = tierGutter(totalWithFront);
+  var mm = minMargin(settings.bleed);
+  var outer  = Math.max(settings.mOuter,  mm);
+  var top    = Math.max(settings.mTop,    mm);
+  var bottom = Math.max(settings.mBottom, mm);
+  var trimOriginX = (settings.bleed && !isRecto) ? 0.125 : 0;
+  var trimOriginY = settings.bleed ? 0.125 : 0;
+  /* symmetric horizontal margin so content stays centered on the trim page;
+     still >= gutter and >= outer, so both binding-safety minimums hold */
+  var side = Math.max(gutter, outer);
+  return {
+    pageW:pageW, pageH:pageH, trimW:trim.w, trimH:trim.h,
+    trimOriginX:trimOriginX, trimOriginY:trimOriginY,
+    safeX: trimOriginX + side,
+    safeW: trim.w - 2*side,
+    safeY: trimOriginY + top,
+    safeH: trim.h - top - bottom,
+    gutter:gutter, outer:outer, top:top, bottom:bottom,
+    isRecto:isRecto, pageNum:pageNum
+  };
+}
+var GAP = 0.15;
+function blockMetrics(geom, settings){
+  var headerH = settings.header ? 0.35 : 0;
+  var footerH = settings.pageNumbers ? 0.30 : 0;
+  return {
+    headerH:headerH, footerH:footerH,
+    boxX: geom.safeX, boxW: geom.safeW,
+    boxY: geom.safeY + headerH + GAP,
+    boxH: geom.safeH - headerH - footerH - 2*GAP
+  };
+}
+var GRID_PAD = 0.12;
+function cellSizeFor(geom, settings){
+  var b = blockMetrics(geom, settings);
+  var C = settings.gridSize, R = settings.gridSize;
+  var raw = Math.min((b.boxW - 2*GRID_PAD) / C, (b.boxH - 2*GRID_PAD) / R);
+  var minCell = 0.24;
+  var maxCell = 0.62;
+  return {raw:raw, cell: Math.min(raw, maxCell), minCell:minCell, maxCell:maxCell, fits: raw >= minCell};
+}
+var SOL_ARRANGE = {1:[1,1], 2:[2,1], 4:[2,2], 6:[3,2]};   /* rows, cols */
+
+/* ---------------------------------------------------------------
+   7. RENDER — one function for screen and export
+   --------------------------------------------------------------- */
+var FONT_STACK = '"Helvetica Neue", Helvetica, Arial, "Liberation Sans", sans-serif';
+function ptToPx(pt, dpi){ return pt/72*dpi; }
+
+function fillRectSnap(ctx,x,y,w,h){
+  var x0=Math.round(x), y0=Math.round(y);
+  ctx.fillRect(x0, y0, Math.round(x+w)-x0, Math.round(y+h)-y0);
+}
+function barV(ctx,x,y0,y1,w){
+  var t=Math.max(1,Math.round(w)), x0=Math.round(x - t/2);
+  ctx.fillRect(x0, Math.round(y0), t, Math.round(y1)-Math.round(y0));
+}
+function barH(ctx,y,x0,x1,w){
+  var t=Math.max(1,Math.round(w)), y0=Math.round(y - t/2);
+  ctx.fillRect(Math.round(x0), y0, Math.round(x1)-Math.round(x0), t);
+}
+
+/* draw one kakuro grid; x,y,cell in inches */
+function drawKakuro(ctx, dpi, puz, x, y, cell, showDigits, settings, strokeScale){
+  var R=puz.R, C=puz.C;
+  var px=x*dpi, py=y*dpi, cs=cell*dpi;
+  var light = settings.lightClues;
+  var outerPt = Math.max(0.5, 1.2*strokeScale), innerPt = Math.max(0.5, 0.6*strokeScale);
+  var outerW = ptToPx(outerPt,dpi), innerW = ptToPx(innerPt,dpi);
+  var r,c,i,cx,cy;
+
+  /* cell bodies */
+  for(r=0;r<R;r++) for(c=0;c<C;c++){
+    i=r*C+c; cx=px+c*cs; cy=py+r*cs;
+    if(puz.grid[i]===1){
+      ctx.fillStyle='#FFFFFF'; fillRectSnap(ctx,cx,cy,cs,cs);
+    } else {
+      ctx.fillStyle = light ? '#FFFFFF' : '#000000';
+      fillRectSnap(ctx,cx,cy,cs,cs);
+    }
+  }
+  /* clue diagonals + numbers */
+  var clueFont = Math.max(4, 0.34*cs);
+  ctx.textBaseline='middle';
+  for(r=0;r<R;r++) for(c=0;c<C;c++){
+    i=r*C+c;
+    if(puz.grid[i]===1) continue;
+    var a=puz.acrossClue[i], d=puz.downClue[i];
+    cx=px+c*cs; cy=py+r*cs;
+    if(a||d||light){
+      ctx.strokeStyle = light ? '#000000' : '#FFFFFF';
+      ctx.lineWidth = Math.max(1, ptToPx(Math.max(0.5,0.6*strokeScale),dpi));
+      ctx.beginPath();
+      ctx.moveTo(Math.round(cx)+0.5, Math.round(cy)+0.5);
+      ctx.lineTo(Math.round(cx+cs)-0.5, Math.round(cy+cs)-0.5);
+      ctx.stroke();
+    }
+    if(a||d){
+      ctx.fillStyle = light ? '#000000' : '#FFFFFF';
+      ctx.font = 'bold '+clueFont.toFixed(2)+'px '+FONT_STACK;
+      if(a){ ctx.textAlign='right'; ctx.fillText(String(a), cx+cs-0.11*cs, cy+0.29*cs); }
+      if(d){ ctx.textAlign='left';  ctx.fillText(String(d), cx+0.11*cs,     cy+0.73*cs); }
+    }
+  }
+  /* answer digits */
+  if(showDigits){
+    ctx.fillStyle='#000000'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font = 'bold '+Math.max(4,0.52*cs).toFixed(2)+'px '+FONT_STACK;
+    for(r=0;r<R;r++) for(c=0;c<C;c++){
+      i=r*C+c;
+      if(puz.grid[i]!==1) continue;
+      ctx.fillText(String(puz.sol[i]), px+c*cs+cs/2, py+r*cs+cs*0.54);
+    }
+  }
+  /* grid lines */
+  ctx.fillStyle='#000000';
+  for(c=1;c<C;c++) barV(ctx, px+c*cs, py, py+R*cs, innerW);
+  for(r=1;r<R;r++) barH(ctx, py+r*cs, px, px+C*cs, innerW);
+  barV(ctx, px,        py, py+R*cs, outerW);
+  barV(ctx, px+C*cs,   py, py+R*cs, outerW);
+  barH(ctx, py,        px, px+C*cs, outerW);
+  barH(ctx, py+R*cs,   px, px+C*cs, outerW);
+}
+
+function headerTextFor(page, puzzles, settings){
+  if(page.kind==='puzzle'){
+    var p = puzzles[page.items[0]];
+    return settings.headerTpl.replace(/\{n\}/g, String(p.index)).replace(/\{difficulty\}/g, p.difficulty);
+  }
+  var a = puzzles[page.items[0]].index, b = puzzles[page.items[page.items.length-1]].index;
+  return a===b ? ('Solution '+a) : ('Solutions '+a+'-'+b);
+}
+
+/* the single rendering path — screen preview and every export use this */
+function renderPage(ctx, dpi, page, pageIndex, puzzles, settings, geom, opts){
+  opts = opts||{};
+  var W=Math.round(geom.pageW*dpi), H=Math.round(geom.pageH*dpi);
+  ctx.fillStyle='#FFFFFF'; ctx.fillRect(0,0,W,H);
+  var b = blockMetrics(geom, settings);
+
+  if(settings.header){
+    ctx.fillStyle='#000000'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font = 'bold '+(0.55*b.headerH*dpi).toFixed(2)+'px '+FONT_STACK;
+    ctx.fillText(headerTextFor(page,puzzles,settings),
+      (geom.safeX+geom.safeW/2)*dpi, (geom.safeY+b.headerH*0.55)*dpi);
+  }
+  if(settings.pageNumbers){
+    ctx.fillStyle='#000000'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font = (0.48*b.footerH*dpi).toFixed(2)+'px '+FONT_STACK;
+    ctx.fillText(String(geom.pageNum),
+      (geom.safeX+geom.safeW/2)*dpi, (geom.safeY+geom.safeH-b.footerH*0.5)*dpi);
+  }
+
+  var R=settings.gridSize, C=settings.gridSize;
+  if(page.kind==='puzzle'){
+    var cs = cellSizeFor(geom,settings);
+    var cell = cs.cell;
+    var gw=cell*C, gh=cell*R;
+    var gx = b.boxX + (b.boxW-gw)/2, gy = b.boxY + (b.boxH-gh)/2;
+    drawKakuro(ctx,dpi,puzzles[page.items[0]],gx,gy,cell,false,settings,1);
+    opts.refCell = cell;
+  } else {
+    var arr = SOL_ARRANGE[settings.solPerPage]||SOL_ARRANGE[4];
+    var rows=arr[0], cols=arr[1];
+    var refCell = cellSizeFor(geom,settings).cell;
+    var labelH = 0.20, pad = 0.10;
+    var bw = b.boxW/cols, bh = b.boxH/rows;
+    for(var k=0;k<page.items.length;k++){
+      var rr = (k/cols)|0, cc = k%cols;
+      var bx = b.boxX + cc*bw, by = b.boxY + rr*bh;
+      var avW = bw - 2*pad, avH = bh - labelH - 2*pad;
+      var cell2 = Math.min(avW/C, avH/R, 0.62);
+      var gx2 = bx + (bw - cell2*C)/2, gy2 = by + labelH + (avH - cell2*R)/2 + pad;
+      var puz = puzzles[page.items[k]];
+      ctx.fillStyle='#000000'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.font = 'bold '+(0.62*labelH*dpi).toFixed(2)+'px '+FONT_STACK;
+      ctx.fillText('Puzzle '+puz.index, (bx+bw/2)*dpi, (by+labelH*0.6)*dpi);
+      drawKakuro(ctx,dpi,puz,gx2,gy2,cell2,true,settings, Math.max(0.42, cell2/refCell));
+    }
+  }
+
+  if(opts.guides) drawGuides(ctx,dpi,geom,settings);
+}
+
+function drawGuides(ctx,dpi,geom,settings){
+  ctx.save();
+  if(settings.bleed){
+    /* paint only the bleed-margin strips around the trim box — clearRect would
+       paint opaque black on this alpha:false canvas instead of revealing it */
+    ctx.fillStyle='rgba(255,120,60,0.13)';
+    var tx=geom.trimOriginX*dpi, ty=geom.trimOriginY*dpi, tw=geom.trimW*dpi, th=geom.trimH*dpi;
+    var pw=geom.pageW*dpi, ph=geom.pageH*dpi;
+    ctx.fillRect(0, 0, pw, ty);                  /* top */
+    ctx.fillRect(0, ty+th, pw, ph-ty-th);         /* bottom */
+    ctx.fillRect(0, ty, tx, th);                  /* left */
+    ctx.fillRect(tx+tw, ty, pw-tx-tw, th);        /* right */
+  }
+  ctx.lineWidth=Math.max(1,dpi/96);
+  ctx.setLineDash([dpi/12, dpi/12]);
+  ctx.strokeStyle='rgba(220,60,60,0.85)';
+  ctx.strokeRect(geom.trimOriginX*dpi, geom.trimOriginY*dpi, geom.trimW*dpi, geom.trimH*dpi);
+  ctx.strokeStyle='rgba(40,110,230,0.85)';
+  ctx.strokeRect(geom.safeX*dpi, geom.safeY*dpi, geom.safeW*dpi, geom.safeH*dpi);
+  ctx.setLineDash([]);
+  /* spine marker on the gutter edge */
+  var spineX = geom.isRecto ? geom.trimOriginX*dpi + 2 : (geom.trimOriginX+geom.trimW)*dpi - 2;
+  ctx.fillStyle='rgba(40,110,230,0.85)';
+  ctx.fillRect(geom.isRecto ? geom.trimOriginX*dpi : (geom.trimOriginX+geom.trimW)*dpi - dpi*0.06,
+               geom.trimOriginY*dpi, dpi*0.06, geom.trimH*dpi);
+  ctx.save();
+  ctx.translate(spineX + (geom.isRecto? dpi*0.14 : -dpi*0.14), geom.trimOriginY*dpi + geom.trimH*dpi/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.fillStyle='rgba(40,110,230,0.95)';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font = 'bold '+(0.13*dpi).toFixed(1)+'px '+FONT_STACK;
+  ctx.fillText('SPINE / GUTTER', 0, 0);
+  ctx.restore();
+  ctx.restore();
+}
+
+/* ---------------------------------------------------------------
+   7b. VECTOR PDF RENDER — mirrors drawKakuro()/renderPage() above but
+   emits PDF content-stream operators (fills, strokes, Tj text) instead
+   of canvas calls, so the exported PDF is real vector line art —
+   crisp at any zoom, tiny file size — not a rasterized page image.
+   --------------------------------------------------------------- */
+var PDF_PT = 72;
+var _measureCtx = null;
+function textWidthPt(text, sizePt, bold){
+  if(!_measureCtx) _measureCtx = document.createElement('canvas').getContext('2d');
+  _measureCtx.font = (bold?'bold ':'') + sizePt + 'px ' + FONT_STACK;
+  return _measureCtx.measureText(text).width;
+}
+function pdfEscape(s){ return String(s).replace(/([\\()])/g, '\\$1'); }
+
+function PdfPage(wIn, hIn){
+  this.wPt = wIn*PDF_PT; this.hPt = hIn*PDF_PT;
+  this.ops = []; this._fillGray = null; this._strokeGray = null; this._lw = null;
+}
+PdfPage.prototype._setFill = function(g){
+  if(this._fillGray!==g){ this.ops.push(fmt(g)+' g'); this._fillGray=g; }
+};
+PdfPage.prototype._setStroke = function(g, w){
+  if(this._strokeGray!==g){ this.ops.push(fmt(g)+' G'); this._strokeGray=g; }
+  if(this._lw!==w){ this.ops.push(fmt(w)+' w'); this._lw=w; }
+};
+/* x,y,w,h in inches, (x,y) = top-left, matching the canvas convention used above */
+PdfPage.prototype.rect = function(xIn,yIn,wIn,hIn,gray){
+  this._setFill(gray);
+  var x=xIn*PDF_PT, w=wIn*PDF_PT, h=hIn*PDF_PT, yBottom=this.hPt-yIn*PDF_PT-h;
+  this.ops.push(fmt(x)+' '+fmt(yBottom)+' '+fmt(w)+' '+fmt(h)+' re f');
+};
+PdfPage.prototype.vBar = function(xIn,y0In,y1In,wPt,gray){
+  var t=wPt/PDF_PT;
+  this.rect(xIn-t/2, y0In, t, y1In-y0In, gray);
+};
+PdfPage.prototype.hBar = function(x0In,x1In,yIn,wPt,gray){
+  var t=wPt/PDF_PT;
+  this.rect(x0In, yIn-t/2, x1In-x0In, t, gray);
+};
+PdfPage.prototype.line = function(x0In,y0In,x1In,y1In,wPt,gray){
+  this._setStroke(gray, wPt);
+  this.ops.push(fmt(x0In*PDF_PT)+' '+fmt(this.hPt-y0In*PDF_PT)+' m '+
+    fmt(x1In*PDF_PT)+' '+fmt(this.hPt-y1In*PDF_PT)+' l S');
+};
+/* xIn,yIn = position matching canvas textBaseline:'middle' at that point */
+PdfPage.prototype.text = function(str, xIn, yIn, sizePt, bold, align, gray){
+  str=String(str);
+  if(str==='') return;
+  this._setFill(gray==null?0:gray);
+  var w = align==='left' ? 0 : textWidthPt(str, sizePt, bold);
+  var xPt = xIn*PDF_PT - (align==='right'? w : align==='center'? w/2 : 0);
+  var yPt = this.hPt - yIn*PDF_PT - sizePt*0.32;
+  var font = bold ? '/FB' : '/FR';
+  this.ops.push('BT '+font+' '+fmt(sizePt)+' Tf '+fmt(xPt)+' '+fmt(yPt)+' Td ('+pdfEscape(str)+') Tj ET');
+};
+PdfPage.prototype.content = function(){ return this.ops.join('\n'); };
+
+/* draw one kakuro grid as vector ops; x,y,cell in inches */
+function drawKakuroVector(pg, puz, x, y, cell, showDigits, settings, strokeScale){
+  var R=puz.R, C=puz.C;
+  var light = settings.lightClues;
+  var outerPt = Math.max(0.5, 1.2*strokeScale), innerPt = Math.max(0.5, 0.6*strokeScale);
+  var r,c,i,cx,cy;
+
+  /* cell bodies — the page is already white, so only non-light clue cells need ink */
+  if(!light){
+    for(r=0;r<R;r++) for(c=0;c<C;c++){
+      i=r*C+c;
+      if(puz.grid[i]===1) continue;
+      pg.rect(x+c*cell, y+r*cell, cell, cell, 0);
+    }
+  }
+  /* clue diagonals + numbers */
+  var clueFont = Math.max(4, 0.34*cell*PDF_PT);
+  var inkGray = light ? 0 : 1;
+  for(r=0;r<R;r++) for(c=0;c<C;c++){
+    i=r*C+c;
+    if(puz.grid[i]===1) continue;
+    var a=puz.acrossClue[i], d=puz.downClue[i];
+    cx=x+c*cell; cy=y+r*cell;
+    if(a||d||light){
+      pg.line(cx,cy, cx+cell,cy+cell, Math.max(0.5,0.6*strokeScale), inkGray);
+    }
+    if(a) pg.text(a, cx+cell-0.11*cell, cy+0.29*cell, clueFont, true, 'right', inkGray);
+    if(d) pg.text(d, cx+0.11*cell, cy+0.73*cell, clueFont, true, 'left', inkGray);
+  }
+  /* answer digits */
+  if(showDigits){
+    var digitFont = Math.max(4, 0.52*cell*PDF_PT);
+    for(r=0;r<R;r++) for(c=0;c<C;c++){
+      i=r*C+c;
+      if(puz.grid[i]!==1) continue;
+      cx=x+c*cell; cy=y+r*cell;
+      pg.text(puz.sol[i], cx+cell/2, cy+cell*0.54, digitFont, true, 'center', 0);
+    }
+  }
+  /* grid lines */
+  for(c=1;c<C;c++) pg.vBar(x+c*cell, y, y+R*cell, innerPt, 0);
+  for(r=1;r<R;r++) pg.hBar(x, x+C*cell, y+r*cell, innerPt, 0);
+  pg.vBar(x,        y, y+R*cell, outerPt, 0);
+  pg.vBar(x+C*cell, y, y+R*cell, outerPt, 0);
+  pg.hBar(x, x+C*cell, y,        outerPt, 0);
+  pg.hBar(x, x+C*cell, y+R*cell, outerPt, 0);
+}
+
+/* one PDF page's worth of vector content — the export counterpart of renderPage() */
+function renderPageVector(page, pageIndex, puzzles, settings, geom){
+  var pg = new PdfPage(geom.pageW, geom.pageH);
+  var b = blockMetrics(geom, settings);
+
+  if(settings.header){
+    pg.text(headerTextFor(page,puzzles,settings),
+      geom.safeX+geom.safeW/2, geom.safeY+b.headerH*0.55, 0.55*b.headerH*PDF_PT, true, 'center', 0);
+  }
+  if(settings.pageNumbers){
+    pg.text(geom.pageNum,
+      geom.safeX+geom.safeW/2, geom.safeY+geom.safeH-b.footerH*0.5, 0.48*b.footerH*PDF_PT, false, 'center', 0);
+  }
+
+  var R=settings.gridSize, C=settings.gridSize;
+  if(page.kind==='puzzle'){
+    var cs = cellSizeFor(geom,settings);
+    var cell = cs.cell;
+    var gw=cell*C, gh=cell*R;
+    var gx = b.boxX + (b.boxW-gw)/2, gy = b.boxY + (b.boxH-gh)/2;
+    drawKakuroVector(pg, puzzles[page.items[0]], gx, gy, cell, false, settings, 1);
+  } else {
+    var arr = SOL_ARRANGE[settings.solPerPage]||SOL_ARRANGE[4];
+    var rows=arr[0], cols=arr[1];
+    var refCell = cellSizeFor(geom,settings).cell;
+    var labelH = 0.20, pad = 0.10;
+    var bw = b.boxW/cols, bh = b.boxH/rows;
+    for(var k=0;k<page.items.length;k++){
+      var rr = (k/cols)|0, cc = k%cols;
+      var bx = b.boxX + cc*bw, by = b.boxY + rr*bh;
+      var avW = bw - 2*pad, avH = bh - labelH - 2*pad;
+      var cell2 = Math.min(avW/C, avH/R, 0.62);
+      var gx2 = bx + (bw - cell2*C)/2, gy2 = by + labelH + (avH - cell2*R)/2 + pad;
+      var puz = puzzles[page.items[k]];
+      pg.text('Puzzle '+puz.index, bx+bw/2, by+labelH*0.6, 0.62*labelH*PDF_PT, true, 'center', 0);
+      drawKakuroVector(pg, puz, gx2, gy2, cell2, true, settings, Math.max(0.42, cell2/refCell));
+    }
+  }
+  return pg;
+}
+
+/* ---------------------------------------------------------------
+   8. PDF — hand-written writer, vector content streams, xref
+   --------------------------------------------------------------- */
+function latin1(str){
+  var u=new Uint8Array(str.length);
+  for(var i=0;i<str.length;i++) u[i]=str.charCodeAt(i)&0xff;
+  return u;
+}
+function dataURLToBytes(url){
+  var b64 = url.slice(url.indexOf(',')+1);
+  var bin = atob(b64), u=new Uint8Array(bin.length);
+  for(var i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i);
+  return u;
+}
+function fmt(v){
+  var s = (Math.round(v*10000)/10000).toString();
+  return s;
+}
+function buildPDF(pages){
+  var chunks=[], len=0, offsets=[];
+  function put(d){
+    var u = (typeof d==='string') ? latin1(d) : d;
+    chunks.push(u); len += u.length;
+  }
+  function objStart(num){ offsets[num]=len; put(num+' 0 obj\n'); }
+  put('%PDF-1.7\n');
+  put(new Uint8Array([0x25,0xE2,0xE3,0xCF,0xD3,0x0A]));
+  var N=pages.length, i;
+  function pageObj(i){ return 5+i*2; }
+  objStart(1); put('<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+  var kids=[];
+  for(i=0;i<N;i++) kids.push(pageObj(i)+' 0 R');
+  objStart(2); put('<< /Type /Pages /Count '+N+' /Kids ['+kids.join(' ')+'] >>\nendobj\n');
+  objStart(3); put('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n');
+  objStart(4); put('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj\n');
+  for(i=0;i<N;i++){
+    var p=pages[i], po=pageObj(i), co=po+1;
+    var W=p.w*72, H=p.h*72;
+    objStart(po);
+    put('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+fmt(W)+' '+fmt(H)+
+        '] /Resources << /Font << /FR 3 0 R /FB 4 0 R >> >> /Contents '+co+' 0 R >>\nendobj\n');
+    var contentBytes = latin1(p.content);
+    objStart(co);
+    put('<< /Length '+contentBytes.length+' >>\nstream\n');
+    put(contentBytes);
+    put('\nendstream\nendobj\n');
+  }
+  var xrefOff=len, maxObj=4+N*2;
+  var x='xref\n0 '+(maxObj+1)+'\n0000000000 65535 f \n';
+  for(i=1;i<=maxObj;i++){
+    var o=String(offsets[i]||0);
+    while(o.length<10) o='0'+o;
+    x += o+' 00000 n \n';
+  }
+  put(x);
+  put('trailer\n<< /Size '+(maxObj+1)+' /Root 1 0 R >>\nstartxref\n'+xrefOff+'\n%%EOF\n');
+  return new Blob(chunks,{type:'application/pdf'});
+}
+
+/* ---------------------------------------------------------------
+   9. ZIP — STORE method writer + CRC-32
+   --------------------------------------------------------------- */
+var CRC_TABLE=(function(){
+  var t=new Uint32Array(256), c, n, k;
+  for(n=0;n<256;n++){
+    c=n;
+    for(k=0;k<8;k++) c = (c&1) ? (0xEDB88320 ^ (c>>>1)) : (c>>>1);
+    t[n]=c>>>0;
+  }
+  return t;
+})();
+function crc32(u8){
+  var c=0xFFFFFFFF;
+  for(var i=0;i<u8.length;i++) c = CRC_TABLE[(c ^ u8[i]) & 0xFF] ^ (c>>>8);
+  return (c ^ 0xFFFFFFFF)>>>0;
+}
+function buildZip(files){
+  var chunks=[], off=0, central=[], i;
+  var d=new Date();
+  var dosTime = ((d.getHours()&31)<<11) | ((d.getMinutes()&63)<<5) | ((d.getSeconds()/2)&31);
+  var dosDate = (((d.getFullYear()-1980)&127)<<9) | (((d.getMonth()+1)&15)<<5) | (d.getDate()&31);
+  for(i=0;i<files.length;i++){
+    var f=files[i], name=latin1(f.name), crc=crc32(f.bytes);
+    var lh=new Uint8Array(30+name.length), dv=new DataView(lh.buffer);
+    dv.setUint32(0,0x04034b50,true); dv.setUint16(4,20,true); dv.setUint16(6,0,true);
+    dv.setUint16(8,0,true); dv.setUint16(10,dosTime,true); dv.setUint16(12,dosDate,true);
+    dv.setUint32(14,crc,true); dv.setUint32(18,f.bytes.length,true); dv.setUint32(22,f.bytes.length,true);
+    dv.setUint16(26,name.length,true); dv.setUint16(28,0,true);
+    lh.set(name,30);
+    chunks.push(lh, f.bytes);
+    central.push({name:name, crc:crc, size:f.bytes.length, off:off});
+    off += lh.length + f.bytes.length;
+  }
+  var cdStart=off, cdSize=0;
+  for(i=0;i<central.length;i++){
+    var c=central[i], ch=new Uint8Array(46+c.name.length), cv=new DataView(ch.buffer);
+    cv.setUint32(0,0x02014b50,true); cv.setUint16(4,20,true); cv.setUint16(6,20,true);
+    cv.setUint16(8,0,true); cv.setUint16(10,0,true);
+    cv.setUint16(12,dosTime,true); cv.setUint16(14,dosDate,true);
+    cv.setUint32(16,c.crc,true); cv.setUint32(20,c.size,true); cv.setUint32(24,c.size,true);
+    cv.setUint16(28,c.name.length,true);
+    cv.setUint32(42,c.off,true);
+    ch.set(c.name,46);
+    chunks.push(ch); cdSize += ch.length;
+  }
+  var eocd=new Uint8Array(22), ev=new DataView(eocd.buffer);
+  ev.setUint32(0,0x06054b50,true);
+  ev.setUint16(8,central.length,true); ev.setUint16(10,central.length,true);
+  ev.setUint32(12,cdSize,true); ev.setUint32(16,cdStart,true);
+  chunks.push(eocd);
+  return new Blob(chunks,{type:'application/zip'});
+}
+
+/* ---------------------------------------------------------------
+   10. UI
+   --------------------------------------------------------------- */
+var $ = function(id){ return document.getElementById(id); };
+function randomSeed(){ return 'k'+Date.now().toString(36)+'-'+Math.floor(Math.random()*1e6).toString(36); }
+var state = {
+  puzzles: [],
+  pages: [],
+  current: 0,
+  job: null,
+  busy: false
+};
+var settings = {
+  trim:'8.5x11', customW:8.5, customH:11, bleed:false, frontMatter:4,
+  mOuter:0.5, mTop:0.5, mBottom:0.5, lightClues:false,
+  count:100, gridSize:11, difficulty:'Medium',
+  mix:{Easy:25,Medium:25,Hard:25,Expert:25},
+  symmetric:true, seed:randomSeed(),
+  header:true, headerTpl:'Puzzle {n}', pageNumbers:true, startPage:1,
+  solutions:true, solPerPage:4, dpi:300, jpegQ:0.92, slug:'kakuro'
+};
+
+function buildTrimOptions(){
+  var sel=$('trim'), groups={};
+  TRIMS.forEach(function(t){
+    if(!groups[t.group]){
+      groups[t.group]=document.createElement('optgroup');
+      groups[t.group].label=t.group+' trim';
+      sel.appendChild(groups[t.group]);
+    }
+    var o=document.createElement('option');
+    o.value=t.id;
+    o.textContent=t.w+' x '+t.h+' in'+(t.max<828?'  (max '+t.max+' pp)':'');
+    groups[t.group].appendChild(o);
+  });
+  var oc=document.createElement('option');
+  oc.value='custom'; oc.textContent='Custom W x H';
+  sel.appendChild(oc);
+  sel.value='8.5x11';
+}
+
+function readSettings(){
+  settings.trim = $('trim').value;
+  settings.customW = +$('customW').value || 8.5;
+  settings.customH = +$('customH').value || 11;
+  settings.bleed = $('bleed').checked;
+  settings.frontMatter = Math.max(0, +$('frontMatter').value||0);
+  var mm = minMargin(settings.bleed);
+  settings.mOuter  = Math.max(mm, +$('mOuter').value  || mm);
+  settings.mTop    = Math.max(mm, +$('mTop').value    || mm);
+  settings.mBottom = Math.max(mm, +$('mBottom').value || mm);
+  settings.lightClues = $('lightClues').checked;
+  settings.count = Math.max(1, Math.min(400, +$('count').value||1));
+  settings.gridSize = +$('gridSize').value;
+  settings.difficulty = $('difficulty').value;
+  settings.mix = {Easy:+$('mixEasy').value||0, Medium:+$('mixMedium').value||0,
+                  Hard:+$('mixHard').value||0, Expert:+$('mixExpert').value||0};
+  settings.header = $('header').checked;
+  settings.headerTpl = $('headerTpl').value;
+  settings.pageNumbers = $('pageNumbers').checked;
+  settings.startPage = Math.max(1, +$('startPage').value||1);
+  settings.solutions = $('solutions').checked;
+  settings.solPerPage = +$('solPerPage').value;
+  settings.dpi = +$('dpi').value;
+  settings.jpegQ = Math.max(0.5, Math.min(1, +$('jpegQ').value||0.92));
+  settings.slug = ($('slug').value||'kakuro').replace(/[^a-z0-9_-]+/gi,'-');
+  $('customTrimRow').style.display = settings.trim==='custom' ? '' : 'none';
+  $('mixRow').style.display = settings.difficulty==='Mixed' ? '' : 'none';
+  $('mOuter').min = $('mTop').min = $('mBottom').min = String(mm);
+}
+function writeSettings(){
+  $('trim').value=settings.trim; $('customW').value=settings.customW; $('customH').value=settings.customH;
+  $('bleed').checked=settings.bleed; $('frontMatter').value=settings.frontMatter;
+  $('mOuter').value=settings.mOuter; $('mTop').value=settings.mTop; $('mBottom').value=settings.mBottom;
+  $('lightClues').checked=settings.lightClues;
+  $('count').value=settings.count; $('gridSize').value=settings.gridSize;
+  $('difficulty').value=settings.difficulty;
+  $('mixEasy').value=settings.mix.Easy; $('mixMedium').value=settings.mix.Medium;
+  $('mixHard').value=settings.mix.Hard; $('mixExpert').value=settings.mix.Expert;
+  $('header').checked=settings.header; $('headerTpl').value=settings.headerTpl;
+  $('pageNumbers').checked=settings.pageNumbers; $('startPage').value=settings.startPage;
+  $('solutions').checked=settings.solutions; $('solPerPage').value=settings.solPerPage;
+  $('dpi').value=settings.dpi; $('jpegQ').value=settings.jpegQ; $('slug').value=settings.slug;
+}
+
+/* page count that does not depend on a generated batch */
+function plannedPages(){
+  var puzzlePages = settings.count;
+  var solPages = settings.solutions ? Math.ceil(settings.count/settings.solPerPage) : 0;
+  return {puzzle:puzzlePages, solution:solPages, interior:puzzlePages+solPages,
+          total:puzzlePages+solPages+settings.frontMatter};
+}
+
+function computePreflight(){
+  var out=[], pp=plannedPages(), trim=trimOf(settings);
+  var geom=pageGeometry(0, pp.total, settings);
+  var cs=cellSizeFor(geom,settings);
+  var mm=minMargin(settings.bleed);
+  var blocking=false;
+
+  if(pp.total < MIN_PAGES){
+    out.push(['bad','Page count', pp.total+' pages total (incl. '+settings.frontMatter+
+      ' front matter). KDP minimum is '+MIN_PAGES+'. Add puzzles or solutions.']); blocking=true;
+  } else if(pp.total > trim.max){
+    out.push(['bad','Page count', pp.total+' pages exceeds the '+trim.max+
+      '-page maximum for this trim.']); blocking=true;
+  } else {
+    out.push(['ok','Page count', pp.interior+' interior ('+pp.puzzle+' puzzle + '+pp.solution+
+      ' solution) + '+settings.frontMatter+' front matter = '+pp.total+' of max '+trim.max+'.']);
+  }
+  out.push(['ok','Gutter tier', geom.gutter.toFixed(3)+' in, derived from '+pp.total+' pages.']);
+
+  if(!cs.fits){
+    out.push(['bad','Cell size', cs.raw.toFixed(3)+' in is below the '+cs.minCell+
+      ' in minimum. Use a smaller grid ('+(settings.gridSize>9?(settings.gridSize-2)+'x'+(settings.gridSize-2):'9x9')+
+      ') or a larger trim.']); blocking=true;
+  } else {
+    out.push(['ok','Cell size', cs.cell.toFixed(3)+' in ('+(cs.cell*72).toFixed(1)+' pt).']);
+    if(cs.cell < 0.30){
+      out.push(['warn','Cell comfort', 'Cells under 0.30 in are cramped for print. Consider a larger trim or smaller grid.']);
+    }
+  }
+  if(settings.mOuter<mm || settings.mTop<mm || settings.mBottom<mm){
+    out.push(['bad','Margins','Margin below the KDP minimum of '+mm+' in for this bleed setting.']);
+    blocking=true;
+  } else {
+    out.push(['ok','Margins','outer '+settings.mOuter+', top '+settings.mTop+', bottom '+settings.mBottom+
+      ' in (min '+mm+').']);
+  }
+  var solCell = 0;
+  if(settings.solutions && cs.fits){
+    var arr=SOL_ARRANGE[settings.solPerPage], b=blockMetrics(geom,settings);
+    solCell = Math.min((b.boxW/arr[1]-0.2)/settings.gridSize, (b.boxH/arr[0]-0.4)/settings.gridSize, 0.62);
+    var scale = Math.max(0.42, solCell/cs.cell);
+    if(0.6*scale < 0.5){
+      out.push(['warn','Stroke weight','Solution-grid strokes floor at 0.5 pt; lines will look heavier than scale.']);
+    }
+  }
+  if(pp.total % 2 === 1){
+    out.push(['warn','Odd page count','KDP pads to an even count, so the book ends with a blank page.']);
+  }
+  out.push(['ok','PDF output', 'Vector — grids, text and rules are real PDF paths/fonts, '+
+    'not a rasterized page image. File size stays a few KB per page regardless of Export DPI.']);
+
+  return {items:out, blocking:blocking};
+}
+function renderPreflight(){
+  var pf=computePreflight(), ul=$('preflight');
+  ul.innerHTML='';
+  pf.items.forEach(function(it){
+    var li=document.createElement('li');
+    li.innerHTML='<span class="dot '+it[0]+'"></span><span class="pf-l">'+it[1]+
+      '</span><span class="pf-m"></span>';
+    li.querySelector('.pf-m').textContent=it[2];
+    ul.appendChild(li);
+  });
+  state.blocking = pf.blocking;
+  var hasPages = state.pages.length>0;
+  ['expPdf','expPngOne','expPngAll','expJpgOne','expJpgAll'].forEach(function(id){
+    $(id).disabled = state.busy || !hasPages || pf.blocking;
+  });
+  return pf;
+}
+
+function currentGeom(){
+  var totalWithFront = state.pages.length + settings.frontMatter;
+  return pageGeometry(state.current, totalWithFront, settings);
+}
+function drawPreview(){
+  var cv=$('preview'), wrap=$('canvasWrap'), hint=$('emptyHint');
+  if(!state.pages.length){
+    cv.style.display='none';
+    hint.style.display='';
+    $('pOf').textContent='of 0'; $('sideInd').textContent='—';
+    return;
+  }
+  hint.style.display='none';
+  cv.style.display='';
+  var geom=currentGeom();
+  var availW=Math.max(120, wrap.clientWidth-36), availH=Math.max(120, wrap.clientHeight-36);
+  var scale=Math.min(availW/geom.pageW, availH/geom.pageH);
+  var dpr=Math.min(2, window.devicePixelRatio||1);
+  var dpi=scale*dpr;
+  cv.width=Math.round(geom.pageW*dpi); cv.height=Math.round(geom.pageH*dpi);
+  cv.style.width=(geom.pageW*scale)+'px'; cv.style.height=(geom.pageH*scale)+'px';
+  var ctx=cv.getContext('2d',{alpha:false});
+  renderPage(ctx, dpi, state.pages[state.current], state.current, state.puzzles, settings, geom,
+    {guides:$('guides').checked});
+  $('pOf').textContent='of '+state.pages.length;
+  $('pJump').value=state.current+1;
+  $('pJump').max=state.pages.length;
+  var ind=$('sideInd');
+  ind.textContent='p'+geom.pageNum+' · '+
+    (geom.isRecto ? 'RECTO — gutter left' : 'VERSO — gutter right');
+  ind.className='pill'+(geom.isRecto?' recto':'');
+}
+function setStatus(msg){ $('status').textContent=msg; }
+function setProgress(f){ $('progbar').style.width=Math.round(f*100)+'%'; }
+function setBusy(b){
+  state.busy=b;
+  $('genBtn').disabled=b; $('cancelBtn').disabled=!b;
+  renderPreflight();
+}
+
+async function doGenerate(){
+  readSettings();
+  settings.seed = randomSeed();
+  setBusy(true);
+  var job={cancel:false}; state.job=job;
+  var t0=performance.now();
+  var res;
+  try{
+    res = await generateBatch(settings, [], function(f,msg){
+      setProgress(f); setStatus(msg);
+    }, job);
+  }catch(e){
+    setBusy(false); setStatus('Generation error: '+e.message); return;
+  }
+  if(!res){ setBusy(false); setProgress(0); setStatus('Generation cancelled.'); return; }
+  if(res.error){ setBusy(false); setProgress(0); setStatus(res.error); return; }
+  state.puzzles=res.puzzles;
+  state.pages=paginate(state.puzzles, settings);
+  state.current=0;
+  setBusy(false); setProgress(1);
+  var secs=((performance.now()-t0)/1000).toFixed(1);
+  var tally={};
+  state.puzzles.forEach(function(p){ tally[p.difficulty]=(tally[p.difficulty]||0)+1; });
+  setStatus(state.puzzles.length+' puzzles in '+secs+'s · '+
+    TIERS.filter(function(t){return tally[t];}).map(function(t){return t+' '+tally[t];}).join(', ')+
+    ' · '+state.pages.length+' pages');
+  drawPreview(); renderPreflight();
+}
+
+function download(blob, name){
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url; a.download=name;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1500);
+}
+function pad3(n){ return ('00'+n).slice(-3); }
+
+/* render one page at export DPI into the shared canvas */
+function renderExportPage(canvas, i){
+  var totalWithFront = state.pages.length + settings.frontMatter;
+  var geom = pageGeometry(i, totalWithFront, settings);
+  var dpi = settings.dpi;
+  canvas.width = Math.round(geom.pageW*dpi);
+  canvas.height = Math.round(geom.pageH*dpi);
+  var ctx = canvas.getContext('2d',{alpha:false});
+  renderPage(ctx, dpi, state.pages[i], i, state.puzzles, settings, geom, {guides:false});
+  return geom;
+}
+
+async function exportPDF(){
+  setBusy(true);
+  var job={cancel:false}; state.job=job;
+  var totalWithFront = state.pages.length + settings.frontMatter;
+  var out=[];
+  for(var i=0;i<state.pages.length;i++){
+    if(job.cancel){ setBusy(false); setProgress(0); setStatus('Export cancelled.'); return; }
+    var geom = pageGeometry(i, totalWithFront, settings);
+    var pg = renderPageVector(state.pages[i], i, state.puzzles, settings, geom);
+    out.push({w:geom.pageW, h:geom.pageH, content:pg.content()});
+    setProgress((i+1)/state.pages.length);
+    setStatus('Rendering page '+(i+1)+' of '+state.pages.length+' (vector)');
+    await sleep0();
+  }
+  var blob=buildPDF(out);
+  download(blob, settings.slug+'_interior.pdf');
+  setBusy(false);
+  setStatus('PDF exported: '+state.pages.length+' pages (vector), '+(blob.size/1024).toFixed(1)+' KB');
+}
+
+async function exportImages(type, allPages){
+  setBusy(true);
+  var job={cancel:false}; state.job=job;
+  var canvas=document.createElement('canvas');
+  var mime = type==='png' ? 'image/png' : 'image/jpeg';
+  var ext  = type==='png' ? 'png' : 'jpg';
+  if(!allPages){
+    renderExportPage(canvas, state.current);
+    var url = type==='png' ? canvas.toDataURL(mime) : canvas.toDataURL(mime, settings.jpegQ);
+    download(new Blob([dataURLToBytes(url)],{type:mime}),
+      settings.slug+'_p'+pad3(state.current+1)+'.'+ext);
+    setBusy(false); setStatus('Page '+(state.current+1)+' exported as '+ext.toUpperCase()+'.');
+    return;
+  }
+  var files=[];
+  for(var i=0;i<state.pages.length;i++){
+    if(job.cancel){ setBusy(false); setProgress(0); setStatus('Export cancelled.'); return; }
+    renderExportPage(canvas,i);
+    var u = type==='png' ? canvas.toDataURL(mime) : canvas.toDataURL(mime, settings.jpegQ);
+    files.push({name: settings.slug+'_p'+pad3(i+1)+'.'+ext, bytes: dataURLToBytes(u)});
+    setProgress((i+1)/state.pages.length);
+    setStatus('Encoding '+ext.toUpperCase()+' page '+(i+1)+' of '+state.pages.length);
+    await sleep0();
+  }
+  var zip=buildZip(files);
+  download(zip, settings.slug+'_'+ext+'_'+settings.dpi+'dpi.zip');
+  setBusy(false);
+  setStatus(ext.toUpperCase()+' zip exported: '+files.length+' files, '+(zip.size/1048576).toFixed(2)+' MB');
+}
+
+function bindUI(){
+  buildTrimOptions();
+  writeSettings();
+
+  function resetGenerated(){
+    state.puzzles=[];
+    state.pages=[];
+    state.current=0;
+    setProgress(0);
+    setStatus('Ready.');
+  }
+
+  var inputs=['trim','customW','customH','bleed','frontMatter','mOuter','mTop','mBottom',
+    'lightClues','count','gridSize','difficulty','mixEasy','mixMedium','mixHard',
+    'mixExpert','header','headerTpl','pageNumbers','startPage','solutions',
+    'solPerPage','dpi','jpegQ','slug'];
+  inputs.forEach(function(id){
+    $(id).addEventListener('change', function(){
+      if(id==='gridSize' || id==='difficulty'){
+        var prev = id==='gridSize' ? String(settings.gridSize) : settings.difficulty;
+        if(state.puzzles.length){
+          var ok = confirm('Changing '+(id==='gridSize'?'grid size':'difficulty')+
+            ' will reset the generated book. You will need to Generate book again.\n\nContinue?');
+          if(!ok){
+            $(id).value = prev;
+            return;
+          }
+          resetGenerated();
+        }
+      }
+      readSettings();
+      if(id!=='gridSize' && id!=='difficulty' && state.puzzles.length){
+        state.pages=paginate(state.puzzles, settings);
+        if(state.current>=state.pages.length) state.current=state.pages.length-1;
+      }
+      renderPreflight(); drawPreview();
+    });
+  });
+  $('guides').addEventListener('change', drawPreview);
+  $('genBtn').addEventListener('click', doGenerate);
+  $('cancelBtn').addEventListener('click', function(){ if(state.job) state.job.cancel=true; });
+
+  function go(i){
+    if(!state.pages.length) return;
+    state.current=Math.max(0, Math.min(state.pages.length-1, i));
+    drawPreview();
+  }
+  $('pFirst').addEventListener('click', function(){ go(0); });
+  $('pPrev').addEventListener('click', function(){ go(state.current-1); });
+  $('pNext').addEventListener('click', function(){ go(state.current+1); });
+  $('pLast').addEventListener('click', function(){ go(state.pages.length-1); });
+  $('pJump').addEventListener('change', function(){ go((+$('pJump').value||1)-1); });
+
+  $('expPdf').addEventListener('click', exportPDF);
+  $('expPngOne').addEventListener('click', function(){ exportImages('png', false); });
+  $('expPngAll').addEventListener('click', function(){ exportImages('png', true); });
+  $('expJpgOne').addEventListener('click', function(){ exportImages('jpg', false); });
+  $('expJpgAll').addEventListener('click', function(){ exportImages('jpg', true); });
+
+  window.addEventListener('resize', function(){ drawPreview(); });
+  readSettings();
+  renderPreflight();
+  drawPreview();
+}
+
+bindUI();
+</script>
+</body>
+</html>

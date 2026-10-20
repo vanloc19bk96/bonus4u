@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Killer Sudoku Book Maker</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" aria-label="Book setup">
+    <header class="brand">
+      <h1>Killer Sudoku Book Maker</h1>
+      <p>Print-ready paperback interiors for Amazon KDP</p>
+    </header>
+
+    <form class="form" id="form" novalidate autocomplete="off">
+      <section class="group" aria-labelledby="h-presets">
+        <h2 id="h-presets">Quick start</h2>
+        <div class="presets" role="radiogroup" aria-labelledby="h-presets" id="presets"></div>
+      </section>
+
+      <section class="group" aria-labelledby="h-book">
+        <h2 id="h-book">Book</h2>
+        <div class="field">
+          <label for="f-title">Title</label>
+          <input id="f-title" name="title" type="text" maxlength="90" required aria-describedby="m-title">
+          <p class="msg" id="m-title" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <div class="label-row">
+            <label for="f-subtitle">Subtitle</label>
+            <button type="button" class="link" id="subtitle-auto" hidden>Use automatic</button>
+          </div>
+          <input id="f-subtitle" name="subtitle" type="text" maxlength="120" aria-describedby="m-subtitle">
+          <p class="msg" id="m-subtitle" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="f-author">Author <span class="opt">optional</span></label>
+          <input id="f-author" name="author" type="text" maxlength="80" aria-describedby="m-author">
+          <p class="msg hint" id="m-author">Shown on the title and copyright pages.</p>
+        </div>
+      </section>
+
+      <section class="group" aria-labelledby="h-puzzles">
+        <h2 id="h-puzzles">Puzzles</h2>
+        <div class="row">
+          <div class="field">
+            <label for="f-count">Number of puzzles</label>
+            <input id="f-count" name="count" type="number" min="10" max="1000" step="1" inputmode="numeric" aria-describedby="m-count">
+          </div>
+          <div class="field">
+            <label for="f-difficulty">Difficulty</label>
+            <select id="f-difficulty" name="difficulty"></select>
+          </div>
+        </div>
+        <p class="msg" id="m-count" aria-live="polite"></p>
+        <div class="field mix" id="mix" hidden>
+          <span class="label" id="l-mix">Difficulty mix</span>
+          <div class="row mix-row" role="group" aria-labelledby="l-mix">
+            <div class="field">
+              <label for="f-mix-easy">Easy</label>
+              <div class="pct"><input id="f-mix-easy" type="number" min="0" max="100" step="1" inputmode="numeric" aria-describedby="m-mix"><span aria-hidden="true">%</span></div>
+            </div>
+            <div class="field">
+              <label for="f-mix-medium">Medium</label>
+              <div class="pct"><input id="f-mix-medium" type="number" min="0" max="100" step="1" inputmode="numeric" aria-describedby="m-mix"><span aria-hidden="true">%</span></div>
+            </div>
+            <div class="field">
+              <label for="f-mix-hard">Hard</label>
+              <div class="pct"><input id="f-mix-hard" type="number" min="0" max="100" step="1" inputmode="numeric" aria-describedby="m-mix"><span aria-hidden="true">%</span></div>
+            </div>
+          </div>
+          <p class="msg" id="m-mix" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <span class="label" id="l-perpage">Puzzles per page</span>
+          <div class="segmented" role="radiogroup" aria-labelledby="l-perpage" aria-describedby="m-perpage" id="perpage"></div>
+          <p class="msg" id="m-perpage" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section class="group" aria-labelledby="h-page">
+        <h2 id="h-page">Page</h2>
+        <div class="field">
+          <label for="f-trim">Book size <span class="kdp">KDP: trim size</span></label>
+          <select id="f-trim" name="trim" aria-describedby="m-trim"></select>
+          <p class="msg hint" id="m-trim">No bleed, black and white.</p>
+        </div>
+      </section>
+
+      <details class="group advanced" id="advanced">
+        <summary><h2>Advanced</h2></summary>
+
+        <fieldset>
+          <legend>Pages</legend>
+          <label class="check"><input type="checkbox" name="pages.title"> Title page</label>
+          <label class="check"><input type="checkbox" name="pages.copyright"> Copyright page</label>
+          <label class="check"><input type="checkbox" name="pages.howTo"> How to Play page</label>
+          <label class="check"><input type="checkbox" name="pages.thanks"> Thank-you page</label>
+          <label class="check"><input type="checkbox" name="pageNumbers"> Page numbers</label>
+          <label class="check"><input type="checkbox" name="header"> Book title at the top of puzzle pages</label>
+          <label class="check"><input type="checkbox" name="solutionRef"> &ldquo;Solution on page N&rdquo; under each puzzle</label>
+        </fieldset>
+
+        <div class="field">
+          <label for="f-copyright">Copyright notice</label>
+          <textarea id="f-copyright" name="copyrightText" rows="4" maxlength="900" aria-describedby="m-copyright"></textarea>
+          <p class="msg hint" id="m-copyright">The &ldquo;Copyright &copy; year author&rdquo; line is added above it when an author is set.</p>
+        </div>
+        <div class="field">
+          <label for="f-thanks">Thank-you page text</label>
+          <textarea id="f-thanks" name="thanksText" rows="5" maxlength="900"></textarea>
+        </div>
+
+        <fieldset>
+          <legend>Margins <span class="kdp">inches</span></legend>
+          <label class="check"><input type="checkbox" name="margins.autoInside" id="f-autoinside"> Automatic inner margin <span class="kdp">recommended</span></label>
+          <div class="row margins">
+            <div class="field">
+              <label for="f-inside">Inner <span class="kdp">KDP: gutter</span></label>
+              <input id="f-inside" name="margins.inside" type="number" step="0.05" min="0.375" max="1.5" inputmode="decimal" aria-describedby="m-inside">
+            </div>
+            <div class="field">
+              <label for="f-outside">Outer <span class="kdp">KDP: outside</span></label>
+              <input id="f-outside" name="margins.outside" type="number" step="0.05" min="0.25" max="1.5" inputmode="decimal" aria-describedby="m-margins">
+            </div>
+            <div class="field">
+              <label for="f-top">Top</label>
+              <input id="f-top" name="margins.top" type="number" step="0.05" min="0.25" max="1.5" inputmode="decimal" aria-describedby="m-margins">
+            </div>
+            <div class="field">
+              <label for="f-bottom">Bottom</label>
+              <input id="f-bottom" name="margins.bottom" type="number" step="0.05" min="0.25" max="1.5" inputmode="decimal" aria-describedby="m-margins">
+            </div>
+          </div>
+          <p class="msg" id="m-inside" aria-live="polite"></p>
+          <p class="msg" id="m-margins" aria-live="polite"></p>
+        </fieldset>
+
+        <fieldset>
+          <legend>Puzzle set</legend>
+          <div class="row seed">
+            <div class="field">
+              <label for="f-seed">Seed <span class="kdp">same seed, same puzzles</span></label>
+              <input id="f-seed" name="seed" type="number" min="1" max="999999" step="1" inputmode="numeric" aria-describedby="m-seed">
+            </div>
+            <button type="button" class="secondary" id="new-puzzles">New puzzles</button>
+          </div>
+          <p class="msg" id="m-seed" aria-live="polite"></p>
+        </fieldset>
+      </details>
+    </form>
+
+    <footer class="footer">
+      <div class="status" id="status">
+        <button type="button" class="status-line" id="status-toggle" aria-expanded="false" aria-controls="checks">
+          <span class="dot" id="status-dot" aria-hidden="true"></span>
+          <span class="status-text" id="status-text" role="status" aria-live="polite">Starting&hellip;</span>
+          <span class="chev" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="link status-action" id="status-action" hidden>Cancel</button>
+      </div>
+      <div class="progress" id="progress" hidden><div class="bar" id="progress-bar"></div></div>
+      <div class="checks" id="checks" hidden>
+        <h3>KDP checks</h3>
+        <ul id="checks-list"></ul>
+      </div>
+      <p class="msg hint create-msg" id="m-create" aria-live="polite"></p>
+      <button type="button" class="primary" id="create-puzzles" disabled aria-describedby="m-create">Create puzzles</button>
+    </footer>
+  </aside>
+
+  <main class="preview" aria-label="Book preview">
+    <div class="toolbar" role="toolbar" aria-label="Preview controls">
+      <div class="tool-group">
+        <button type="button" class="icon" id="prev" aria-label="Previous pages" title="Previous pages">&#8249;</button>
+        <label class="page-jump"><span class="visually-hidden">Page</span>
+          <input type="number" id="page-input" min="1" step="1" inputmode="numeric" aria-label="Go to page">
+        </label>
+        <span class="of" id="page-of">of 0</span>
+        <button type="button" class="icon" id="next" aria-label="Next pages" title="Next pages">&#8250;</button>
+      </div>
+      <div class="tool-group">
+        <button type="button" class="icon" id="zoom-out" aria-label="Zoom out" title="Zoom out">&minus;</button>
+        <span class="zoom" id="zoom-value" aria-live="polite">100%</span>
+        <button type="button" class="icon" id="zoom-in" aria-label="Zoom in" title="Zoom in">+</button>
+        <button type="button" class="secondary small" id="zoom-fit">Fit</button>
+      </div>
+      <div class="tool-group">
+        <label class="check toggle"><input type="checkbox" id="show-margins"> Show margins</label>
+        <button type="button" class="primary download-btn" id="download" disabled>Download PDF</button>
+      </div>
+    </div>
+    <div class="scroller" id="scroller" tabindex="0" aria-label="Book pages, scrollable">
+      <div class="spreads" id="spreads"></div>
+    </div>
+    <div class="preview-empty" id="preview-empty" hidden>
+      <div class="preview-empty-card">
+        <div class="preview-empty-pages" aria-hidden="true"><span></span><span></span></div>
+        <h2>No puzzles yet</h2>
+        <p>Choose the number of puzzles and the difficulty on the left, then click <b>Create puzzles</b>. Your book will appear here.</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<dialog class="kdp-dialog" id="kdp-dialog" aria-labelledby="kdp-title">
+  <h2 id="kdp-title">What to enter on KDP</h2>
+  <p>Your interior PDF is downloaded. On KDP&rsquo;s <em>Paperback Content</em> page, choose:</p>
+  <dl id="kdp-values"></dl>
+  <p class="hint">Upload the PDF as the <em>Manuscript</em>, then open KDP&rsquo;s Print Previewer to check it.</p>
+  <form method="dialog"><button class="primary" value="close">Done</button></form>
+</dialog>
+
+<script src="js/vendor/jspdf.umd.min.js"></script>
+<script src="js/fonts.js"></script>
+<script src="js/engine/engine.js"></script>
+<script src="js/engine/workers.js"></script>
+<script src="js/core/kdp.js"></script>
+<script src="js/core/settings.js"></script>
+<script src="js/core/text.js"></script>
+<script src="js/core/grid.js"></script>
+<script src="js/core/layout.js"></script>
+<script src="js/core/checks.js"></script>
+<script src="js/render/svg.js"></script>
+<script src="js/render/pdf.js"></script>
+<script src="js/ui/form.js"></script>
+<script src="js/ui/preview.js"></script>
+<script src="js/ui/status.js"></script>
+<script src="js/ui/app.js"></script>
+</body>
+</html>

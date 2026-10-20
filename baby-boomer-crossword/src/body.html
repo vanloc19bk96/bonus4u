@@ -1,0 +1,215 @@
+<div class="app">
+  <aside class="left-panel">
+    <h1>Crossword Interior</h1>
+    <p class="tagline">KDP-ready puzzle book generator · offline · single file</p>
+
+    <section class="section">
+      <div class="section-label">Book Settings</div>
+
+      <label for="trimSize">Trim size</label>
+      <select id="trimSize"></select>
+
+      <label class="check"><input id="bleed" type="checkbox" /> Bleed</label>
+
+      <label for="puzzleTitleFormat">Puzzle title format</label>
+      <input id="puzzleTitleFormat" type="text" value="Puzzle {n}" />
+
+      <label class="check"><input id="answerKey" type="checkbox" checked /> Include answer key</label>
+      <div class="row">
+        <div>
+          <label for="answersPerPage">Answer keys per page</label>
+          <select id="answersPerPage">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="4" selected>4</option>
+          </select>
+        </div>
+        <div>
+          <label class="check" style="margin-top:28px"><input id="pageNumbers" type="checkbox" checked /> Page numbers</label>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Puzzles</div>
+      <div class="actions" style="margin-bottom:10px">
+        <button type="button" id="btnPromptHelper">📋 Prompt helper</button>
+      </div>
+      <div id="puzzleList"></div>
+      <div class="actions" style="margin-top:10px">
+        <button type="button" id="btnAddPuzzle">+ Add Puzzle</button>
+        <button type="button" id="btnGenerateAll" class="primary">Generate All</button>
+      </div>
+      <div class="progress" id="progress">
+        <div>Generating… <span id="progressText">0%</span></div>
+        <div class="progress-bar"><span id="progressBar"></span></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Actions</div>
+      <div class="actions">
+        <button type="button" id="btnDownload" class="primary">Download PDF</button>
+        <button type="button" id="btnExportJson">Export JSON</button>
+        <button type="button" id="btnImportJson">Import JSON</button>
+        <input id="importFile" type="file" accept="application/json,.json" hidden />
+      </div>
+    </section>
+
+    <section class="section" style="border-bottom:0">
+      <div class="section-label">Validation</div>
+      <ul class="validation-list" id="validationList"></ul>
+    </section>
+  </aside>
+
+  <main class="right-panel">
+    <div class="preview-wrap">
+      <div class="preview-toolbar">
+        <button type="button" id="btnPrev">◀</button>
+        <span>Page</span>
+        <input id="pageInput" type="number" min="1" value="1" />
+        <span>/ <span id="pageTotal">0</span></span>
+        <button type="button" id="btnNext">▶</button>
+        <label class="check" style="margin:0"><input id="showMargins" type="checkbox" /> Show margins</label>
+        <button type="button" id="btnFit">Fit</button>
+      </div>
+      <div class="page-frame fit" id="pageFrame"></div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-backdrop" id="promptModal">
+  <div class="modal">
+    <h2>Prompt helper</h2>
+    <p class="hint">Copy prompts to ChatGPT/Claude — no API, works offline. Paste whole output blocks; do not split fields by hand.</p>
+    <div class="tabs">
+      <button type="button" class="active" data-tab="0">0 — Find a topic</button>
+      <button type="button" data-tab="1">1 — Sub-topics</button>
+      <button type="button" data-tab="2">2 — Word list</button>
+    </div>
+
+    <div id="promptTab0">
+      <label>Audience preset</label>
+      <select id="p0AudiencePreset"></select>
+      <div id="p0AudienceCustom" class="custom-field" hidden>
+        <label>AUDIENCE <span class="hint">(custom)</span></label>
+        <input id="p0Audience" type="text" placeholder="Describe your target reader…" />
+      </div>
+      <label>NUM_TOPICS</label>
+      <input id="p0Num" type="number" value="10" min="1" max="50" />
+    </div>
+
+    <div id="promptTab1" hidden>
+      <label>TOPIC BLOCK <span class="hint">(paste whole 3-line block; only TOPIC: is required)</span></label>
+      <textarea id="p1TopicBlock" class="prompt-paste" rows="4" placeholder="TOPIC: …
+WHY: …
+KEYWORDS: …"></textarea>
+      <label>NUM_PUZZLES</label>
+      <input id="p1Num" type="number" value="50" min="1" max="200" />
+    </div>
+
+    <div id="promptTab2" hidden>
+      <label>TOPIC BLOCK</label>
+      <textarea id="p2TopicBlock" class="prompt-paste" rows="4" placeholder="TOPIC: …
+WHY: …
+KEYWORDS: …"></textarea>
+      <label>SUBTOPICS <span class="hint">(full list from PROMPT 1 — run 5–10 per pass)</span></label>
+      <textarea id="p2Subtopics" class="prompt-paste" rows="6" placeholder="SUBTOPIC: Classic Cars of the 1950s
+SUBTOPIC: Drive-In Movies and Soda Fountains
+…"></textarea>
+      <p class="hint" id="p2SubCount">No subtopics yet</p>
+      <div class="row">
+        <div><label>NUM_WORDS</label><input id="p2Num" type="number" value="16" min="3" max="40" /></div>
+        <div><label>MIN_LEN</label><input id="p2Min" type="number" value="3" min="3" max="20" /></div>
+      </div>
+      <div class="row">
+        <div><label>MAX_LEN</label><input id="p2Max" type="number" value="8" min="3" max="20" /></div>
+        <div>
+          <label>DIFFICULTY</label>
+          <select id="p2Diff">
+            <option selected>Easy</option>
+            <option>Medium</option>
+            <option>Hard</option>
+          </select>
+        </div>
+      </div>
+      <label>CLUE_MAX_CHARS</label>
+      <input id="p2ClueMax" type="number" value="55" min="20" max="120" />
+      <p class="hint">Tip: paste 5–10 SUBTOPIC lines, generate, Add, then repeat until you have ~50 puzzles.</p>
+    </div>
+
+    <label style="margin-top:12px">Filled prompt</label>
+    <textarea id="promptOut" class="prompt-out" readonly></textarea>
+    <div class="actions" style="margin-top:8px">
+      <button type="button" id="btnCopyPrompt" class="primary">Copy prompt</button>
+    </div>
+
+    <hr class="prompt-divider" />
+
+    <div id="promptPaste0">
+      <label>Paste result here <span class="hint">(PROMPT 0 output)</span></label>
+      <textarea id="p0Paste" class="prompt-paste" rows="6" placeholder="TOPIC: …
+WHY: …
+KEYWORDS: …
+
+TOPIC: …
+…"></textarea>
+      <label>Choose a topic block <span class="hint">(fills TOPIC BLOCK on tabs 1 &amp; 2)</span></label>
+      <select id="p0BlockSelect">
+        <option value="">— paste result first —</option>
+      </select>
+      <div class="actions" style="margin-top:10px">
+        <button type="button" id="btnSkipTopic">Skip — I already have a topic</button>
+        <button type="button" id="btnNextFrom0">Next →</button>
+      </div>
+    </div>
+
+    <div id="promptPaste1" hidden>
+      <label>Paste result here <span class="hint">(PROMPT 1 output → fills SUBTOPICS on tab 2)</span></label>
+      <textarea id="p1Paste" class="prompt-paste" rows="6" placeholder="SUBTOPIC: …
+SUBTOPIC: …
+…"></textarea>
+      <p class="hint" id="p1SubCount">No SUBTOPIC: lines found</p>
+      <div class="actions" style="margin-top:10px">
+        <button type="button" id="btnNextFrom1">Next →</button>
+      </div>
+    </div>
+
+    <div id="promptPaste2" hidden>
+      <label>Paste result here <span class="hint">(PROMPT 2 output — multi-puzzle WORD | CLUE)</span></label>
+      <textarea id="p2Paste" class="prompt-paste" rows="8" placeholder="PUZZLE: Classic Cars of the 1950s
+CHEVY | Bowtie-badged carmaker of the era
+FINS | Tail styling that grew every model year
+
+PUZZLE: Drive-In Movies and Soda Fountains
+JUKEBOX | Coin-fed music machine in every diner
+…"></textarea>
+      <div id="bulkPreview" class="bulk-preview" hidden>
+        <div class="bulk-preview-head">Preview — tick puzzles to add</div>
+        <div id="bulkPreviewList" class="bulk-preview-list"></div>
+        <p class="hint" id="bulkPreviewWarn"></p>
+        <div class="bulk-actions">
+          <select id="bulkImportMode" title="Import mode">
+            <option value="append" selected>Append to existing</option>
+            <option value="replace">Replace all</option>
+          </select>
+          <button type="button" id="btnAddBulkPuzzles" class="primary" disabled>+ Add 0 puzzles</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions" style="margin-top:14px">
+      <button type="button" id="btnClosePrompt">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<div id="busyOverlay" class="busy-overlay" hidden>
+  <div class="busy-card">
+    <div class="busy-title">Working…</div>
+    <div id="busyText" class="busy-text">Generating puzzles</div>
+    <div class="progress-bar busy-bar"><span id="busyBar"></span></div>
+  </div>
+</div>

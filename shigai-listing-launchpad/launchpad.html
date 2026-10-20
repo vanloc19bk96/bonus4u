@@ -1,0 +1,4025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shigai Listing Launchpad</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗝️</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Spectral:wght@500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #F2F1ED;
+      --bg-alt: #FFFFFF;
+      --bg-dark: #16171C;
+      --ink: #12141A;
+      --ink-soft: #4A4F5C;
+      --ink-mute: #6B7180;
+      --accent: #7A1F2B;
+      --accent-soft: #F6E9EA;
+      --steel: #2A3C5E;
+      --seal: #B08326;
+      --ok: #2F7D5C;
+      --warn: #B4553F;
+      --line: rgba(18, 20, 26, 0.14);
+      --line-soft: rgba(18, 20, 26, 0.08);
+      --shadow: 0 2px 16px rgba(18, 20, 26, 0.07);
+      --radius: 10px;
+      --font-body: 'Inter', system-ui, sans-serif;
+      --font-display: 'Spectral', Georgia, serif;
+      --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--ink-soft);
+      background: var(--bg-base);
+      min-height: 100vh;
+    }
+
+    h1, h2, h3, h4 { color: var(--ink); margin: 0; font-family: var(--font-display); font-weight: 600; }
+    button { font-family: inherit; cursor: pointer; }
+    input, select, textarea { font-family: inherit; }
+    a { color: var(--steel); }
+
+    :focus-visible {
+      outline: 2px solid var(--steel);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+
+    .screen { display: none; min-height: 100vh; }
+    .screen.active { display: flex; flex-direction: column; }
+
+    /* ---------- Screen 1 ---------- */
+    #screen-setup {
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: linear-gradient(180deg, var(--bg-dark) 0%, var(--bg-dark) 150px, var(--bg-base) 150px);
+    }
+
+    .setup-card {
+      width: 100%;
+      max-width: 480px;
+      background: var(--bg-alt);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 32px;
+      box-shadow: var(--shadow);
+    }
+
+    .setup-brand {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      color: var(--accent);
+      margin-bottom: 18px;
+    }
+
+    .setup-card h1 { font-size: 1.6rem; line-height: 1.3; margin-bottom: 12px; }
+    .setup-card p { margin: 0 0 20px; font-size: 0.95rem; }
+
+    .input-field {
+      width: 100%;
+      padding: 11px 13px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      font-size: 0.95rem;
+      background: var(--bg-base);
+      color: var(--ink);
+    }
+
+    .input-field.mono { font-family: var(--font-mono); font-size: 0.82rem; }
+    .input-field:focus { outline: 2px solid var(--steel); outline-offset: 1px; }
+
+    .checkbox-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin: 14px 0 20px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .checkbox-row input { margin-top: 4px; flex-shrink: 0; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 11px 20px;
+      border: none;
+      border-radius: 7px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      transition: background 0.15s, opacity 0.15s;
+    }
+
+    .btn-primary { background: var(--accent); color: #fff; width: 100%; }
+    .btn-primary:hover:not(:disabled) { background: #63151F; }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-secondary { background: var(--bg-alt); color: var(--ink); border: 1px solid var(--line); }
+    .btn-secondary:hover:not(:disabled) { background: #ECEBE6; }
+    .btn-secondary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .btn-sm { padding: 6px 12px; font-size: 0.79rem; }
+    .btn-inline { width: auto; }
+
+    .btn-copy { background: var(--bg-alt); color: var(--ink); border: 1px solid var(--line); }
+    .btn-copy.copied { background: #E7F2ED; color: var(--ok); border-color: var(--ok); }
+
+    .inline-error { color: var(--warn); font-size: 0.86rem; margin-top: 10px; }
+    .success-msg { color: var(--ok); font-size: 0.9rem; margin-top: 12px; }
+
+    .link-btn {
+      background: none;
+      border: none;
+      color: var(--steel);
+      font-size: 0.84rem;
+      padding: 12px 0 0;
+      text-decoration: underline;
+    }
+
+    .collapsible-content {
+      display: none;
+      font-size: 0.84rem;
+      color: var(--ink-mute);
+      margin-top: 8px;
+      padding: 12px;
+      background: var(--bg-base);
+      border-radius: 7px;
+    }
+
+    .collapsible-content.open { display: block; }
+
+    .setup-foot {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line-soft);
+      font-size: 0.82rem;
+      color: var(--ink-mute);
+    }
+
+    /* ---------- Workspace shell ---------- */
+    .header-bar {
+      background: var(--bg-dark);
+      color: #fff;
+      padding: 13px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .header-title { font-family: var(--font-display); font-size: 1.12rem; font-weight: 600; }
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+
+    .ai-badge {
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      border: none;
+    }
+
+    .ai-badge.connected { background: rgba(47, 125, 92, 0.22); color: #86D7B2; }
+    .ai-badge.disconnected { background: rgba(255,255,255,0.1); color: #B9BDC7; }
+
+    .icon-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.22);
+      background: transparent;
+      color: #fff;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .icon-btn:hover { background: rgba(255,255,255,0.12); }
+
+    .error-banner {
+      background: var(--accent-soft);
+      border-bottom: 1px solid var(--accent);
+      color: var(--ink);
+      padding: 12px 24px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 0.88rem;
+    }
+
+    .error-banner.visible { display: flex; }
+
+    .data-error {
+      background: var(--accent-soft);
+      color: var(--ink);
+      border: 1px solid var(--accent);
+      padding: 14px 16px;
+      border-radius: 8px;
+      margin: 16px;
+      font-size: 0.88rem;
+    }
+
+    .flow-container {
+      flex: 1;
+      max-width: 1080px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+    }
+
+    .step-card {
+      background: var(--bg-alt);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .step-card.locked { opacity: 0.5; pointer-events: none; }
+
+    .step-summary {
+      display: none;
+      padding: 15px 20px;
+      cursor: pointer;
+      background: #FAF9F6;
+      border-bottom: 1px solid var(--line-soft);
+      align-items: center;
+      gap: 12px;
+    }
+
+    .step-card.collapsed .step-summary { display: flex; }
+    .step-card.collapsed .step-body { display: none; }
+
+    .step-summary-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .step-summary-text {
+      font-size: 0.86rem;
+      color: var(--ink);
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .step-summary-edit { font-size: 0.78rem; color: var(--steel); font-weight: 600; flex-shrink: 0; }
+
+    .step-body { padding: 24px; }
+
+    .step-headline { font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+    .step-subline { font-size: 0.85rem; color: var(--ink-mute); margin-bottom: 20px; }
+
+    .cascade-warning {
+      background: #FBF3E4;
+      border: 1px solid rgba(176, 131, 38, 0.35);
+      border-radius: 7px;
+      padding: 10px 12px;
+      font-size: 0.84rem;
+      color: var(--ink);
+      margin-bottom: 14px;
+      display: none;
+    }
+
+    .cascade-warning.visible { display: block; }
+
+    .segment-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 8px;
+      letter-spacing: 0.01em;
+    }
+
+    .segment-label .opt { font-weight: 400; color: var(--ink-mute); }
+
+    .segment-group { margin-bottom: 22px; }
+
+    .helper {
+      font-size: 0.78rem;
+      color: var(--ink-mute);
+      margin-top: 5px;
+      line-height: 1.5;
+    }
+
+    .helper.strong {
+      background: #FAF9F6;
+      border-left: 2px solid var(--seal);
+      padding: 8px 10px;
+      border-radius: 0 6px 6px 0;
+      color: var(--ink-soft);
+    }
+
+    .option-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .option-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+    .option-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: var(--bg-base);
+      text-align: left;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .option-card:hover { border-color: var(--accent); }
+
+    .option-card.selected {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      box-shadow: inset 0 0 0 1px var(--accent);
+    }
+
+    .option-card .label { font-weight: 600; font-size: 0.86rem; color: var(--ink); display: block; }
+    .option-card .stat { font-size: 0.74rem; color: var(--ink-mute); margin-top: 3px; display: block; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-row { margin-bottom: 14px; }
+    .form-row label, .form-grid label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 5px; color: var(--ink); }
+
+    .grid-range { display: flex; align-items: center; gap: 8px; }
+    .grid-range select { flex: 1; }
+    .grid-range span { font-size: 0.82rem; color: var(--ink-mute); }
+
+    .check-list { display: grid; gap: 8px; }
+
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--bg-base);
+      font-size: 0.86rem;
+      cursor: pointer;
+    }
+
+    .check-item input { margin-top: 4px; flex-shrink: 0; }
+    .check-item.on { border-color: var(--accent); background: var(--accent-soft); }
+    .check-item .ci-label { color: var(--ink); font-weight: 500; }
+    .check-item .ci-note { display: block; font-size: 0.75rem; color: var(--ink-mute); font-weight: 400; }
+
+    .field-warn { font-size: 0.78rem; color: var(--warn); margin-top: 5px; display: none; }
+    .field-warn.visible { display: block; }
+
+    /* ---------- Keyword table ---------- */
+    .kw-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+
+    .kw-search { flex: 1; min-width: 150px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 7px; font-size: 0.84rem; }
+    .kw-sort-select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; font-size: 0.79rem; background: #fff; }
+
+    .kw-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; font-size: 0.76rem; color: var(--ink-mute); margin-bottom: 10px; }
+    .kw-legend-label { font-weight: 600; color: var(--ink-soft); }
+    .kw-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+
+    .color-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+    .color-dot.green { background: var(--ok); }
+    .color-dot.yellow { background: var(--seal); }
+    .color-dot.red { background: var(--warn); }
+
+    .kw-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 18px; }
+    .kw-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; min-width: 640px; }
+
+    .kw-table th {
+      background: #FAF9F6;
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--ink);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      font-size: 0.79rem;
+    }
+
+    .kw-table th.no-sort { cursor: default; }
+    .kw-table td { padding: 9px 12px; border-top: 1px solid var(--line-soft); vertical-align: middle; }
+    .kw-table tbody tr { cursor: pointer; }
+    .kw-table tr.selected-row { background: var(--accent-soft); }
+    .kw-table tr.disabled-row { opacity: 0.45; cursor: not-allowed; }
+    .kw-table tr:hover:not(.selected-row):not(.disabled-row) { background: #FAF9F6; }
+    .kw-table .mono { font-family: var(--font-mono); font-size: 0.79rem; color: var(--ink); }
+    .kw-table .num { font-family: var(--font-mono); font-size: 0.79rem; }
+
+    .info-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--bg-base);
+      color: var(--ink-mute);
+      font-size: 0.7rem;
+      cursor: help;
+      position: relative;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    .info-icon .tooltip {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-dark);
+      color: #fff;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 0.72rem;
+      white-space: nowrap;
+      z-index: 50;
+      line-height: 1.5;
+      font-family: var(--font-body);
+      font-weight: 400;
+      box-shadow: var(--shadow);
+    }
+
+    .info-icon:hover .tooltip,
+    .info-icon:focus-visible .tooltip { display: block; }
+
+    .kw-slot-tag {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--accent);
+      background: #fff;
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      padding: 0 5px;
+      margin-left: 6px;
+      font-family: var(--font-mono);
+    }
+
+    .pagination { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px; font-size: 0.82rem; flex-wrap: wrap; }
+    .pagination button { padding: 5px 12px; border: 1px solid var(--line); border-radius: 6px; background: #fff; font-size: 0.79rem; }
+    .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .fallback-notice {
+      background: #FBF3E4;
+      border: 1px solid rgba(176, 131, 38, 0.3);
+      border-radius: 7px;
+      padding: 10px 12px;
+      font-size: 0.8rem;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    .fallback-notice.visible { display: block; }
+
+    /* ---------- Slot Packer (signature) ---------- */
+    .packer-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+
+    .packer-head h3 { font-size: 1.05rem; }
+    .packer-sub { font-size: 0.82rem; color: var(--ink-mute); margin-bottom: 14px; }
+
+    .packer-total {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--ink-soft);
+      background: #FAF9F6;
+      border: 1px solid var(--line-soft);
+      border-radius: 6px;
+      padding: 5px 10px;
+      white-space: nowrap;
+    }
+
+    .packer-total.hit { color: var(--seal); border-color: rgba(176, 131, 38, 0.5); font-weight: 700; }
+
+    .slot {
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--bg-alt);
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .slot.active { border-color: var(--steel); box-shadow: inset 0 0 0 1px var(--steel); }
+    .slot.over { border-color: var(--warn); }
+
+    .slot-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px 8px;
+      flex-wrap: wrap;
+    }
+
+    .slot-name { font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; color: var(--ink); }
+    .slot-angle { font-size: 0.73rem; color: var(--ink-mute); text-transform: uppercase; letter-spacing: 0.06em; flex: 1; min-width: 90px; }
+
+    .slot-count { font-family: var(--font-mono); font-size: 1rem; font-weight: 700; letter-spacing: -0.01em; }
+    .slot-count.empty { color: var(--ink-mute); }
+    .slot-count.low { color: var(--ink-soft); }
+    .slot-count.good { color: var(--ok); }
+    .slot-count.over { color: var(--warn); }
+
+    .slot-bar {
+      position: relative;
+      height: 10px;
+      background: #E7E6E1;
+      margin: 0 14px;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .slot-bar-fill { height: 100%; width: 0; background: #B9BDC7; transition: width 0.18s ease, background 0.18s ease; }
+    .slot-bar-fill.low { background: #B9BDC7; }
+    .slot-bar-fill.good { background: var(--ok); }
+    .slot-bar-fill.over { background: var(--warn); }
+
+    .slot-tick { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(18,20,26,0.28); }
+    .slot-tick.t30 { left: 60%; }
+    .slot-tick.t50 { right: 0; }
+
+    .slot-string {
+      font-family: var(--font-mono);
+      font-size: 0.86rem;
+      color: var(--ink);
+      padding: 10px 14px 4px;
+      word-break: break-word;
+      min-height: 34px;
+    }
+
+    .slot-string.empty { color: var(--ink-mute); font-style: italic; font-family: var(--font-body); font-size: 0.84rem; }
+
+    .slot-built { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 14px 12px; align-items: center; }
+
+    .slot-built-label { font-size: 0.72rem; color: var(--ink-mute); margin-right: 2px; }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.76rem;
+      background: #FAF9F6;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 3px 4px 3px 10px;
+      color: var(--ink);
+      max-width: 100%;
+    }
+
+    .chip.wasted { border-color: var(--warn); color: var(--warn); background: #FBF0EC; }
+    .chip.blocked { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+    .chip .chip-x { border: none; background: none; color: var(--ink-mute); font-size: 0.95rem; line-height: 1; padding: 0 5px; }
+    .chip .chip-x:hover { color: var(--warn); }
+
+    .chip-add {
+      font-size: 0.76rem;
+      background: none;
+      border: 1px dashed var(--line);
+      border-radius: 999px;
+      padding: 4px 11px;
+      color: var(--steel);
+      font-weight: 600;
+    }
+
+    .chip-add:hover { border-color: var(--steel); background: #F4F6FA; }
+
+    .slot.is-primary {
+      border-color: var(--seal);
+      box-shadow: inset 0 0 0 1px rgba(176, 131, 38, 0.35);
+    }
+
+    .slot-primary-btn {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 10px;
+      background: #FAF9F6;
+      color: var(--ink-soft);
+      white-space: nowrap;
+    }
+
+    .slot-primary-btn:hover:not(:disabled) {
+      border-color: var(--seal);
+      color: var(--seal);
+      background: #FBF7EC;
+    }
+
+    .slot-primary-btn.is-primary {
+      border-color: var(--seal);
+      background: #FBF7EC;
+      color: var(--seal);
+      cursor: default;
+    }
+
+    .slot-msg {
+      font-size: 0.78rem;
+      color: var(--warn);
+      padding: 0 14px 10px;
+      display: none;
+    }
+
+    .slot-msg.visible { display: block; }
+
+    .checks-panel {
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #FAF9F6;
+      padding: 14px 16px;
+      margin: 16px 0 18px;
+    }
+
+    .checks-panel h4 { font-size: 0.86rem; margin-bottom: 8px; }
+    .check-line { font-size: 0.83rem; display: flex; gap: 8px; align-items: flex-start; padding: 2px 0; line-height: 1.5; }
+    .check-line .mark { font-family: var(--font-mono); font-weight: 700; flex-shrink: 0; }
+    .check-line.pass .mark { color: var(--ok); }
+    .check-line.warn .mark { color: var(--seal); }
+    .check-line.fail .mark { color: var(--accent); }
+    .check-line.fail { color: var(--accent); font-weight: 500; }
+
+    .soft-note { font-size: 0.8rem; color: var(--ink-mute); margin-bottom: 12px; }
+
+    /* ---------- Output ---------- */
+    .card {
+      background: var(--bg-alt);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .section-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+    .section-header h2 { font-size: 1.05rem; font-weight: 700; }
+    .section-header .note { font-size: 0.78rem; color: var(--ink-mute); font-weight: 400; margin-top: 2px; }
+    .header-copy-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    .empty-state { text-align: center; padding: 50px 24px; color: var(--ink-mute); }
+    .empty-state .icon { font-size: 2.4rem; margin-bottom: 12px; opacity: 0.45; }
+
+    .variation-card {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px;
+      background: var(--bg-alt);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+
+    .variation-card.selected-var { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--accent-soft); }
+    .variation-main { flex: 1; min-width: 0; }
+    .variation-meta { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); margin-bottom: 5px; }
+    .variation-title-text { font-family: var(--font-display); font-weight: 600; font-size: 1.02rem; color: var(--ink); word-break: break-word; line-height: 1.35; }
+    .variation-counter-stack { margin-top: 7px; display: flex; flex-direction: column; gap: 1px; }
+
+    .counter { font-size: 0.72rem; font-family: var(--font-mono); line-height: 1.45; color: var(--ink-mute); }
+    .counter.ok { color: var(--ok); }
+    .counter.over { color: var(--warn); }
+    .variation-card .btn-copy { flex-shrink: 0; }
+
+    .combined-preview {
+      background: #FAF9F6;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+
+    .combined-preview .cp-text { font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; color: var(--ink); word-break: break-word; line-height: 1.4; }
+    .combined-preview .cp-count { font-family: var(--font-mono); font-size: 0.76rem; margin-top: 8px; }
+
+    .tabs { display: flex; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+    .tab-btn { padding: 8px 16px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--ink-mute); font-weight: 500; font-size: 0.84rem; }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .style-pill { display: inline-block; padding: 4px 11px; background: #FBF3E4; border-radius: 999px; font-size: 0.74rem; font-weight: 600; color: var(--ink); margin-right: 8px; }
+    #desc-style-row { margin-bottom: 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .desc-preview { background: var(--bg-alt); border: 1px solid var(--line); border-radius: 8px; padding: 16px; line-height: 1.7; color: var(--ink-soft); }
+    .desc-preview p { margin: 0 0 12px; }
+    .desc-preview ul { margin: 0 0 12px; padding-left: 20px; }
+
+    .desc-html {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      background: var(--bg-dark);
+      color: #E6E4E0;
+      border-radius: 8px;
+      padding: 16px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.6;
+    }
+
+    .desc-html .tag { color: #86D7B2; }
+
+    .blurb-box {
+      background: #FAF9F6;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      white-space: pre-wrap;
+      font-size: 0.92rem;
+      line-height: 1.65;
+      color: var(--ink-soft);
+    }
+
+    .slot-out {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      margin-bottom: 7px;
+      background: var(--bg-alt);
+      flex-wrap: wrap;
+    }
+
+    .slot-out-num { font-family: var(--font-mono); font-weight: 700; color: var(--accent); flex-shrink: 0; }
+    .slot-out-str { font-family: var(--font-mono); font-size: 0.82rem; color: var(--ink); flex: 1; min-width: 140px; word-break: break-word; }
+    .slot-out-count { font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-mute); flex-shrink: 0; }
+
+    .checklist-box { font-size: 0.88rem; }
+    .checklist-box .cl-item { display: flex; gap: 9px; align-items: flex-start; padding: 5px 0; cursor: pointer; }
+    .checklist-box input { margin-top: 4px; flex-shrink: 0; }
+
+    .validator-box { margin-bottom: 16px; }
+
+    .validator-line {
+      display: flex;
+      gap: 9px;
+      align-items: flex-start;
+      font-size: 0.84rem;
+      padding: 7px 12px;
+      border-radius: 7px;
+      margin-bottom: 6px;
+      line-height: 1.5;
+    }
+
+    .validator-line.fail { background: var(--accent-soft); border: 1px solid var(--accent); color: var(--accent); font-weight: 500; }
+    .validator-line.warn { background: #FBF3E4; border: 1px solid rgba(176,131,38,0.4); color: var(--ink); }
+    .validator-line.pass { background: #EDF4F0; border: 1px solid rgba(47,125,92,0.3); color: var(--ink-soft); }
+
+    .global-bar { display: flex; gap: 10px; flex-wrap: wrap; padding-top: 6px; }
+    .global-bar .btn { width: auto; flex: 1; min-width: 200px; }
+
+    .ai-error-inline { color: var(--warn); font-size: 0.84rem; padding: 10px 12px; background: #FBF0EC; border-radius: 7px; margin-bottom: 10px; }
+
+    .slot-recap { font-family: var(--font-mono); font-size: 0.8rem; background: #FAF9F6; border: 1px solid var(--line-soft); padding: 12px; border-radius: 7px; margin-bottom: 14px; word-break: break-word; line-height: 1.7; }
+
+    .refresh-bar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      background: #FBF3E4;
+      border: 1px solid rgba(176,131,38,0.4);
+      border-radius: 8px;
+      padding: 11px 14px;
+      margin-bottom: 14px;
+      font-size: 0.84rem;
+    }
+
+    .refresh-bar.visible { display: flex; }
+
+    /* ---------- Skeletons ---------- */
+    .skeleton { background: linear-gradient(90deg, #E9E8E3 25%, #F4F3EF 50%, #E9E8E3 75%); background-size: 200% 100%; animation: pulse 1.5s ease-in-out infinite; border-radius: 6px; height: 18px; margin-bottom: 8px; }
+    .skeleton.tall { height: 70px; }
+    .skeleton-card { padding: 13px; background: var(--bg-alt); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; }
+    .skeleton-card .skeleton:last-child { margin-bottom: 0; }
+    .generating-label { display: inline-flex; align-items: center; gap: 8px; font-size: 0.79rem; color: var(--ink-mute); margin-bottom: 10px; }
+    .generating-label[hidden] { display: none !important; }
+    .generating-label::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: pulse-dot 1.2s ease-in-out infinite; }
+    .btn.is-loading { opacity: 0.7; cursor: wait; }
+
+    @keyframes pulse { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    @keyframes pulse-dot { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .skeleton { animation: none; background: #E9E8E3; }
+      .fade-in { animation: none; }
+      .generating-label::before { animation: none; opacity: 0.7; }
+      .slot-bar-fill { transition: none; }
+    }
+
+    /* ---------- Modals ---------- */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(18, 20, 26, 0.55); display: none; align-items: center; justify-content: center; z-index: 200; padding: 20px; }
+    .modal-overlay.visible { display: flex; }
+    .modal { background: var(--bg-alt); border-radius: var(--radius); padding: 24px; max-width: 460px; width: 100%; max-height: 82vh; overflow-y: auto; box-shadow: var(--shadow); }
+    .modal h2 { font-size: 1.1rem; margin-bottom: 14px; }
+    .modal-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+    .faq-item { margin-bottom: 15px; }
+    .faq-item strong { display: block; font-size: 0.88rem; margin-bottom: 3px; color: var(--ink); }
+    .faq-item p { margin: 0; font-size: 0.84rem; }
+    .masked-key { font-family: var(--font-mono); font-size: 0.84rem; background: var(--bg-base); padding: 10px; border-radius: 6px; margin: 10px 0; }
+
+    .footer-note { text-align: center; font-size: 0.76rem; color: var(--ink-mute); padding: 20px; }
+
+    @media (max-width: 720px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .option-grid, .option-grid.cols-3 { grid-template-columns: 1fr; }
+      .step-body { padding: 18px 16px; }
+      .flow-container { padding: 16px 12px 40px; }
+      .header-bar { padding: 12px 16px; }
+      .header-title { font-size: 1rem; }
+    }
+
+    @media (max-width: 400px) {
+      .setup-card { padding: 22px 18px; }
+      .global-bar .btn { min-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ Screen 1: Activation ============ -->
+  <div id="screen-setup" class="screen active">
+    <div class="setup-card">
+      <div class="setup-brand">Shigai Listing Launchpad</div>
+      <h1>One quick step before your first case file.</h1>
+      <p>Paste the activation key that came with Shigai Royalty to unlock AI listing generation.</p>
+      <input type="password" id="api-key-input" class="input-field mono" placeholder="Paste your activation key here" autocomplete="off">
+      <label class="checkbox-row">
+        <input type="checkbox" id="remember-key" checked>
+        Remember this key on this device
+      </label>
+      <button type="button" id="save-key-btn" class="btn btn-primary">Unlock the Launchpad</button>
+      <div id="setup-error" class="inline-error" hidden></div>
+      <div id="setup-success" class="success-msg" hidden></div>
+      <button type="button" id="key-help-toggle" class="link-btn">Where do I find my key?</button>
+      <div id="key-help-content" class="collapsible-content">
+        Your key is in your Shigai Royalty members area, under Bonuses. Lost it? Email
+        <a href="mailto:david@fastaifactory.com">david@fastaifactory.com</a>
+      </div>
+      <div class="setup-foot">
+        No key right now? <button type="button" id="skip-ai-btn" class="link-btn" style="padding:0">Continue without AI</button> —
+        the keyword research, Slot Packer, character counters and checklist all work offline.
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Screen 2: Workspace ============ -->
+  <div id="screen-workspace" class="screen">
+    <header class="header-bar">
+      <div class="header-title">Shigai Listing Launchpad</div>
+      <div class="header-actions">
+        <button type="button" id="ai-badge" class="ai-badge connected">AI: Connected</button>
+        <button type="button" id="faq-btn" class="icon-btn" title="Help" aria-label="Help">?</button>
+      </div>
+    </header>
+
+    <div id="error-banner" class="error-banner">
+      <span>Your activation key isn't responding. Email <a href="mailto:david@fastaifactory.com">david@fastaifactory.com</a> for an updated key. Everything except text generation still works.</span>
+      <button type="button" id="enter-new-key-btn" class="btn btn-secondary btn-sm">Enter a new key</button>
+    </div>
+
+    <div id="data-load-error" class="data-error" hidden></div>
+
+    <div class="flow-container">
+
+      <!-- ---------- Step 1 ---------- -->
+      <div id="step-1" class="step-card">
+        <div id="step-1-summary" class="step-summary">
+          <span class="step-summary-label">Step 1</span>
+          <span id="step-1-summary-text" class="step-summary-text"></span>
+          <span class="step-summary-edit">Edit</span>
+        </div>
+        <div class="step-body">
+          <div class="step-headline">Step 1 — Describe the book you just generated</div>
+          <div class="step-subline">Every field here maps to something Shigai Royalty actually produces. The more you fill in, the less the AI has to invent.</div>
+          <div id="step1-cascade-warn" class="cascade-warning">Changing this resets your keyword slots and the generated listing.</div>
+
+          <div class="segment-group">
+            <div class="segment-label">Case type</div>
+            <div id="casetype-options" class="option-grid"></div>
+          </div>
+
+          <div class="segment-group">
+            <div class="segment-label">Keyword focus</div>
+            <div id="category-options" class="option-grid"></div>
+          </div>
+
+          <div class="segment-group">
+            <div class="segment-label">Target buyer</div>
+            <div id="audience-options" class="option-grid cols-3"></div>
+          </div>
+
+          <div class="segment-group">
+            <div class="segment-label">Book structure</div>
+            <div class="form-grid">
+              <div>
+                <label for="case-count">Number of cases</label>
+                <input type="number" id="case-count" class="input-field" min="1" placeholder="e.g. 50">
+                <div class="helper">Books in this niche commonly ship 40, 50, 60, 75 or 100 cases.</div>
+                <div id="case-count-warn" class="field-warn"></div>
+              </div>
+              <div>
+                <label for="difficulty-span">Difficulty span</label>
+                <select id="difficulty-span" class="input-field">
+                  <option value="Easy only">Easy only</option>
+                  <option value="Easy to Medium">Easy to Medium</option>
+                  <option value="Easy to Hard" selected>Easy to Hard</option>
+                  <option value="Easy to Expert">Easy to Expert</option>
+                  <option value="Medium to Hard">Medium to Hard</option>
+                  <option value="Hard to Expert">Hard to Expert</option>
+                  <option value="Expert only">Expert only</option>
+                  <option value="Mixed">Mixed</option>
+                </select>
+                <div class="helper">Listings in this niche sell a range, not a single tier.</div>
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-top:14px">
+              <label for="difficulty-labels">Difficulty labels used inside the book <span class="opt" style="font-weight:400;color:var(--ink-mute)">(optional)</span></label>
+              <input type="text" id="difficulty-labels" class="input-field" placeholder="e.g. Easy, Medium, Hard, Expert, Dragon">
+            </div>
+
+            <div class="form-grid">
+              <div>
+                <label for="grid-from">Grid size range</label>
+                <div class="grid-range">
+                  <select id="grid-from" class="input-field"></select>
+                  <span>up to</span>
+                  <select id="grid-to" class="input-field"></select>
+                </div>
+                <div id="grid-warn" class="field-warn"></div>
+              </div>
+              <div>
+                <label for="cast-size">Suspects per case <span style="font-weight:400;color:var(--ink-mute)">(optional)</span></label>
+                <input type="number" id="cast-size" class="input-field" min="1" placeholder="e.g. 8">
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-top:14px">
+              <label for="room-count">Rooms in the mansion <span style="font-weight:400;color:var(--ink-mute)">(optional)</span></label>
+              <input type="number" id="room-count" class="input-field" min="1" placeholder="e.g. 12">
+            </div>
+          </div>
+
+          <div class="segment-group">
+            <div class="segment-label">Print format <span class="opt">(optional, but it shapes your subtitle)</span></div>
+            <div class="form-row">
+              <label for="trim-size">Trim size</label>
+              <select id="trim-size" class="input-field">
+                <option value="8.5 x 11 in" selected>8.5 x 11 in (most common for this niche)</option>
+                <option value="8 x 10 in">8 x 10 in</option>
+                <option value="7 x 10 in">7 x 10 in</option>
+                <option value="6 x 9 in">6 x 9 in</option>
+                <option value="Other">Other</option>
+              </select>
+              <div class="helper">Competing books market 8.5 x 11 as giving the most room to write on the grid.</div>
+            </div>
+            <label class="check-item" id="large-print-item">
+              <input type="checkbox" id="large-print">
+              <span class="ci-label">Large print edition
+                <span class="ci-note">Large print is one of the strongest untapped angles in this niche.</span>
+              </span>
+            </label>
+          </div>
+
+          <div class="segment-group">
+            <div class="segment-label">What's actually inside the book</div>
+            <div class="soft-note">Only ticked items are allowed into the description. Nothing else gets promised.</div>
+            <div id="included-options" class="check-list"></div>
+          </div>
+
+          <div class="segment-group">
+            <div class="segment-label">Theme and series <span class="opt">(optional)</span></div>
+            <div class="form-row">
+              <label for="setting-theme">Setting theme</label>
+              <select id="setting-theme" class="input-field"></select>
+            </div>
+            <div class="form-row" id="setting-custom-row" hidden>
+              <label for="setting-custom">Describe your setting</label>
+              <input type="text" id="setting-custom" class="input-field" placeholder="e.g. A snowbound observatory">
+            </div>
+            <div class="form-grid">
+              <div>
+                <label for="series-name">Series name</label>
+                <input type="text" id="series-name" class="input-field" placeholder="e.g. The Ashcombe Files">
+              </div>
+              <div>
+                <label for="volume-number">Volume number</label>
+                <input type="number" id="volume-number" class="input-field" min="1" placeholder="e.g. 1">
+              </div>
+            </div>
+            <div class="form-row" style="margin-top:14px">
+              <label for="author-name">Author pen name</label>
+              <input type="text" id="author-name" class="input-field" placeholder="Your pen name">
+            </div>
+          </div>
+
+          <button type="button" id="continue-keywords-btn" class="btn btn-primary btn-inline" disabled>Continue to Keywords</button>
+        </div>
+      </div>
+
+      <!-- ---------- Step 2 ---------- -->
+      <div id="step-2" class="step-card locked collapsed">
+        <div id="step-2-summary" class="step-summary">
+          <span class="step-summary-label">Step 2</span>
+          <span id="step-2-summary-text" class="step-summary-text"></span>
+          <span class="step-summary-edit">Edit</span>
+        </div>
+        <div class="step-body">
+          <div class="step-headline">Step 2 — Choose your 7 backend keywords</div>
+          <div class="step-subline">Pick exactly 7 keywords from the table. Slot 1 is your main keyword; slots 2–7 are secondary. These 7 feed Amazon’s backend slots and the listing generator in Step 3.</div>
+          <div id="step2-cascade-warn" class="cascade-warning">Editing slots after generating means your listing no longer matches them. Use "Refresh listing" in Step 3 when you're done.</div>
+          <div id="fallback-notice" class="fallback-notice">The list below is based on your Step 1 choices. Click “Show all keywords” to see the full pool. Use Suggest Top 7 (AI) or pick 7 keywords yourself.</div>
+          <div id="all-pool-notice" class="fallback-notice">Showing the full keyword pool. Suggest Top 7 and Auto-fill still use your Step 1 buyer filter.</div>
+
+          <div class="kw-controls">
+            <button type="button" id="autopack-btn" class="btn btn-secondary btn-sm">Auto-fill 7 slots</button>
+            <button type="button" id="suggest-top7-btn" class="btn btn-secondary btn-sm">Suggest Top 7 (AI)</button>
+            <button type="button" id="clear-all-btn" class="btn btn-secondary btn-sm">Clear all</button>
+            <button type="button" id="toggle-all-keywords-btn" class="btn btn-secondary btn-sm" aria-pressed="false">Show all keywords</button>
+            <input type="search" id="kw-search" class="kw-search" placeholder="Search keywords…">
+            <select id="kw-sort-select" class="kw-sort-select">
+              <option value="opportunity_desc">Opportunity ↓</option>
+              <option value="opportunity_asc">Opportunity ↑</option>
+              <option value="searches_desc">Searches ↓</option>
+              <option value="searches_asc">Searches ↑</option>
+              <option value="competitors_desc">Competitors ↓</option>
+              <option value="competitors_asc">Competitors ↑</option>
+              <option value="earnings_desc">Avg earnings ↓</option>
+              <option value="earnings_asc">Avg earnings ↑</option>
+              <option value="price_desc">Avg price ↓</option>
+              <option value="price_asc">Avg price ↑</option>
+              <option value="keyword_asc">Keyword A–Z</option>
+              <option value="keyword_desc">Keyword Z–A</option>
+            </select>
+          </div>
+          <div id="suggest-top7-loading" class="generating-label" hidden>Asking AI for the best 7 keywords…</div>
+          <div id="suggest-top7-error" class="ai-error-inline" hidden></div>
+
+          <div class="kw-legend" aria-label="Competitive score color guide">
+            <span class="kw-legend-label">Competitive Score (ⓘ):</span>
+            <span class="kw-legend-item"><span class="color-dot green"></span>Green = low competition</span>
+            <span class="kw-legend-item"><span class="color-dot yellow"></span>Amber = moderate</span>
+            <span class="kw-legend-item"><span class="color-dot red"></span>Red = high competition</span>
+          </div>
+
+          <div class="kw-table-wrap">
+            <table class="kw-table">
+              <thead>
+                <tr>
+                  <th class="no-sort" style="width:40px"></th>
+                  <th data-sort="keyword">Keyword</th>
+                  <th data-sort="competitors">Competitors</th>
+                  <th data-sort="price">Avg Price</th>
+                  <th data-sort="earnings">Avg Earnings</th>
+                  <th data-sort="searches">Est. Searches/Mo</th>
+                  <th data-sort="opportunity">Opportunity Score</th>
+                </tr>
+              </thead>
+              <tbody id="kw-table-body"></tbody>
+            </table>
+            <div id="kw-pagination" class="pagination"></div>
+          </div>
+
+          <div class="packer-head">
+            <div>
+              <h3>Slot Packer</h3>
+            </div>
+            <span id="packer-total" class="packer-total">0 / 7 keywords selected</span>
+          </div>
+          <div class="packer-sub">Tick keywords in the table above — each fills the next empty slot (max 7). Use <strong>Set as primary</strong> on any filled slot to choose your main keyword (it moves to S1). Slots 2–7 stay secondary. Each Amazon slot is limited to 50 characters.</div>
+
+          <div id="slot-packer"></div>
+
+          <div class="checks-panel">
+            <h4>Slot check</h4>
+            <div id="slot-checks"></div>
+          </div>
+
+          <div id="slot-progress-note" class="soft-note"></div>
+
+          <button type="button" id="continue-generate-btn" class="btn btn-primary btn-inline" disabled>Continue to Generate Listing</button>
+        </div>
+      </div>
+
+      <!-- ---------- Step 3 ---------- -->
+      <div id="step-3" class="step-card locked collapsed">
+        <div id="step-3-summary" class="step-summary">
+          <span class="step-summary-label">Step 3</span>
+          <span id="step-3-summary-text" class="step-summary-text">Generate Listing</span>
+          <span class="step-summary-edit">Edit</span>
+        </div>
+        <div class="step-body">
+          <div class="step-headline">Step 3 — Generate your listing</div>
+          <div class="step-subline">Title, subtitle, description and back cover blurb — built from your Step 1 book setup and the 7 keywords you chose in Step 2.</div>
+
+          <div id="refresh-bar" class="refresh-bar">
+            <span>Your keyword slots changed after this listing was generated.</span>
+            <button type="button" id="refresh-listing-btn" class="btn btn-secondary btn-sm">Refresh listing with new keywords</button>
+          </div>
+
+          <div class="segment-label">Your 7 keywords</div>
+          <div id="step3-slot-recap" class="slot-recap"></div>
+
+          <button type="button" id="generate-btn" class="btn btn-primary btn-inline">Generate Listing</button>
+
+          <div id="output-empty" class="empty-state">
+            <div class="icon">🗂️</div>
+            <p>Click Generate Listing to build your title, subtitle, description,<br>back cover blurb and category picks.</p>
+          </div>
+
+          <div id="output-content" hidden>
+
+            <div id="validator-panel" class="validator-box" style="margin-top:20px"></div>
+
+            <div class="card fade-in">
+              <div class="section-header">
+                <div>
+                  <h2>Book Title</h2>
+                  <div class="note">Title + subtitle combined must stay under 200 characters. Readable titles stay under 60.</div>
+                </div>
+              </div>
+              <div id="titles-list"></div>
+              <div id="titles-error" class="ai-error-inline" hidden></div>
+              <button type="button" id="regen-titles" class="btn btn-secondary btn-sm">Regenerate titles</button>
+            </div>
+
+            <div class="card fade-in">
+              <div class="section-header">
+                <div>
+                  <h2>Subtitle</h2>
+                  <div class="note">This is where the concrete numbers live: case count, difficulty span, solutions.</div>
+                </div>
+              </div>
+              <div id="subtitles-list"></div>
+              <div id="subtitles-error" class="ai-error-inline" hidden></div>
+              <button type="button" id="regen-subtitles" class="btn btn-secondary btn-sm">Regenerate subtitles</button>
+            </div>
+
+            <div class="card fade-in">
+              <div class="section-header">
+                <div>
+                  <h2>Combined preview</h2>
+                  <div class="note">How Amazon renders your selected title and subtitle together.</div>
+                </div>
+                <div class="header-copy-btns">
+                  <button type="button" id="copy-combined" class="btn btn-copy btn-sm">Copy</button>
+                </div>
+              </div>
+              <div id="combined-preview" class="combined-preview"></div>
+            </div>
+
+            <div class="card fade-in">
+              <div class="section-header">
+                <div>
+                  <h2>Book Description</h2>
+                  <div class="note">Amazon accepts a small set of HTML tags. Anything else is stripped here.</div>
+                </div>
+                <div class="header-copy-btns">
+                  <button type="button" id="copy-preview" class="btn btn-copy btn-sm">Copy Preview Text</button>
+                  <button type="button" id="copy-html" class="btn btn-copy btn-sm">Copy HTML</button>
+                </div>
+              </div>
+              <div id="desc-style-row" hidden>
+                <span id="desc-style-pill" class="style-pill"></span>
+                <button type="button" id="try-style-btn" class="btn btn-secondary btn-sm">Try another style</button>
+              </div>
+              <div class="tabs">
+                <button type="button" class="tab-btn active" data-tab="preview">Preview</button>
+                <button type="button" class="tab-btn" data-tab="html">HTML</button>
+              </div>
+              <div id="desc-preview-pane" class="desc-preview"></div>
+              <div id="desc-html-pane" class="desc-html" hidden></div>
+              <div id="desc-length-warn" class="ai-error-inline" hidden></div>
+              <div id="desc-error" class="ai-error-inline" hidden></div>
+              <button type="button" id="regen-desc" class="btn btn-secondary btn-sm" style="margin-top:12px">Regenerate description</button>
+            </div>
+
+            <div class="card fade-in">
+              <div class="section-header">
+                <div>
+                  <h2>Back Cover Blurb</h2>
+                  <div class="note">Plain text, sized for a paperback back cover with a barcode block bottom right.</div>
+                </div>
+                <div class="header-copy-btns">
+                  <button type="button" id="copy-blurb" class="btn btn-copy btn-sm">Copy</button>
+                </div>
+              </div>
+              <div id="blurb-text" class="blurb-box"></div>
+              <div id="blurb-error" class="ai-error-inline" hidden style="margin-top:10px"></div>
+              <button type="button" id="regen-blurb" class="btn btn-secondary btn-sm" style="margin-top:12px">Regenerate blurb</button>
+            </div>
+
+            <div class="card fade-in">
+              <div class="section-header">
+                <div>
+                  <h2>7 Backend Keyword Slots</h2>
+                  <div class="note">Paste each line into the matching slot in KDP. Spaces only — never commas.</div>
+                </div>
+                <div class="header-copy-btns">
+                  <button type="button" id="copy-all-slots" class="btn btn-copy btn-sm">Copy all 7</button>
+                </div>
+              </div>
+              <div id="slots-output"></div>
+            </div>
+
+            <div class="card fade-in">
+              <div class="section-header">
+                <div>
+                  <h2>Before you hit Publish</h2>
+                  <div class="note">Ten things worth two minutes each.</div>
+                </div>
+              </div>
+              <div id="checklist" class="checklist-box"></div>
+            </div>
+
+            <div class="global-bar">
+              <button type="button" id="copy-everything" class="btn btn-primary">Copy everything as one block</button>
+              <button type="button" id="download-txt" class="btn btn-secondary">Download listing file (.txt)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-note">Shigai Listing Launchpad — a bonus tool for Shigai Royalty. Nothing you type here leaves your browser.</div>
+  </div>
+
+  <!-- ============ Modals ============ -->
+  <div id="key-modal" class="modal-overlay">
+    <div class="modal">
+      <h2>Activation key</h2>
+      <p style="font-size:0.84rem;color:var(--ink-mute);margin:0">Your key is stored only on this device.</p>
+      <div id="masked-key-display" class="masked-key"></div>
+      <div class="modal-actions">
+        <button type="button" id="replace-key-btn" class="btn btn-primary">Replace key</button>
+        <button type="button" id="remove-key-btn" class="btn btn-secondary">Remove key from this device</button>
+        <button type="button" id="close-key-modal" class="btn btn-secondary btn-sm">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="faq-modal" class="modal-overlay">
+    <div class="modal">
+      <h2>Quick help</h2>
+      <div class="faq-item">
+        <strong>What is a "slot" exactly?</strong>
+        <p>Amazon gives every book 7 backend keyword fields, 50 characters each. Amazon indexes the words inside a field in any order, so a field holding <em>murder mystery logic grid puzzles</em> can match "logic grid murder" and "mystery grid puzzles" too. That's why packing beats picking single keywords.</p>
+      </div>
+      <div class="faq-item">
+        <strong>Why does the tool delete words I added?</strong>
+        <p>A word only counts once across your whole backend. If it already appears in an earlier slot, repeating it buys nothing and costs characters, so it's dropped from the packed string. The keyword chip stays so you can see what it contributed.</p>
+      </div>
+      <div class="faq-item">
+        <strong>Why won't it let me write "Murdle"?</strong>
+        <p>That's another publisher's brand. Using someone else's series name in your metadata is a fast way to get a book removed. The tool blocks it in slots and in generated text.</p>
+      </div>
+      <div class="faq-item">
+        <strong>What if my key stops working?</strong>
+        <p>You'll see a banner at the top. Email support for a fresh key. The keyword table, Slot Packer, character counters and checklist keep working without AI.</p>
+      </div>
+      <div class="faq-item">
+        <strong>Can I use my own OpenAI key?</strong>
+        <p>Yes. Click the badge in the top-right, choose Replace key, and paste any valid key.</p>
+      </div>
+      <button type="button" id="close-faq-modal" class="btn btn-secondary" style="margin-top:8px">Close</button>
+    </div>
+  </div>
+
+  <script>
+(function () {
+  'use strict';
+
+  /* ======================= CONFIG ======================= */
+
+  const STORAGE_KEY = 'sr_grsai_activate_key';
+  // Prefer global node; only fall back to China when global fails.
+  const GRSAI_GLOBAL_BASE = 'https://grsaiapi.com';
+  const GRSAI_CHINA_BASE = 'https://grsai.dakka.com.cn';
+  const GRSAI_MODEL = 'gpt-5.6-sol';
+  // Set to false if the gateway ever starts rejecting response_format / reasoning_effort
+  // outright instead of returning a 400 we can fall back from.
+  const GRSAI_SEND_TUNING_PARAMS = true;
+  const KEYWORD_URLS = [
+    'https://cdn.jsdelivr.net/gh/vanloc19bk96/affiliate-bonuses-data@master/shigai-keyword.json',
+    'https://raw.githubusercontent.com/vanloc19bk96/affiliate-bonuses-data/master/shigai-keyword.json',
+  ];
+  const SUPPORT_EMAIL = 'david@fastaifactory.com';
+  const TITLE_CHAR_LIMIT = 100;
+  const SUBTITLE_CHAR_LIMIT = 100;
+  const COMBINED_CHAR_LIMIT = 200;
+  const SLOT_CHAR_LIMIT = 50;
+  const SLOT_COUNT = 7;
+  const PAGE_SIZE = 25;
+  const DESC_CHAR_LIMIT = 4000;
+  const MIN_SLOTS_TO_CONTINUE = 7;
+  const SUGGEST_SHORTLIST_SIZE = 35;
+
+  const DESCRIPTION_STYLES = ['Emotional', 'Benefit-focused', 'Professional', 'Story-led'];
+
+  const BANNED_WORDS = ['best', 'greatest', 'ultimate', '#1', 'official', 'new!',
+    'on sale', 'amazing', 'must-have', 'must-buy', 'guaranteed', 'free',
+    'bestseller', 'best seller', 'kindle unlimited', 'limited time',
+    // Amazon device and program names. The research data legitimately contains
+    // these (people really do search "kindle scribe logic puzzles"), but naming
+    // an Amazon program or device in your own metadata is disallowed.
+    'kindle scribe', 'kindle paperwhite', 'kindle fire', 'audible', 'alexa'];
+
+  const BLOCKED_BRANDS = ['murdle', 'murdoku', 'cluedo', 'hunt a killer',
+    'puzzle baron', 'brain games', 'journal 29', 'exit the game'];
+
+  // KDP's supported-tag list for book descriptions starts at <h4> — <h1>–<h3> are not
+  // on it, so they get unwrapped here rather than shipped to KDP and silently dropped.
+  const ALLOWED_HTML_TAGS = new Set(['b', 'i', 'em', 'strong', 'u', 'br', 'p', 'ul', 'ol', 'li', 'h4', 'h5', 'h6']);
+
+  const AUDIENCE_TOKENS = {
+    Adults:             ['adult', 'adults', 'grown', 'men', 'women'],
+    Teens:              ['teen', 'teens', 'teenager', 'teenagers'],
+    Seniors:            ['senior', 'seniors', 'elderly', 'retirement', 'older'],
+    'Gift buyer':       ['gift', 'gifts', 'stocking', 'lover', 'lovers', 'present', 'christmas', 'holiday'],
+    'Hardcore solvers': ['hard', 'expert', 'extreme', 'difficult', 'challenging', 'advanced', 'impossible'],
+  };
+
+  const AUDIENCES = ['Adults', 'Teens', 'Seniors', 'Gift buyer', 'Hardcore solvers'];
+
+  const CASE_TYPES = [
+    { value: 'murder', label: 'Murder Investigation', note: 'Find the killer. The classic whodunit.', category: 'Whodunit / Find the Killer' },
+    { value: 'heist',  label: 'The Heist',            note: 'Find the thief. Family-friendly angle.', category: 'Heist & Find the Thief' },
+  ];
+
+  const GRID_SIZES = ['6x6', '7x7', '8x8', '9x9', '10x10', '11x11', '12x12', '13x13', '14x14', '15x15', '16x16'];
+
+  const INCLUDED_ITEMS = [
+    { id: 'inc-solutions', label: 'Full step-by-step solutions',           note: 'The app’s walkthrough pages', on: true },
+    { id: 'inc-verified',  label: 'Verified single solution on every case', note: 'The deduction engine’s guarantee', on: true },
+    { id: 'inc-hints',     label: 'Hint ladder before the answer',          note: 'Graduated hints per case', on: true },
+    { id: 'inc-tutorial',  label: 'How-to-solve tutorial spread',           note: 'The one-click tutorial page', on: false },
+    { id: 'inc-cast',      label: 'Named cast and custom rooms',            note: 'Custom cast / custom rooms', on: false },
+    { id: 'inc-themed',    label: 'Themed settings across cases',           note: 'Custom worlds', on: false },
+  ];
+
+  const SETTING_THEMES = ['Classic manor / country estate', 'Grand hotel', 'Luxury yacht / cruise ship',
+    'Passenger train', 'Remote island', 'Castle', 'Art gallery / museum', 'Mountain lodge',
+    'Masquerade ball', 'Locked apartment', 'Small town', 'Christmas / winter holiday',
+    'Halloween / haunted', '1920s / Victorian', 'Office / workplace', 'Mixed settings', 'Custom'];
+
+  const CHECKLIST_ITEMS = [
+    'Title and subtitle match the text printed on your cover, word for word',
+    'Series name and volume number entered in KDP\'s Series fields, not typed into the title',
+    'Title and subtitle combined under 200 characters',
+    'No brand names in any field',
+    'All 7 keyword slots filled, none over 50 characters',
+    'No keyword repeats a word already in your title',
+    'Browse categories chosen in KDP, each as narrow as you can go',
+    'Interior PDF trim matches the trim size in your listing',
+    'Bleed setting matches what you exported from Shigai Royalty',
+    'Solutions section present if your description promises it',
+    'Page count matches the case count you advertised',
+    'Author name spelled the same as your other volumes',
+  ];
+
+  // Filler words that Amazon indexes poorly on their own. Keywords like
+  // "a murder mystery logic puzzle" can leave only "a" after earlier slots
+  // claim the useful words — drop these so a slot never becomes just "a".
+  const SLOT_FILLER_WORDS = new Set(['a', 'an', 'the', 'and', 'or', 'of', 'for',
+    'in', 'on', 'to', 'with', 'by', 'from', 'at', 'as', 'is', 'are']);
+
+  // Slot angle map (Spec 6.2). `category` picks from the dataset; `match` filters by keyword text.
+  const SLOT_ANGLES = [
+    { label: 'Core product type', category: 'Whodunit / Find the Killer', heistCategory: 'Heist & Find the Thief' },
+    { label: 'Puzzle format',     category: 'Logic Grid & Deduction' },
+    { label: 'Action phrase',     match: /find the killer|catch the|whodun|name the|solve the|spot the/i,
+                                  heistMatch: /find the thief|catch the|stolen|steal|theft|heist|recover/i },
+    { label: 'Audience',          category: 'Audience & Gift Buyers' },
+    { label: 'Difficulty',        match: /easy|medium|hard|expert|difficult|challenging|advanced|beginner|tough/i },
+    { label: 'Format / print',    category: 'Format, Size & Series' },
+    { label: 'Setting / theme',   category: 'Theme & Setting' },
+  ];
+
+  /* ======================= PROMPTS ======================= */
+
+  // The model is told the exact lists the validators enforce, so a prompt can never
+  // drift from BANNED_WORDS / BLOCKED_BRANDS and burn a repair round-trip.
+  const BANNED_LIST_TEXT = BANNED_WORDS.join(', ');
+  const BLOCKED_BRAND_TEXT = BLOCKED_BRANDS.join(', ');
+
+  const KDP_COMPLIANCE_BLOCK = `AMAZON KDP COMPLIANCE — breaking any of these can get a listing suppressed, blocked at review, or removed
+- Never use promotional, subjective or time-sensitive wording. The validator rejects exactly these: ${BANNED_LIST_TEXT}.
+- Never name another publisher's book, series or brand. The validator rejects exactly these: ${BLOCKED_BRAND_TEXT}.
+- Never name a retailer, device or reading program: Amazon, Kindle, KDP, Kindle Unlimited, Audible, Alexa, Barnes & Noble, Etsy.
+- Never mention price, discounts, availability, shipping, sales rank or sales performance.
+- Never include URLs, email addresses, social handles, phone numbers or any contact detail.
+- Never include review quotes, testimonials, endorsements, award claims or "as seen on".
+- Never reference file format or edition type: PDF, eBook, download, printable, digital, "paperback edition".
+- No ALL-CAPS words, no repeated punctuation (!!! or ???), no emojis, no decorative symbols.
+- Make no claim the book cannot deliver: no IQ, memory, dementia, Alzheimer's, medical or therapeutic claims.`;
+
+  const TITLE_SUBTITLE_SYSTEM_PROMPT = `You are an Amazon KDP metadata expert who writes book titles and subtitles that comply with Amazon's official Metadata Guidelines for Books. You write for readers first. You include researched keywords only when they sound natural. You never keyword-stuff. You never use promotional or subjective language.
+
+You know these Amazon rules and follow them strictly:
+1. Title and subtitle combined MUST be under 200 characters (spaces and punctuation count).
+2. Readable titles stay under 60 characters — customers skim past longer titles.
+3. Titles must read naturally to a human. If a title looks like a list of search terms, Amazon may suppress or reject it as spam.
+4. The title and subtitle you write will be printed on the cover. KDP blocks books whose
+   listing metadata does not match the cover, so never produce wording that would look
+   wrong on a cover, and never add a claim the cover cannot carry.
+5. Never put the author or pen name in the title or subtitle — KDP has its own Author field.
+6. Never put a series name, "Volume N", "Book N" or any numbering in the title or subtitle.
+   Series data belongs in KDP's dedicated Series fields; duplicating it here creates a
+   mismatch that gets flagged at review.
+7. Do not repeat the same root phrase in both title and subtitle just to rank higher.
+8. Prefer the seller's PRIMARY keyword and top secondary keywords over generic invented phrases, but only inside natural wording.
+9. Never use HTML tags, emojis, or special characters.
+10. The subtitle should add real context — a benefit, an audience, case count, or difficulty — not a keyword dump.
+11. If a colon separates title from subtitle, KDP adds it automatically on the product page; do not include the colon yourself in either field.
+12. When you must avoid a banned brand, describe the puzzle type in generic words instead,
+    for example "sudoku-styled logic grid" or "spatial deduction grid".
+13. This is a spatial deduction puzzle: solvers place a cast of suspects into rooms
+    on a grid, and whoever ends up alone with the victim is guilty. It is NOT a
+    four-category logic grid (suspect / weapon / room / motive). Never describe
+    weapons or motives as solving categories unless the user says the book includes them.
+14. Anti-stuffing test: if a shopper would think the field is a pile of search terms, rewrite it.
+
+${KDP_COMPLIANCE_BLOCK}
+
+You return strict JSON only. No preamble, no explanation.`;
+
+  const DESCRIPTION_SYSTEM_PROMPT = `You are an Amazon KDP metadata expert who writes book descriptions that comply with Amazon's official Metadata Guidelines for Books. You write descriptions that convert readers into buyers by clearly showing what the book contains and who it's for.
+
+You know these Amazon rules and follow them strictly:
+1. KDP supports ONLY these HTML tags in the description: <b>, <i>, <em>, <strong>, <u>, <br>, <p>, <ul>, <ol>, <li>, <h4>, <h5>, <h6>. Do not use any other tags — <h1>, <h2> and <h3> are NOT supported. No <div>, no <span>, no inline styles, no scripts, no classes, no attributes of any kind.
+2. Never keyword-stuff. Keywords may appear only inside natural, human-readable sentences.
+3. Match the tone to the audience: calm and clear for seniors, sharper and more sophisticated for adults, encouraging for teens, gift-forward for gift buyers, demanding for hardcore solvers.
+4. Keep descriptions between 200 and 400 words. Longer isn't better.
+5. This is a spatial deduction puzzle: solvers place a cast of suspects into rooms on a grid, and whoever ends up alone with the victim is guilty. It is NOT a four-category logic grid (suspect / weapon / room / motive). Never describe weapons or motives as solving categories unless the user says the book includes them.
+6. Never promise a feature that is not on the seller's confirmed list. An unlisted feature is a returns-and-complaints risk, not a selling point.
+7. Anti-stuffing test: never create a keyword list, SEO block, or sentence that exists only to host search terms.
+
+${KDP_COMPLIANCE_BLOCK}
+
+You return strict JSON only. No preamble, no explanation.`;
+
+  const BLURB_SYSTEM_PROMPT = `You are a paperback back-cover copywriter for puzzle books. You write tight, concrete copy that fits a physical back cover. You never invent features.
+
+${KDP_COMPLIANCE_BLOCK}
+
+You return strict JSON only. No preamble, no explanation.`;
+
+  const SUGGEST_TOP7_SYSTEM_PROMPT = `You are an Amazon KDP backend-keyword specialist for spatial deduction puzzle books.
+
+You pick exactly 7 backend keywords for the seller's 7 keyword slots by choosing candidate IDs from a numbered list.
+
+HOW AMAZON INDEXES THESE 7 SLOTS — this drives every choice you make
+- The 7 slots are indexed as one bag of words. Word order inside a slot does not matter.
+- A word already claimed by an earlier slot is stripped from later slots by this tool, so a
+  repeated word buys zero extra reach and costs slot space.
+- Amazon already indexes every word in the title and subtitle, so words the seller is likely
+  to put in the title are the lowest-value words to spend a slot on.
+- Each slot holds at most 50 characters.
+- Your real objective: the largest number of DISTINCT, buyer-relevant indexable words across
+  the 7 slots, spread over as many different search angles as possible.
+
+Hard rules:
+1. Return ONLY IDs from the provided candidate list. Never invent keywords or new IDs.
+2. Return exactly 7 unique integer IDs.
+3. Return them in the slot order the user message specifies. Slot 1 is the PRIMARY keyword and
+   must be the strongest core product phrase.
+4. Minimize word overlap between the 7 picks. If two candidates share most of their words, keep
+   the stronger one and spend the other slot on a different angle.
+5. Prefer high opportunity with low-to-moderate competition when the phrase still describes this
+   exact book.
+6. Never pick a phrase containing promotional wording (${BANNED_LIST_TEXT}) or another
+   publisher's brand (${BLOCKED_BRAND_TEXT}) — those get backend keywords rejected too.
+7. Never pick a phrase that misdescribes the book: no weapons or motives as solving categories,
+   and no difficulty, audience, format or theme the BOOK CONTEXT contradicts. A keyword that
+   pulls in the wrong shopper produces returns and bad reviews, which sink ranking further than
+   a smaller keyword would.
+
+Return strict JSON only. No preamble, no explanation.
+Format: {"ids":[1,2,3,4,5,6,7]}`;
+
+  /* ======================= STATE ======================= */
+
+  let keywordData = null;
+  let apiKey = null;
+  let sessionKey = null;
+  let aiConnected = false;
+
+  let selectedCaseType = null;
+  let selectedCategory = null;
+  let selectedAudience = null;
+  let step1Complete = false;
+  let step2Complete = false;
+
+  let filteredPool = [];
+  let usedAudienceFilter = true;
+  let showAllKeywords = false;
+  let tableSearch = '';
+  let tableSort = { col: 'opportunity', dir: 'desc' };
+  let tablePage = 0;
+
+  let slots = Array.from({ length: SLOT_COUNT }, () => []);
+  let activeSlot = 0;
+
+  let titles = [];
+  let subtitles = [];
+  let description = { style: '', html: '', preview: '' };
+  let blurb = '';
+  let selectedTitleIdx = 0;
+  let selectedSubtitleIdx = 0;
+  let currentDescStyleIndex = 0;
+  let hasGenerated = false;
+  let isGenerating = false;
+  let isSuggestingTop7 = false;
+  let slotsChangedSinceGeneration = false;
+
+  const $ = (id) => document.getElementById(id);
+
+  /* ======================= UTILITIES ======================= */
+
+  function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = String(str == null ? '' : str);
+    return d.innerHTML;
+  }
+
+  function escapeAttr(str) {
+    return String(str == null ? '' : str).replace(/"/g, '&quot;');
+  }
+
+  function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function stripHtml(html) {
+    const d = document.createElement('div');
+    d.innerHTML = html || '';
+    return d.textContent || '';
+  }
+
+  function countWords(text) {
+    return String(text || '').trim().split(/\s+/).filter(Boolean).length;
+  }
+
+  function formatContextValue(value) {
+    return value && String(value).trim() ? String(value).trim() : 'unspecified';
+  }
+
+  function showScreen(name) {
+    document.querySelectorAll('.screen').forEach((el) => el.classList.remove('active'));
+    $(name === 'setup' ? 'screen-setup' : 'screen-workspace').classList.add('active');
+  }
+
+  function getStoredKey() {
+    return localStorage.getItem(STORAGE_KEY);
+  }
+
+  function maskKey(key) {
+    if (!key) return 'No key saved';
+    if (key.length < 12) return '••••••••';
+    return key.slice(0, 4) + '…' + key.slice(-4);
+  }
+
+  function extractAiMessageContent(content) {
+    if (content == null) return '';
+    if (typeof content === 'string') return content;
+    if (Array.isArray(content)) {
+      return content.map((part) => {
+        if (typeof part === 'string') return part;
+        if (part && typeof part.text === 'string') return part.text;
+        if (part && typeof part.content === 'string') return part.content;
+        return '';
+      }).join('');
+    }
+    if (typeof content === 'object' && typeof content.text === 'string') return content.text;
+    return String(content);
+  }
+
+  function parseJsonFromAiContent(content) {
+    const text = extractAiMessageContent(content).trim();
+    if (!text) throw new Error('Empty response');
+    try { return JSON.parse(text); } catch (e) { /* fall through */ }
+    const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fenced) {
+      try { return JSON.parse(fenced[1].trim()); } catch (e) { /* fall through */ }
+    }
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start !== -1 && end > start) {
+      const sliced = text.slice(start, end + 1);
+      try { return JSON.parse(sliced); } catch (e) { /* fall through */ }
+      // Some models leave trailing commas in JSON objects/arrays.
+      try { return JSON.parse(sliced.replace(/,\s*([}\]])/g, '$1')); } catch (e) { /* fall through */ }
+    }
+    throw new SyntaxError('Invalid JSON');
+  }
+
+  function updateAiBadge() {
+    const badge = $('ai-badge');
+    badge.textContent = aiConnected ? 'AI: Connected' : 'AI: Not connected';
+    badge.className = 'ai-badge ' + (aiConnected ? 'connected' : 'disconnected');
+  }
+
+  function setErrorBanner(visible) {
+    $('error-banner').classList.toggle('visible', visible);
+  }
+
+  function syncAiConnectionFromKey() {
+    aiConnected = !!(sessionKey || apiKey || getStoredKey());
+    updateAiBadge();
+    if (aiConnected) setErrorBanner(false);
+  }
+
+  /* ======================= API ======================= */
+
+  function buildGrsaiMessages(userPrompt, systemPrompt) {
+    const messages = [];
+    if (systemPrompt) messages.push({ role: 'system', content: String(systemPrompt) });
+    messages.push({ role: 'user', content: String(userPrompt || '') });
+    return messages;
+  }
+
+  function buildGrsaiRequestBody(userPrompt, systemPrompt, options) {
+    const o = options || {};
+    // Docs require model + stream + messages. stream defaults to true server-side,
+    // so we always send false for JSON responses we can parse.
+    const body = {
+      model: GRSAI_MODEL,
+      stream: false,
+      messages: buildGrsaiMessages(userPrompt, systemPrompt),
+    };
+
+    // gpt-5.x tuning. Sent on the first attempt only — callGrsai drops the whole
+    // block and retries bare if the gateway rejects it, so a stricter node still works.
+    if (GRSAI_SEND_TUNING_PARAMS && !o.minimal) {
+      // Every prompt in this app asks for one JSON object; constrain the decoder to it
+      // instead of relying on the model to skip fences and preamble.
+      body.response_format = { type: 'json_object' };
+      body.reasoning_effort = o.effort || 'medium';
+      body.max_completion_tokens = o.maxTokens || 4000;
+    }
+    return body;
+  }
+
+  function grsaiCompletionsUrl(baseUrl) {
+    return String(baseUrl || '').replace(/\/$/, '') + '/v1/chat/completions';
+  }
+
+  async function fetchGrsaiOnce(url, key, body) {
+    const headers = new Headers();
+    headers.append('Authorization', 'Bearer ' + key);
+    headers.append('Content-Type', 'application/json');
+
+    return fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      redirect: 'follow',
+    });
+  }
+
+  function throwGrsaiHttpError(response, payload) {
+    if (response.status === 401 || response.status === 403) {
+      aiConnected = false;
+      updateAiBadge();
+      setErrorBanner(true);
+      throw Object.assign(new Error('Invalid activation key.'), { status: 401 });
+    }
+    if (response.status === 429) throw Object.assign(new Error('Rate limit hit.'), { status: 429 });
+    if (response.status >= 500) {
+      const serverMsg = (payload.error && payload.error.message) || payload.message;
+      throw Object.assign(new Error(serverMsg || 'AI service error.'), { status: response.status });
+    }
+    const msg = (payload.error && payload.error.message) || payload.message || ('Request failed (' + response.status + ')');
+    throw Object.assign(new Error(msg), { status: response.status });
+  }
+
+  function parseGrsaiSuccess(payload) {
+    aiConnected = true;
+    updateAiBadge();
+    setErrorBanner(false);
+
+    // Docs response shape: choices[0].message.content
+    const choice = payload.choices && payload.choices[0];
+    const message = choice && choice.message;
+    const content = message && message.content;
+    const text = extractAiMessageContent(content);
+    const truncated = choice && choice.finish_reason === 'length';
+
+    // A cut-off response yields half a JSON object. Say so instead of surfacing
+    // "Invalid JSON", which reads like a bug rather than a retryable blip.
+    if (truncated) throw new Error('The AI response was cut off before it finished. Try again.');
+    if (!text.trim()) throw new Error('Empty AI response');
+    return parseJsonFromAiContent(text);
+  }
+
+  // Returns { ok, payload, response } or { networkError }. Never throws for transport failures.
+  async function requestGrsaiNode(baseUrl, key, body) {
+    const url = grsaiCompletionsUrl(baseUrl);
+    let response;
+    try {
+      response = await fetchGrsaiOnce(url, key, body);
+    } catch (networkErr) {
+      return { networkError: networkErr };
+    }
+
+    // One retry on the same node for rate-limit / server blips.
+    if (response.status === 429 || response.status >= 500) {
+      await new Promise((r) => setTimeout(r, 1500));
+      try {
+        response = await fetchGrsaiOnce(url, key, body);
+      } catch (networkErr) {
+        return { networkError: networkErr };
+      }
+    }
+
+    const payload = await response.json().catch(() => ({}));
+    return { ok: response.ok, response, payload };
+  }
+
+  async function callGrsai(userPrompt, systemPrompt, options) {
+    if (!sessionKey && !apiKey) {
+      const stored = (getStoredKey() || '').trim();
+      if (stored) {
+        sessionKey = stored;
+        apiKey = stored;
+      }
+    }
+    const key = (sessionKey || apiKey || '').trim();
+    if (!key) throw Object.assign(new Error('Activation key is required.'), { status: 401 });
+
+    const opts = options || {};
+    let body = buildGrsaiRequestBody(userPrompt, systemPrompt, opts);
+
+    // 1) Global node first
+    let globalResult = await requestGrsaiNode(GRSAI_GLOBAL_BASE, key, body);
+
+    // A 400 on a body carrying tuning params almost always means the gateway rejects
+    // one of them. Retry once without them before treating it as a real client error.
+    if (!globalResult.networkError && !globalResult.ok &&
+        globalResult.response.status === 400 && body.response_format) {
+      body = buildGrsaiRequestBody(userPrompt, systemPrompt, Object.assign({}, opts, { minimal: true }));
+      globalResult = await requestGrsaiNode(GRSAI_GLOBAL_BASE, key, body);
+    }
+
+    if (!globalResult.networkError && globalResult.ok) {
+      return parseGrsaiSuccess(globalResult.payload);
+    }
+    if (!globalResult.networkError) {
+      const status = globalResult.response.status;
+      // Auth / client errors are definitive — do not fall back.
+      if (status === 401 || status === 403 || (status >= 400 && status < 500 && status !== 429)) {
+        throwGrsaiHttpError(globalResult.response, globalResult.payload);
+      }
+    }
+
+    // 2) Only if global failed (network/CORS/5xx/429) → China node
+    const chinaResult = await requestGrsaiNode(GRSAI_CHINA_BASE, key, body);
+    if (chinaResult.networkError) {
+      throw Object.assign(new Error('Network error reaching the AI service.'), {
+        cause: chinaResult.networkError || globalResult.networkError,
+      });
+    }
+    if (chinaResult.ok) return parseGrsaiSuccess(chinaResult.payload);
+    throwGrsaiHttpError(chinaResult.response, chinaResult.payload);
+  }
+
+  /* ======================= SLOT PACKER ENGINE ======================= */
+
+  function keywordWords(keyword) {
+    return String(keyword || '').toLowerCase().split(/\s+/)
+      .map((w) => w.replace(/[^a-z0-9]/g, ''))
+      .filter(Boolean);
+  }
+
+  function indexableWords(keyword) {
+    return keywordWords(keyword).filter((w) => !SLOT_FILLER_WORDS.has(w));
+  }
+
+  // Spec 6.2. `excludeWords` carries the words already claimed by earlier slots —
+  // a word only indexes once, so repeating it costs characters and buys nothing.
+  function buildSlotString(slotKeywords, excludeWords) {
+    const seen = new Set(excludeWords || []);
+    const words = [];
+    for (const kw of slotKeywords) {
+      for (const w of indexableWords(kw.keyword)) {
+        if (seen.has(w)) continue;
+        seen.add(w);
+        words.push(w);
+      }
+    }
+    return words.join(' ');
+  }
+
+  // Slot strings are order-dependent: slot N drops any word already used in slots 1..N-1.
+  function computeSlotStrings(slotsArr) {
+    const source = slotsArr || slots;
+    const claimed = new Set();
+    return source.map((slotKeywords) => {
+      const str = buildSlotString(slotKeywords, claimed);
+      for (const w of str.split(' ')) if (w) claimed.add(w);
+      return str;
+    });
+  }
+
+  function allSlotWords(strings) {
+    const set = new Set();
+    (strings || computeSlotStrings()).forEach((s) => {
+      s.split(' ').forEach((w) => { if (w) set.add(w); });
+    });
+    return set;
+  }
+
+  function filledSlotCount() {
+    return getFilledKeywords().length;
+  }
+
+  function isKeywordUsed(kw) {
+    return slots.some((slot) => slot.some((k) => k.keyword === kw.keyword));
+  }
+
+  function findKeywordSlot(kw) {
+    for (let i = 0; i < slots.length; i++) {
+      if (slots[i].some((k) => k.keyword === kw.keyword)) return i;
+    }
+    return -1;
+  }
+
+  // How many words this keyword actually contributes to its slot, given everything before it.
+  function keywordContribution(slotIndex, kw) {
+    const strings = computeSlotStrings();
+    const claimed = new Set();
+    for (let i = 0; i < slotIndex; i++) {
+      strings[i].split(' ').forEach((w) => { if (w) claimed.add(w); });
+    }
+    const before = new Set(claimed);
+    for (const other of slots[slotIndex]) {
+      if (other.keyword === kw.keyword) break;
+      indexableWords(other.keyword).forEach((w) => before.add(w));
+    }
+    return indexableWords(kw.keyword).filter((w) => !before.has(w)).length;
+  }
+
+  function slotContainsBlockedBrand(slotIndex) {
+    const text = slots[slotIndex].map((k) => k.keyword.toLowerCase()).join(' ');
+    return BLOCKED_BRANDS.filter((b) => text.includes(b));
+  }
+
+  // Returns { ok, reason } — never truncates silently.
+  function tryAddKeywordToSlot(slotIndex, kw) {
+    if (slots[slotIndex].some((k) => k.keyword === kw.keyword)) {
+      return { ok: false, reason: 'That keyword is already in this slot.' };
+    }
+    if (keywordContribution(slotIndex, kw) === 0) {
+      return {
+        ok: false,
+        reason: '"' + kw.keyword + '" adds no new indexable words — every useful word is already in an earlier slot (or is a filler like "a"/"the").',
+      };
+    }
+    const trial = slots.map((s, i) => (i === slotIndex ? s.concat([kw]) : s));
+    const strings = computeSlotStrings(trial);
+    if (strings[slotIndex].length > SLOT_CHAR_LIMIT) {
+      const over = strings[slotIndex].length - SLOT_CHAR_LIMIT;
+      return {
+        ok: false,
+        reason: 'Adding "' + kw.keyword + '" would push slot ' + (slotIndex + 1) + ' to ' +
+          strings[slotIndex].length + ' characters, ' + over + ' over the 50-character limit. ' +
+          'Amazon ignores the whole slot when it overflows, so nothing was added. Remove a keyword first, or put this one in another slot.',
+      };
+    }
+    slots[slotIndex] = trial[slotIndex];
+    return { ok: true };
+  }
+
+  function removeKeywordFromSlot(slotIndex, keyword) {
+    slots[slotIndex] = slots[slotIndex].filter((k) => k.keyword !== keyword);
+  }
+
+  function clearAllSlots() {
+    slots = Array.from({ length: SLOT_COUNT }, () => []);
+  }
+
+  function getFilledKeywords() {
+    return slots.map((slot) => slot[0]).filter(Boolean);
+  }
+
+  function compactSlots() {
+    const filled = getFilledKeywords();
+    clearAllSlots();
+    filled.forEach((kw, i) => { slots[i] = [kw]; });
+  }
+
+  // Promote a filled slot to primary (S1). Other keywords keep relative order.
+  function setPrimarySlot(index) {
+    const idx = parseInt(index, 10);
+    if (!Number.isInteger(idx) || idx < 0 || idx >= SLOT_COUNT) return false;
+    const picked = slots[idx] && slots[idx][0];
+    if (!picked) return false;
+    if (idx === 0) return true;
+
+    const rest = [];
+    for (let i = 0; i < SLOT_COUNT; i++) {
+      if (i === idx) continue;
+      if (slots[i][0]) rest.push(slots[i][0]);
+    }
+    clearAllSlots();
+    slots[0] = [picked];
+    rest.forEach((kw, i) => { slots[i + 1] = [kw]; });
+    return true;
+  }
+
+  // One keyword per slot, max 7. S1 = primary; S2–S7 = secondary.
+  function toggleKeywordSelection(kw) {
+    const existing = findKeywordSlot(kw);
+    if (existing !== -1) {
+      removeKeywordFromSlot(existing, kw.keyword);
+      compactSlots();
+      return { ok: true, removed: true };
+    }
+
+    if (getFilledKeywords().length >= SLOT_COUNT) {
+      return { ok: false, reason: 'You already selected 7 keywords. Uncheck one to free a slot.' };
+    }
+
+    const brands = hasBlockedBrand(kw.keyword);
+    if (brands.length) {
+      return {
+        ok: false,
+        reason: '"' + brands[0] + '" is another publisher\'s brand. Using it in your metadata can get your book removed, so it can\'t be added.',
+      };
+    }
+
+    if (kwChars(kw) > SLOT_CHAR_LIMIT) {
+      return {
+        ok: false,
+        reason: '"' + kw.keyword + '" is ' + kwChars(kw) + ' characters — Amazon ignores a slot over ' + SLOT_CHAR_LIMIT + '.',
+      };
+    }
+
+    const empty = slots.findIndex((slot) => !slot.length);
+    if (empty === -1) {
+      return { ok: false, reason: 'You already selected 7 keywords. Uncheck one to free a slot.' };
+    }
+
+    slots[empty] = [kw];
+    return { ok: true };
+  }
+
+  function slotKeywordText(index) {
+    const kw = slots[index] && slots[index][0];
+    return kw ? kw.keyword : '';
+  }
+
+  // A keyword can be sound research and still be unusable as metadata: "best logic
+  // puzzles for seniors" is a real search, but putting "best" in your own keyword
+  // field breaks Amazon's guidelines. Such keywords stay in the table and stay
+  // searchable — they just never get auto-packed into a slot.
+  function isSlotSafe(keyword) {
+    return hasBlockedBrand(keyword).length === 0 && hasBannedWords(keyword).length === 0;
+  }
+
+  function candidatesForSlot(index, usedKeywords) {
+    const angle = SLOT_ANGLES[index];
+    const isHeist = selectedCaseType === 'heist';
+    const pool = keywordData.keywords;
+    let list;
+
+    if (angle.category) {
+      const cat = (isHeist && angle.heistCategory) ? angle.heistCategory : angle.category;
+      list = pool.filter((k) => k.category === cat);
+    } else {
+      const rx = (isHeist && angle.heistMatch) ? angle.heistMatch : angle.match;
+      list = pool.filter((k) => rx.test(k.keyword));
+    }
+
+    list = list.filter((k) => !usedKeywords.has(k.keyword) && isSlotSafe(k.keyword));
+    return list.sort((a, b) => b.opportunity_score - a.opportunity_score);
+  }
+
+  // Auto-fill: one strongest keyword per slot angle, never repeating a word.
+  function autoPackSlots() {
+    clearAllSlots();
+    const used = new Set();
+    const claimed = new Set();
+
+    for (let i = 0; i < SLOT_COUNT; i++) {
+      let candidates = candidatesForSlot(i, used);
+      if (!candidates.length) {
+        candidates = keywordData.keywords
+          .filter((k) => !used.has(k.keyword) && isSlotSafe(k.keyword))
+          .sort((a, b) => b.opportunity_score - a.opportunity_score);
+      }
+
+      for (const kw of candidates) {
+        const newWords = indexableWords(kw.keyword).filter((w) => !claimed.has(w));
+        if (!newWords.length) continue;
+        if (newWords.join(' ').length > SLOT_CHAR_LIMIT) continue;
+        if (kwChars(kw) > SLOT_CHAR_LIMIT) continue;
+        slots[i] = [kw];
+        used.add(kw.keyword);
+        newWords.forEach((w) => claimed.add(w));
+        break;
+      }
+    }
+  }
+
+  function rootPhrase(keyword) {
+    return indexableWords(keyword).join(' ');
+  }
+
+  function keywordMatchesAngle(kw, angle) {
+    const heist = selectedCaseType === 'heist';
+    if (angle.category) {
+      const cat = (heist && angle.heistCategory) ? angle.heistCategory : angle.category;
+      return kw.category === cat;
+    }
+    const rx = (heist && angle.heistMatch) ? angle.heistMatch : angle.match;
+    return !!(rx && rx.test(kw.keyword));
+  }
+
+  // Rule shortlist for AI: safe, scored, diversified by SLOT_ANGLES + root phrase.
+  function buildSuggestShortlist() {
+    const safe = [...filteredPool]
+      .filter((k) => isSlotSafe(k.keyword) && indexableWords(k.keyword).length > 0 && kwChars(k) <= SLOT_CHAR_LIMIT)
+      .sort((a, b) => b.opportunity_score - a.opportunity_score);
+
+    const picked = [];
+    const usedKeywords = new Set();
+    const usedRoots = new Set();
+
+    function tryAdd(kw, relaxRoot) {
+      if (!kw || usedKeywords.has(kw.keyword)) return false;
+      const root = rootPhrase(kw.keyword);
+      if (!relaxRoot && root && usedRoots.has(root)) return false;
+      picked.push(kw);
+      usedKeywords.add(kw.keyword);
+      if (root) usedRoots.add(root);
+      return true;
+    }
+
+    for (const angle of SLOT_ANGLES) {
+      if (picked.length >= SUGGEST_SHORTLIST_SIZE) break;
+      const match = safe.find((k) => !usedKeywords.has(k.keyword) && keywordMatchesAngle(k, angle));
+      tryAdd(match, false);
+    }
+
+    for (const kw of safe) {
+      if (picked.length >= SUGGEST_SHORTLIST_SIZE) break;
+      tryAdd(kw, false);
+    }
+
+    if (picked.length < SLOT_COUNT) {
+      for (const kw of safe) {
+        if (picked.length >= SUGGEST_SHORTLIST_SIZE) break;
+        tryAdd(kw, true);
+      }
+    }
+
+    return picked;
+  }
+
+  // Deterministic gap-fill / thin-pool fallback — one keyword per slot.
+  function suggestTop7RuleBased(pool) {
+    const source = (pool && pool.length)
+      ? pool
+      : [...filteredPool]
+        .filter((k) => isSlotSafe(k.keyword))
+        .sort((a, b) => b.opportunity_score - a.opportunity_score);
+    const picks = [];
+    const claimed = new Set();
+    for (const kw of source) {
+      if (picks.length >= SLOT_COUNT) break;
+      const newWords = indexableWords(kw.keyword).filter((w) => !claimed.has(w));
+      if (!newWords.length) continue;
+      if (newWords.join(' ').length > SLOT_CHAR_LIMIT) continue;
+      picks.push(kw);
+      newWords.forEach((w) => claimed.add(w));
+    }
+    return picks;
+  }
+
+  function applySuggestPicks(picks) {
+    clearAllSlots();
+    (picks || []).slice(0, SLOT_COUNT).forEach((kw, i) => {
+      slots[i] = [kw];
+    });
+  }
+
+  function normalizeSuggestKeywordKey(value) {
+    return String(value || '')
+      .trim()
+      .replace(/^["'`]+|["'`]+$/g, '')
+      .replace(/\s+/g, ' ')
+      .toLowerCase();
+  }
+
+  function extractSuggestSelections(result) {
+    if (!result) return [];
+    if (Array.isArray(result)) return result;
+    if (Array.isArray(result.ids)) return result.ids;
+    if (Array.isArray(result.keywords)) return result.keywords;
+    if (Array.isArray(result.picks)) return result.picks;
+    if (Array.isArray(result.selections)) return result.selections;
+    return [];
+  }
+
+  // Map AI ids/strings back to dataset objects; fill gaps from the same shortlist.
+  function resolveSuggestPicks(aiResult, shortlist) {
+    const byKeyword = new Map(shortlist.map((k) => [normalizeSuggestKeywordKey(k.keyword), k]));
+    const picks = [];
+    const used = new Set();
+
+    function tryPush(kw) {
+      if (!kw || used.has(kw.keyword) || !isSlotSafe(kw.keyword)) return;
+      picks.push(kw);
+      used.add(kw.keyword);
+    }
+
+    for (const raw of extractSuggestSelections(aiResult)) {
+      if (picks.length >= SLOT_COUNT) break;
+
+      if (typeof raw === 'number' || (typeof raw === 'string' && /^\d+$/.test(raw.trim()))) {
+        const idx = parseInt(raw, 10) - 1;
+        if (idx >= 0 && idx < shortlist.length) tryPush(shortlist[idx]);
+        continue;
+      }
+
+      if (raw && typeof raw === 'object') {
+        if (raw.id != null || raw.index != null) {
+          const idx = parseInt(raw.id != null ? raw.id : raw.index, 10) - 1;
+          if (idx >= 0 && idx < shortlist.length) tryPush(shortlist[idx]);
+          continue;
+        }
+        if (raw.keyword) {
+          tryPush(byKeyword.get(normalizeSuggestKeywordKey(raw.keyword)));
+          continue;
+        }
+      }
+
+      tryPush(byKeyword.get(normalizeSuggestKeywordKey(raw)));
+    }
+
+    if (picks.length < SLOT_COUNT) {
+      const claimed = new Set();
+      picks.forEach((k) => indexableWords(k.keyword).forEach((w) => claimed.add(w)));
+      for (const kw of shortlist) {
+        if (picks.length >= SLOT_COUNT) break;
+        if (used.has(kw.keyword)) continue;
+        const newWords = indexableWords(kw.keyword).filter((w) => !claimed.has(w));
+        if (!newWords.length) continue;
+        picks.push(kw);
+        used.add(kw.keyword);
+        newWords.forEach((w) => claimed.add(w));
+      }
+    }
+
+    return picks;
+  }
+
+  /* ======================= VALIDATORS ======================= */
+
+  function hasBannedWords(text) {
+    const lower = String(text || '').toLowerCase();
+    return BANNED_WORDS.filter((w) => new RegExp('(?:^|[^a-z0-9])' + escapeRegex(w) + '(?![a-z0-9])', 'i').test(lower));
+  }
+
+  function hasBlockedBrand(text) {
+    const lower = String(text || '').toLowerCase();
+    return BLOCKED_BRANDS.filter((b) => lower.includes(b));
+  }
+
+  function getTitleText(item) { return typeof item === 'string' ? item : ((item && item.text) || ''); }
+  function getSubtitleText(item) { return typeof item === 'string' ? item : ((item && item.text) || ''); }
+
+  function selectedTitle() { return getTitleText(titles[selectedTitleIdx] || {}); }
+  function selectedSubtitle() { return getSubtitleText(subtitles[selectedSubtitleIdx] || {}); }
+
+  function titleWordSet() {
+    const set = new Set();
+    keywordWords(selectedTitle() + ' ' + selectedSubtitle()).forEach((w) => set.add(w));
+    return set;
+  }
+
+  function validateTitlesSubtitles(t, s) {
+    const violations = { overLimit: false, banned: false, brand: false };
+    const check = (text) => {
+      if (hasBannedWords(text).length) violations.banned = true;
+      if (hasBlockedBrand(text).length) violations.brand = true;
+    };
+    for (const item of t) {
+      const text = getTitleText(item);
+      if (text.length > TITLE_CHAR_LIMIT) violations.overLimit = true;
+      check(text);
+    }
+    for (const item of s) {
+      const text = getSubtitleText(item);
+      if (text.length > SUBTITLE_CHAR_LIMIT) violations.overLimit = true;
+      check(text);
+    }
+    for (const ti of t) {
+      for (const si of s) {
+        if (getTitleText(ti).length + getSubtitleText(si).length > COMBINED_CHAR_LIMIT) violations.overLimit = true;
+      }
+    }
+    return violations;
+  }
+
+  // Tags whose text content must go with them rather than being unwrapped into the page.
+  const DROP_WITH_CONTENT = new Set(['script', 'style', 'iframe', 'object', 'embed', 'noscript', 'template']);
+
+  function sanitizeHtml(html) {
+    const doc = new DOMParser().parseFromString('<body>' + (html || '') + '</body>', 'text/html');
+    (function clean(node) {
+      [...node.childNodes].forEach((child) => {
+        if (child.nodeType === 3) return;      // text
+        if (child.nodeType !== 1) { child.remove(); return; }  // comments, etc.
+
+        const tag = child.tagName.toLowerCase();
+
+        if (DROP_WITH_CONTENT.has(tag)) { child.remove(); return; }
+
+        // Clean the subtree first — unwrapping re-parents these nodes, and a second
+        // pass over the parent would not see them.
+        clean(child);
+
+        if (!ALLOWED_HTML_TAGS.has(tag)) {
+          while (child.firstChild) child.parentNode.insertBefore(child.firstChild, child);
+          child.remove();
+          return;
+        }
+        [...child.attributes].forEach((a) => child.removeAttribute(a.name));
+      });
+    })(doc.body);
+    return doc.body.innerHTML;
+  }
+
+  /* ======================= BOOK CONTEXT ======================= */
+
+  function getBookDetails() {
+    const theme = $('setting-theme').value;
+    return {
+      caseType: selectedCaseType,
+      caseCount: $('case-count').value.trim(),
+      difficultySpan: $('difficulty-span').value,
+      difficultyLabels: $('difficulty-labels').value.trim(),
+      gridFrom: $('grid-from').value,
+      gridTo: $('grid-to').value,
+      castSize: $('cast-size').value.trim(),
+      roomCount: $('room-count').value.trim(),
+      trimSize: $('trim-size').value,
+      largePrint: $('large-print').checked,
+      included: INCLUDED_ITEMS.filter((it) => $(it.id).checked).map((it) => it.label),
+      settingTheme: theme === 'Custom' ? ($('setting-custom').value.trim() || 'Custom') : theme,
+      seriesName: $('series-name').value.trim(),
+      volumeNumber: $('volume-number').value.trim(),
+      authorName: $('author-name').value.trim(),
+    };
+  }
+
+  function isHeist() { return selectedCaseType === 'heist'; }
+  function victimNoun() { return isHeist() ? 'stolen item' : 'body'; }
+  function culpritNoun() { return isHeist() ? 'the thief' : 'guilty'; }
+
+  function buildContextBlock() {
+    const d = getBookDetails();
+    const lines = [
+      '- Case type: ' + (isHeist() ? 'heist (find the thief)' : 'murder (find the killer)'),
+      '- Keyword focus: ' + formatContextValue(selectedCategory),
+      '- Target buyer: ' + formatContextValue(selectedAudience),
+      '- Number of cases: ' + formatContextValue(d.caseCount),
+      '- Difficulty span: ' + formatContextValue(d.difficultySpan),
+      '- Grid sizes: ' + d.gridFrom + ' up to ' + d.gridTo,
+      '- Suspects per case: ' + formatContextValue(d.castSize),
+      '- Rooms per case: ' + formatContextValue(d.roomCount),
+      '- Setting theme: ' + formatContextValue(d.settingTheme),
+      '- Trim size: ' + formatContextValue(d.trimSize),
+      '- Large print: ' + (d.largePrint ? 'yes' : 'no'),
+      '- Included: ' + (d.included.length ? d.included.join('; ') : 'nothing confirmed — do not promise extras'),
+      '- Series: ' + (d.seriesName ? d.seriesName + (d.volumeNumber ? ', Volume ' + d.volumeNumber : '') : 'unspecified'),
+      '- Author: ' + formatContextValue(d.authorName),
+    ];
+    if (d.difficultyLabels) {
+      lines.push('- Difficulty labels printed inside the book: ' + d.difficultyLabels +
+        ' (these are internal labels — use standard buyer words like easy/medium/hard/expert in the metadata)');
+    }
+    return lines.join('\n');
+  }
+
+  const MECHANIC_BLOCK = () => `HOW THIS PUZZLE ACTUALLY WORKS
+Each case is a floor plan drawn as a grid. The solver reads true statements
+about where each suspect was and places every suspect into a room by pure
+deduction. The suspect who ends up alone in the room with the ${victimNoun()} is the
+${isHeist() ? 'thief' : 'culprit'}. Every case has exactly one solution, reachable without guessing.`;
+
+  function formatSlotsForPrompt() {
+    const primary = slotKeywordText(0) || '(empty)';
+    const lines = [
+      'PRIMARY KEYWORD (slot 1 — strongest, prioritize this): ' + primary,
+      'SECONDARY KEYWORDS (slots 2–7):',
+    ];
+    for (let i = 1; i < SLOT_COUNT; i++) {
+      lines.push((i + 1) + '. ' + (slotKeywordText(i) || '(empty)'));
+    }
+    return lines.join('\n');
+  }
+
+  /* ======================= PROMPT BUILDERS ======================= */
+
+  function buildTitlesSubtitlesUserPrompt(options) {
+    const o = options || {};
+    let extra = '';
+    if (o.isRegen) extra += '\nThe user has already seen a previous batch and wants fresh options. Choose distinctly different angles, phrasings and rhythms.\n';
+    if (o.shorten) extra += '\nIMPORTANT: Shorten everything. Every title under 100 chars, every subtitle under 100 chars, every title+subtitle pair under 200 chars combined.\n';
+    if (o.noBanned) extra += '\nIMPORTANT: Remove all promotional language (best, greatest, ultimate, #1, official, new, on sale, amazing, must-have, guaranteed, free, bestseller, limited time).\n';
+    if (o.noBrand) extra += '\nIMPORTANT: You used another publisher\'s brand name. Remove it entirely and describe the puzzle type in generic words.\n';
+
+    const shared = `Generate 3 title options and 3 subtitle options for a spatial deduction
+${isHeist() ? 'heist' : 'murder-mystery'} puzzle book on Amazon KDP.
+
+BOOK CONTEXT
+${buildContextBlock()}
+
+${MECHANIC_BLOCK()}
+
+THE USER'S 7 CHOSEN KEYWORDS
+${formatSlotsForPrompt()}
+
+INSTRUCTION ON KEYWORDS (natural placement — Amazon will flag stuffing)
+- These 7 keywords are researched search phrases AND also go into Amazon backend slots
+- Goal: readable metadata that still contains real keywords — NOT an SEO dump
+- Each individual title may contain at most ONE keyword phrase
+- Each individual subtitle may contain at most ONE keyword phrase (or two short fragments if they read as one natural clause)
+- Across the 3 title options, use 2–3 keywords total, prioritizing PRIMARY then secondaries 2–3
+- Across the 3 subtitle options, use 2–3 different supporting keywords when possible
+- The DIRECT title must include the PRIMARY keyword (minor grammar tweaks OK, e.g. plural/singular)
+- The OUTCOME title should include one secondary keyword inside a natural hook
+- The AUDIENCE title should name the Step 1 buyer and include one keyword phrase
+- Keywords must sit inside phrases a human would say out loud
+- FORBIDDEN stuffing patterns:
+  - comma-separated keyword lists
+  - stacking 2+ full keyword phrases in one title or one subtitle
+  - repeating the same root phrase in both a paired title and subtitle
+  - using all 7 keywords anywhere in title/subtitle fields
+- Subtitle also carries concrete Step 1 facts: case count, difficulty span, audience, and
+  whether solutions are included
+- Ground every option in the BOOK CONTEXT from Step 1 above
+
+WHAT A GOOD TITLE LOOKS LIKE IN THIS NICHE
+Real competing titles sound like book names, with one searchable phrase inside. Examples of the
+SHAPE (do not copy the wording — use the user's keywords):
+- Murder Mystery Puzzle Book
+- Catch the Killer: Logic Grid Cases
+- Easy Murder Mystery Puzzles for Teens
+
+REQUIREMENTS
+- 3 titles, each a different angle:
+    A: direct and descriptive — lead with the PRIMARY keyword
+    B: outcome-led, the feeling of naming the ${isHeist() ? 'thief' : 'culprit'} — one secondary keyword, naturally
+    C: audience-first, who it is FOR — buyer + one keyword phrase
+- 3 subtitles, each pairable with any title, each reading like a real subtitle not a tag string
+- Title under 60 chars if possible, never over 100
+- Subtitle under 100 chars
+- Every title + subtitle pair under 200 chars combined
+- No colon at the start or end of either field
+- No emojis, no HTML, no all-caps
+
+FINAL SELF-CHECK — run this on your own draft and silently rewrite anything that fails
+1. Every title is 100 characters or fewer; aim for 60 or fewer.
+2. Every subtitle is 100 characters or fewer.
+3. All 9 possible title + subtitle pairings are 200 characters or fewer combined.
+4. No banned promotional word and no other publisher's brand appears in any field.
+5. No author name, no series name, no "Volume N" or "Book N", no retailer, device or
+   format word appears in any field.
+6. No single title or subtitle carries more than one keyword phrase, and none of them is a
+   comma-separated list of search terms.
+7. Every title still reads like a book name a human would say out loud.
+Only after all seven pass, return the JSON.${extra}`;
+
+    if (o.titlesOnly) return shared + '\n\nRETURN JSON: {"titles":[{"angle":"direct","text":"..."},{"angle":"outcome","text":"..."},{"angle":"audience","text":"..."}]}';
+    if (o.subtitlesOnly) return shared + '\n\nRETURN JSON: {"subtitles":[{"text":"..."},{"text":"..."},{"text":"..."}]}';
+    return shared + '\n\nRETURN JSON: {"titles":[{"angle":"direct","text":"..."},{"angle":"outcome","text":"..."},{"angle":"audience","text":"..."}],"subtitles":[{"text":"..."},{"text":"..."},{"text":"..."}]}';
+  }
+
+  function buildDescriptionUserPrompt(style, extraInstruction) {
+    const d = getBookDetails();
+    const factLines = [
+      '   - ' + formatContextValue(d.caseCount) + ' cases',
+      '   - grids from ' + d.gridFrom + ' to ' + d.gridTo,
+      '   - ' + d.difficultySpan + ' difficulty',
+      '   - ' + formatContextValue(d.castSize) + ' suspects, ' + formatContextValue(d.roomCount) + ' rooms',
+      '   - ' + formatContextValue(d.settingTheme) + ' settings',
+      '   - ' + d.trimSize + (d.largePrint ? ', large print' : ''),
+    ];
+    d.included.forEach((item) => factLines.push('   - ' + item));
+
+    return `Write a book description for a spatial deduction ${isHeist() ? 'heist' : 'murder-mystery'} puzzle book on Amazon KDP.
+
+BOOK CONTEXT
+${buildContextBlock()}
+
+${MECHANIC_BLOCK()}
+
+THE USER'S 7 CHOSEN KEYWORDS
+${formatSlotsForPrompt()}
+
+INSTRUCTION ON KEYWORDS (natural placement — Amazon will flag stuffing)
+- Weave 3–5 keywords across the WHOLE description, prioritizing PRIMARY then secondaries 2–4
+- The PRIMARY keyword (or a very close natural form) must appear once in the opening OR how-it-works section
+- Spread keywords across different paragraphs — never cluster several in one sentence or one bullet
+- At most one keyword phrase per paragraph / bullet
+- Each keyword phrase appears at most twice in the whole description
+- Keywords must live inside real buyer-facing sentences, not as labels
+- FORBIDDEN stuffing patterns:
+  - comma-separated keyword lists
+  - "Keywords:" / "Search terms:" / SEO tag sections
+  - repeating near-identical phrases back-to-back
+  - forcing all 7 keywords into the description
+- Stay faithful to the BOOK CONTEXT from Step 1 (case type, counts, difficulty, setting, included items)
+
+STYLE TO WRITE IN THIS TIME: ${style}
+- "Emotional": open with a feeling or scene, lean on sensory language
+- "Benefit-focused": open with what the reader gains, lean on outcomes and skills
+- "Professional": open with the book's contents, lean on facts and structure
+- "Story-led": open with a mini scenario or hook, lean on curiosity
+
+STRUCTURE FOR A SPATIAL DEDUCTION MYSTERY BOOK DESCRIPTION
+
+1. Opening hook, 2 to 3 sentences, in the chosen style. Put the reader at the
+   scene. Do not open with generic marketing language.
+
+2. How it works, one short paragraph. Explain the mechanic in plain words:
+   read the statements, place every suspect in a room, the one left alone with
+   the ${victimNoun()} is ${culpritNoun()}. This is what separates
+   the book from every other puzzle book on the shelf, so make it clear.
+
+3. What's inside, a <ul> with 4 to 6 <li> bullets. Pull ONLY from these facts:
+${factLines.join('\n')}
+   Never invent a feature that is not on this list.
+
+4. Who this is for, one paragraph, naming ${formatContextValue(selectedAudience)} explicitly with realistic
+   benefits. No IQ claims, no medical claims.
+
+5. Closing nudge, 1 to 2 sentences, pointing at opening the first case.
+   Never say "buy now".
+
+FORMATTING RULES
+- Use <b> for the first 1 to 2 lines of the opening hook
+- Use <p> tags to separate paragraphs
+- Bullets must be <ul><li>...</li></ul>
+- No other HTML tags
+
+REQUIREMENTS
+- 200 to 400 words total
+- Match the buyer tone and the style specified
+- No banned words, no other publisher's brand names
+- Do not describe weapons or motives as solving categories
+
+FINAL SELF-CHECK — run this on your own draft and silently rewrite anything that fails
+1. Word count is between 200 and 400, and word_count reports the real number.
+2. Only KDP-supported tags are used, every tag is closed, and no tag carries an attribute.
+3. No banned promotional word, no other publisher's brand, no retailer or device name,
+   no URL, no price, no review quote, no medical or IQ claim.
+4. Every bullet maps to a fact in the "What's inside" list — nothing invented.
+5. No paragraph or bullet holds more than one keyword phrase, and no keyword phrase appears
+   more than twice in the whole description.
+6. Read it as a shopper: it sounds like a person describing a book, not like SEO copy.
+Only after all six pass, return the JSON.${extraInstruction ? '\n' + extraInstruction : ''}
+
+RETURN JSON: {"style":"${style}","html":"<the description with only KDP-supported HTML tags>","preview":"<plain text with paragraph breaks as \\n\\n>","word_count":<integer>}`;
+  }
+
+  function buildBlurbUserPrompt() {
+    const d = getBookDetails();
+    return `Write a back cover blurb for this paperback.
+
+BOOK CONTEXT
+${buildContextBlock()}
+
+${MECHANIC_BLOCK()}
+
+TITLE: ${selectedTitle() || 'untitled'}${selectedSubtitle() ? '\nSUBTITLE: ' + selectedSubtitle() : ''}
+
+PRIMARY KEYWORD: ${slotKeywordText(0) || '(none)'}
+
+Constraints:
+- 60 to 110 words, plain text, no HTML
+- Must fit a ${d.trimSize} back cover with a barcode block bottom right
+- One short hook line, then 3 to 4 lines of what's inside, then one closing line
+- Echo the PRIMARY keyword once naturally if it fits; do not keyword-stuff
+- Same facts as the description / Step 1 book setup, no new claims
+- Only mention features from this list: ${d.included.length ? d.included.join('; ') : 'none confirmed'}
+- No prices, no URLs, no "buy now", no other publisher's brand names
+
+FINAL SELF-CHECK — silently rewrite anything that fails, then return
+1. Between 60 and 110 words, plain text, no HTML, no ALL-CAPS, no emojis.
+2. No banned promotional word, no other publisher's brand, no retailer or device name.
+3. Every feature named is on the confirmed list above — nothing invented.
+4. The facts match the Step 1 book setup exactly (case count, difficulty, grid sizes).
+
+RETURN JSON: {"blurb":"..."}`;
+  }
+
+  function buildSuggestTop7UserPrompt(shortlist) {
+    const lines = shortlist.map((kw, i) => {
+      const searches = kw.searches_display || (kw.searches_per_month != null
+        ? String(kw.searches_per_month)
+        : '-');
+      return (i + 1) + '. ' + kw.keyword +
+        ' | opportunity ' + kw.opportunity_score +
+        ' | searches ' + searches +
+        ' | competitive ' + kw.competitive_score +
+        ' | chars ' + kwChars(kw) +
+        ' | category ' + (kw.category || '-');
+    });
+
+    return `Pick the best 7 backend keywords for this spatial deduction
+${isHeist() ? 'heist' : 'murder-mystery'} puzzle book on Amazon KDP.
+
+BOOK CONTEXT
+${buildContextBlock()}
+
+${MECHANIC_BLOCK()}
+
+CANDIDATE KEYWORDS (choose by ID number only):
+${lines.join('\n')}
+
+RETURN THE 7 IDS IN EXACTLY THIS SLOT ORDER
+1. Core product type — what the book fundamentally is. This becomes the PRIMARY keyword.
+2. Puzzle format or mechanic (logic grid, deduction, spatial).
+3. Action phrase — the thing the solver does (${isHeist() ? 'find the thief, recover the stolen item' : 'find the killer, name the culprit'}).
+4. Audience or gift buyer, matching the Target buyer above.
+5. Difficulty level, matching the difficulty span above.
+6. Print format or size (large print, ${formatContextValue(getBookDetails().trimSize)}, paperback size wording).
+7. Setting or theme, matching the setting theme above.
+
+If no candidate fits an angle, use the next best unused candidate that adds the most new
+words instead — never leave a slot unfilled, never repeat an ID, never invent one.
+
+SELF-CHECK BEFORE YOU RETURN
+- Exactly 7 IDs, all unique, every one of them present in the list above.
+- Count the distinct indexable words your 7 picks produce together. If swapping any pick for an
+  unused candidate would raise that count without losing relevance to this book, make the swap.
+- No pick contains a brand, retailer, device or promotional word.
+- Every pick is true of the book described in BOOK CONTEXT.
+
+RETURN JSON: {"ids":[1,2,3,4,5,6,7]}`;
+  }
+
+  /* ======================= STEP 1 RENDER ======================= */
+
+  function initCaseTypeOptions() {
+    $('casetype-options').innerHTML = CASE_TYPES.map((ct) =>
+      `<button type="button" class="option-card" data-casetype="${escapeAttr(ct.value)}">
+        <span class="label">${escapeHtml(ct.label)}</span>
+        <span class="stat">${escapeHtml(ct.note)}</span>
+      </button>`).join('');
+  }
+
+  function initCategoryOptions() {
+    $('category-options').innerHTML = keywordData.categories.map((cat) => {
+      const count = keywordData.keywords.filter((k) => k.category === cat).length;
+      return `<button type="button" class="option-card" data-category="${escapeAttr(cat)}">
+        <span class="label">${escapeHtml(cat)}</span>
+        <span class="stat">${count.toLocaleString()} keywords available</span>
+      </button>`;
+    }).join('');
+  }
+
+  function initAudienceOptions() {
+    $('audience-options').innerHTML = AUDIENCES.map((a) =>
+      `<button type="button" class="option-card" data-audience="${escapeAttr(a)}">
+        <span class="label">${escapeHtml(a)}</span>
+      </button>`).join('');
+  }
+
+  function initStaticSelects() {
+    const gridOpts = GRID_SIZES.map((g) => `<option value="${g}">${g}</option>`).join('');
+    $('grid-from').innerHTML = gridOpts;
+    $('grid-to').innerHTML = gridOpts;
+    $('grid-from').value = '6x6';
+    $('grid-to').value = '12x12';
+
+    $('setting-theme').innerHTML = '<option value="">— Select —</option>' +
+      SETTING_THEMES.map((t) => `<option value="${escapeAttr(t)}">${escapeHtml(t)}</option>`).join('');
+
+    $('included-options').innerHTML = INCLUDED_ITEMS.map((it) =>
+      `<label class="check-item${it.on ? ' on' : ''}" data-inc="${it.id}">
+        <input type="checkbox" id="${it.id}"${it.on ? ' checked' : ''}>
+        <span class="ci-label">${escapeHtml(it.label)}<span class="ci-note">${escapeHtml(it.note)}</span></span>
+      </label>`).join('');
+
+    $('checklist').innerHTML = CHECKLIST_ITEMS.map((item, i) =>
+      `<label class="cl-item"><input type="checkbox" id="cl-${i}"><span>${escapeHtml(item)}</span></label>`).join('');
+  }
+
+  function validateCaseCount() {
+    const raw = $('case-count').value.trim();
+    const el = $('case-count-warn');
+    if (!raw) { el.classList.remove('visible'); return; }
+    const n = parseInt(raw, 10);
+    if (isNaN(n) || n < 1 || n > 300) {
+      el.textContent = 'Most books in this niche ship between 40 and 100 cases. ' + raw + ' is unusual — you can still continue.';
+      el.classList.add('visible');
+    } else {
+      el.classList.remove('visible');
+    }
+  }
+
+  function validateGridRange() {
+    const from = GRID_SIZES.indexOf($('grid-from').value);
+    const to = GRID_SIZES.indexOf($('grid-to').value);
+    const el = $('grid-warn');
+    if (to < from) {
+      $('grid-to').value = $('grid-from').value;
+      el.textContent = 'The largest grid can\'t be smaller than the smallest — reset to match.';
+      el.classList.add('visible');
+      setTimeout(() => el.classList.remove('visible'), 4000);
+    }
+  }
+
+  function buildStep1Summary() {
+    const d = getBookDetails();
+    const ct = CASE_TYPES.find((c) => c.value === selectedCaseType);
+    const parts = [];
+    if (ct) parts.push(ct.label);
+    if (selectedCategory) parts.push(selectedCategory);
+    if (selectedAudience) parts.push(selectedAudience);
+    if (d.caseCount) parts.push(d.caseCount + ' cases');
+    if (d.difficultySpan) parts.push(d.difficultySpan);
+    parts.push(d.gridFrom + '–' + d.gridTo);
+    if (d.largePrint) parts.push('large print');
+    if (d.seriesName) parts.push(d.seriesName + (d.volumeNumber ? ' vol ' + d.volumeNumber : ''));
+    return parts.join(' · ');
+  }
+
+  function updateContinueKeywordsBtn() {
+    const ready = !!(selectedCaseType && selectedCategory && selectedAudience && $('case-count').value.trim());
+    $('continue-keywords-btn').disabled = !ready;
+  }
+
+  /* ======================= KEYWORD TABLE ======================= */
+
+  function filterKeywords(category, audience) {
+    const pool = keywordData.keywords.filter((k) => k.category === category);
+    const tokens = AUDIENCE_TOKENS[audience] || [];
+    const audiencePool = pool.filter((k) => {
+      const words = keywordWords(k.keyword);
+      return tokens.some((t) => words.includes(t) || k.keyword.toLowerCase().includes(t));
+    });
+    if (audiencePool.length >= 15) return { pool: audiencePool, usedFilter: true };
+    return { pool, usedFilter: false };
+  }
+
+  function getActiveKeywordPool() {
+    if (showAllKeywords && keywordData && Array.isArray(keywordData.keywords)) {
+      return keywordData.keywords;
+    }
+    return filteredPool;
+  }
+
+  function findKeywordInPools(keyword) {
+    const key = String(keyword || '');
+    return getActiveKeywordPool().find((k) => k.keyword === key) ||
+      filteredPool.find((k) => k.keyword === key) ||
+      (keywordData && keywordData.keywords
+        ? keywordData.keywords.find((k) => k.keyword === key)
+        : null);
+  }
+
+  function updatePoolToggleButton() {
+    const btn = $('toggle-all-keywords-btn');
+    if (!btn) return;
+    btn.textContent = showAllKeywords ? 'Show filtered pool' : 'Show all keywords';
+    btn.setAttribute('aria-pressed', showAllKeywords ? 'true' : 'false');
+    btn.classList.toggle('btn-primary', showAllKeywords);
+    btn.classList.toggle('btn-secondary', !showAllKeywords);
+  }
+
+  function colorDotClass(color) {
+    const c = String(color || '').toLowerCase();
+    if (c === 'green') return 'green';
+    if (c === 'yellow') return 'yellow';
+    return 'red';
+  }
+
+  function kwChars(k) { return typeof k.char_count === 'number' ? k.char_count : k.keyword.length; }
+  function kwWords(k) { return typeof k.word_count === 'number' ? k.word_count : k.keyword.split(/\s+/).length; }
+
+  function getSortedFilteredPool() {
+    const q = tableSearch.toLowerCase();
+    const rows = getActiveKeywordPool().filter((k) => !q || k.keyword.toLowerCase().includes(q));
+    const dir = tableSort.dir === 'asc' ? 1 : -1;
+    rows.sort((a, b) => {
+      switch (tableSort.col) {
+        case 'keyword': return dir * a.keyword.localeCompare(b.keyword);
+        case 'competitors': return dir * ((a.num_competitors || 0) - (b.num_competitors || 0));
+        case 'price': return dir * ((a.avg_price || 0) - (b.avg_price || 0));
+        case 'earnings': return dir * ((a.avg_monthly_earnings || 0) - (b.avg_monthly_earnings || 0));
+        case 'searches': return dir * (a.searches_per_month - b.searches_per_month);
+        case 'opportunity': return dir * (a.opportunity_score - b.opportunity_score);
+        default: return 0;
+      }
+    });
+    return rows;
+  }
+
+  function renderKeywordTable() {
+    const rows = getSortedFilteredPool();
+    const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+    if (tablePage >= totalPages) tablePage = totalPages - 1;
+    if (tablePage < 0) tablePage = 0;
+    const pageRows = rows.slice(tablePage * PAGE_SIZE, (tablePage + 1) * PAGE_SIZE);
+    const filled = getFilledKeywords().length;
+
+    $('kw-table-body').innerHTML = pageRows.map((kw) => {
+      const inSlot = findKeywordSlot(kw);
+      const selected = inSlot !== -1;
+      const disabled = !selected && filled >= SLOT_COUNT;
+      const brand = hasBlockedBrand(kw.keyword);
+      const avgPrice = kw.avg_price != null && kw.avg_price !== '' ? kw.avg_price : null;
+      const avgEarnings = kw.avg_monthly_earnings != null && kw.avg_monthly_earnings !== ''
+        ? Number(kw.avg_monthly_earnings).toLocaleString()
+        : null;
+      const avgPages = kw.avg_pages != null && kw.avg_pages !== '' ? kw.avg_pages : null;
+      const competitors = kw.num_competitors != null && kw.num_competitors !== ''
+        ? Number(kw.num_competitors).toLocaleString()
+        : '—';
+      const tooltip = 'Competitive score: ' + (kw.competitive_score != null ? kw.competitive_score : '—') +
+        ' (' + (kw.comp_color || '—') + ')' +
+        ' · Avg pages: ' + (avgPages != null ? avgPages : '—') +
+        ' · Words: ' + kwWords(kw) +
+        ' · Chars: ' + kwChars(kw);
+      return `<tr class="${selected ? 'selected-row' : ''}${disabled ? ' disabled-row' : ''}" data-kw="${escapeAttr(kw.keyword)}">
+        <td><input type="checkbox" ${selected ? 'checked' : ''} ${disabled ? 'disabled' : ''} tabindex="-1" aria-label="Toggle keyword"></td>
+        <td class="mono">${escapeHtml(kw.keyword)}<span class="info-icon" tabindex="0" aria-label="${escapeAttr(tooltip)}">ⓘ<span class="tooltip">${escapeHtml(tooltip)}</span></span>${selected ? `<span class="kw-slot-tag">S${inSlot + 1}</span>${inSlot === 0 ? '<span class="kw-slot-tag" style="color:var(--seal);border-color:var(--seal)">primary</span>' : ''}` : ''}${brand.length ? '<span class="kw-slot-tag" style="color:var(--warn);border-color:var(--warn)">brand</span>' : ''}</td>
+        <td class="num">${competitors}</td>
+        <td class="num">${avgPrice != null ? ('$' + avgPrice) : '—'}</td>
+        <td class="num">${avgEarnings != null ? ('$' + avgEarnings) : '—'}</td>
+        <td class="num">${kw.searches_display || kw.searches_per_month.toLocaleString()}</td>
+        <td class="num"><span class="color-dot ${colorDotClass(kw.search_color)}"></span>${kw.opportunity_score}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--ink-mute);padding:24px">No keywords match that search.</td></tr>';
+
+    const poolLabel = showAllKeywords ? 'all keywords' : 'filtered';
+    $('kw-pagination').innerHTML =
+      `<button type="button" id="kw-prev" ${tablePage === 0 ? 'disabled' : ''}>← Prev</button>
+       <span>Page ${tablePage + 1} of ${totalPages} (${rows.length.toLocaleString()} ${poolLabel})</span>
+       <button type="button" id="kw-next" ${tablePage >= totalPages - 1 ? 'disabled' : ''}>Next →</button>`;
+
+    $('fallback-notice').classList.toggle('visible', !showAllKeywords);
+    $('all-pool-notice').classList.toggle('visible', showAllKeywords);
+    updatePoolToggleButton();
+  }
+
+  /* ======================= SLOT PACKER RENDER ======================= */
+
+  function slotStateClass(len) {
+    if (len === 0) return 'empty';
+    if (len > SLOT_CHAR_LIMIT) return 'over';
+    if (len >= 30) return 'good';
+    return 'low';
+  }
+
+  function renderSlotPacker() {
+    const strings = computeSlotStrings();
+
+    $('slot-packer').innerHTML = slots.map((slotKeywords, i) => {
+      const kw = slotKeywords[0] || null;
+      const len = kw ? kwChars(kw) : 0;
+      const state = slotStateClass(len);
+      const isPrimary = i === 0 && !!kw;
+      const role = isPrimary ? 'Primary' : 'Secondary';
+      const primaryBtn = kw
+        ? `<button type="button" class="slot-primary-btn ${isPrimary ? 'is-primary' : ''}" data-set-primary="${i}" ${isPrimary ? 'disabled aria-pressed="true"' : 'aria-pressed="false"'}>
+            ${isPrimary ? 'Primary' : 'Set as primary'}
+          </button>`
+        : '';
+
+      return `<div class="slot ${kw ? '' : 'empty-slot'} ${isPrimary ? 'is-primary' : ''} ${len > SLOT_CHAR_LIMIT ? 'over' : ''}" data-slot-card="${i}">
+        <div class="slot-head">
+          <span class="slot-name">S${i + 1}</span>
+          <span class="slot-angle">${escapeHtml(role)}</span>
+          ${primaryBtn}
+          <span class="slot-count ${state}">${len} / ${SLOT_CHAR_LIMIT} chars</span>
+        </div>
+        <div class="slot-string ${kw ? '' : 'empty'}">${kw ? escapeHtml(kw.keyword) : 'Empty — tick a keyword in the table above.'}</div>
+        <div class="slot-built">
+          ${kw ? `<span class="chip">
+            ${escapeHtml(kw.keyword)}
+            <button type="button" class="chip-x" data-remove-kw="${escapeAttr(kw.keyword)}" data-slot="${i}" aria-label="Remove ${escapeAttr(kw.keyword)}">×</button>
+          </span>` : ''}
+        </div>
+        <div class="slot-msg" id="slot-msg-${i}"></div>
+      </div>`;
+    }).join('');
+
+    renderSlotChecks(strings);
+    renderPackerTotal(strings);
+    updateContinueGenerateBtn();
+  }
+
+  function renderPackerTotal(strings) {
+    const el = $('packer-total');
+    const filled = filledSlotCount();
+    const words = allSlotWords(strings);
+    const primary = slotKeywordText(0);
+    el.textContent = filled + ' / ' + SLOT_COUNT + ' keywords selected' +
+      (filled ? ' · ' + words.size + ' unique indexed words' : '') +
+      (primary ? ' · Primary: ' + primary : '');
+    el.classList.toggle('hit', filled === SLOT_COUNT);
+  }
+
+  function renderSlotChecks(strings) {
+    const lines = [];
+    const filled = filledSlotCount();
+    const mainKw = slotKeywordText(0);
+
+    lines.push({ type: filled === SLOT_COUNT ? 'pass' : 'warn', text: filled + ' / ' + SLOT_COUNT + ' keywords selected' });
+    if (mainKw) {
+      lines.push({ type: 'pass', text: 'Primary keyword (S1): ' + mainKw });
+    } else {
+      lines.push({ type: 'warn', text: 'Primary keyword (S1) is empty — select keywords, then set one as primary' });
+    }
+
+    strings.forEach((s, i) => {
+      const kw = slots[i][0];
+      const len = kw ? kwChars(kw) : 0;
+      if (len > SLOT_CHAR_LIMIT) {
+        lines.push({ type: 'fail', text: 'Slot ' + (i + 1) + ' is ' + len + ' characters, over the ' + SLOT_CHAR_LIMIT + '-character limit' });
+      }
+    });
+
+    slots.forEach((slotKeywords, i) => {
+      const brands = slotContainsBlockedBrand(i);
+      brands.forEach((b) => {
+        lines.push({ type: 'fail', text: 'Slot ' + (i + 1) + ' contains "' + b + '", another publisher\'s brand. Using it in your metadata can get your book removed. Remove it before you publish.' });
+      });
+    });
+
+    strings.forEach((s, i) => {
+      const banned = hasBannedWords(s);
+      if (banned.length) {
+        lines.push({ type: 'warn', text: 'Slot ' + (i + 1) + ' contains "' + banned.join('", "') +
+          '". Amazon\'s metadata guidelines disallow promotional words in your keyword fields, even when people search for them.' });
+      }
+    });
+
+    if (hasGenerated && selectedTitle()) {
+      const tWords = titleWordSet();
+      strings.forEach((s, i) => {
+        const overlap = s.split(' ').filter((w) => w && tWords.has(w));
+        if (overlap.length) {
+          lines.push({ type: 'warn', text: '"' + overlap.join(' ') + '" in slot ' + (i + 1) + ' also appears in your title or subtitle — Amazon already indexes those, so that slot space is wasted.' });
+        }
+      });
+    }
+
+    $('slot-checks').innerHTML = lines.map((l) => {
+      const mark = l.type === 'pass' ? '✓' : (l.type === 'warn' ? '⚠' : '✗');
+      return `<div class="check-line ${l.type}"><span class="mark">${mark}</span><span>${escapeHtml(l.text)}</span></div>`;
+    }).join('');
+  }
+
+  function showSlotMessage(index, message) {
+    const el = $('slot-msg-' + index);
+    if (!el) return;
+    el.textContent = message;
+    el.classList.add('visible');
+    setTimeout(() => { el.classList.remove('visible'); }, 7000);
+  }
+
+  function updateContinueGenerateBtn() {
+    const filled = filledSlotCount();
+    const over = getFilledKeywords().some((kw) => kwChars(kw) > SLOT_CHAR_LIMIT);
+    const brandHit = slots.some((_, i) => slotContainsBlockedBrand(i).length > 0);
+    $('continue-generate-btn').disabled = filled < MIN_SLOTS_TO_CONTINUE || over || brandHit;
+
+    const note = $('slot-progress-note');
+    if (brandHit) {
+      note.textContent = 'Remove the blocked brand name above before you continue.';
+    } else if (filled < MIN_SLOTS_TO_CONTINUE) {
+      note.textContent = 'Select all ' + MIN_SLOTS_TO_CONTINUE + ' keywords to continue. ' + filled + ' selected so far.';
+    } else {
+      note.textContent = 'Primary is S1. Use “Set as primary” on any slot to change it. Ready to generate the listing.';
+    }
+  }
+
+  function buildStep2Summary() {
+    const filled = getFilledKeywords();
+    if (!filled.length) return 'No keywords selected';
+    const main = slotKeywordText(0);
+    return filled.length + ' keywords · Primary: ' + main;
+  }
+
+  function onSlotsChanged() {
+    if (hasGenerated) {
+      slotsChangedSinceGeneration = true;
+      $('refresh-bar').classList.add('visible');
+    }
+    renderSlotPacker();
+    renderKeywordTable();
+    updateStep3Recap();
+  }
+
+  function showSuggestTop7Error(message) {
+    const el = $('suggest-top7-error');
+    if (!el) return;
+    if (!message) {
+      el.hidden = true;
+      el.textContent = '';
+      return;
+    }
+    el.textContent = message;
+    el.hidden = false;
+  }
+
+  function setSuggestTop7Loading(on) {
+    const btn = $('suggest-top7-btn');
+    const loading = $('suggest-top7-loading');
+    const autopack = $('autopack-btn');
+    const clearAll = $('clear-all-btn');
+    const toggleAll = $('toggle-all-keywords-btn');
+
+    if (loading) {
+      loading.hidden = !on;
+      loading.setAttribute('aria-hidden', on ? 'false' : 'true');
+    }
+    if (btn) {
+      btn.disabled = !!on;
+      btn.classList.toggle('is-loading', !!on);
+      btn.setAttribute('aria-busy', on ? 'true' : 'false');
+      btn.textContent = on ? 'Suggesting…' : 'Suggest Top 7 (AI)';
+    }
+    if (autopack) autopack.disabled = !!on;
+    if (clearAll) clearAll.disabled = !!on;
+    if (toggleAll) toggleAll.disabled = !!on;
+
+    if (on) {
+      const packer = $('slot-packer');
+      if (packer) {
+        packer.innerHTML = '<div class="generating-label">AI is choosing your 7 keyword slots…</div>' +
+          '<div class="skeleton" style="height:54px;margin-bottom:8px"></div>'.repeat(3);
+      }
+    }
+  }
+
+  // Hybrid Suggest Top 7: rule shortlist → AI picks 7 → validate + gap-fill.
+  async function suggestTop7WithAi() {
+    if (isSuggestingTop7) return;
+
+    showSuggestTop7Error('');
+
+    if (!sessionKey && !apiKey) {
+      const stored = (getStoredKey() || '').trim();
+      if (stored) {
+        sessionKey = stored;
+        apiKey = stored;
+        syncAiConnectionFromKey();
+      }
+    }
+
+    const key = (sessionKey || apiKey || '').trim();
+    if (!key) {
+      $('masked-key-display').textContent = maskKey('');
+      $('key-modal').classList.add('visible');
+      showSuggestTop7Error('Suggest Top 7 needs your activation key.');
+      return;
+    }
+
+    const shortlist = buildSuggestShortlist();
+    if (shortlist.length < SLOT_COUNT) {
+      const picks = suggestTop7RuleBased(shortlist.length ? shortlist : null);
+      applySuggestPicks(picks);
+      activeSlot = 0;
+      onSlotsChanged();
+      showSuggestTop7Error('Not enough keyword candidates for AI — used the best available from your pool.');
+      return;
+    }
+
+    isSuggestingTop7 = true;
+    setSuggestTop7Loading(true);
+
+    try {
+      // Constraint satisfaction over 35 candidates — worth real reasoning, tiny output.
+      const result = await callGrsai(buildSuggestTop7UserPrompt(shortlist), SUGGEST_TOP7_SYSTEM_PROMPT,
+        { effort: 'high', maxTokens: 2000 });
+      const picks = resolveSuggestPicks(result, shortlist);
+      if (!picks.length) throw new Error('AI returned no usable keywords.');
+      applySuggestPicks(picks);
+      activeSlot = 0;
+      onSlotsChanged();
+      showSuggestTop7Error('');
+    } catch (err) {
+      console.error('Suggest Top 7 failed:', err);
+      if (err && err.status === 401) {
+        renderSlotPacker();
+        showSuggestTop7Error('Your activation key isn\'t working. Enter a new key from the badge in the top-right.');
+      } else {
+        // Degrade gracefully: keep the page useful if the model/network fails.
+        const fallback = suggestTop7RuleBased(shortlist);
+        if (fallback.length) {
+          applySuggestPicks(fallback);
+          activeSlot = 0;
+          onSlotsChanged();
+          showSuggestTop7Error(
+            'AI suggestion failed (' + ((err && err.message) || 'unknown error') +
+            '). Filled slots from the ranked shortlist instead — retry Suggest Top 7 (AI) when ready.'
+          );
+        } else {
+          renderSlotPacker();
+          showSuggestTop7Error(
+            'Could not get AI suggestions (' + ((err && err.message) || 'unknown error') +
+            '). Your current slots were left unchanged.'
+          );
+        }
+      }
+    } finally {
+      isSuggestingTop7 = false;
+      setSuggestTop7Loading(false);
+    }
+  }
+
+  /* ======================= AI FETCHERS ======================= */
+
+  function normalizeTitleItems(items) {
+    return (items || []).map((item) => typeof item === 'string'
+      ? { angle: '', text: item.trim().replace(/^:+|:+$/g, '').trim() }
+      : { angle: (item && item.angle) || '', text: String((item && item.text) || '').trim().replace(/^:+|:+$/g, '').trim() })
+      .filter((item) => item.text);
+  }
+
+  function normalizeSubtitleItems(items) {
+    return (items || []).map((item) => typeof item === 'string'
+      ? { text: item.trim().replace(/^:+|:+$/g, '').trim() }
+      : { text: String((item && item.text) || '').trim().replace(/^:+|:+$/g, '').trim() })
+      .filter((item) => item.text);
+  }
+
+  async function fetchTitlesSubtitles(options) {
+    let result = await callGrsai(buildTitlesSubtitlesUserPrompt(options), TITLE_SUBTITLE_SYSTEM_PROMPT,
+      { effort: 'high', maxTokens: 3000 });
+    let t = normalizeTitleItems(result.titles);
+    let s = normalizeSubtitleItems(result.subtitles);
+    let v = validateTitlesSubtitles(t, s);
+
+    // One automatic repair pass before we surface a warning to the user.
+    if (v.overLimit || v.banned || v.brand) {
+      const retry = await callGrsai(
+        buildTitlesSubtitlesUserPrompt(Object.assign({}, options, { shorten: v.overLimit, noBanned: v.banned, noBrand: v.brand })),
+        TITLE_SUBTITLE_SYSTEM_PROMPT, { effort: 'high', maxTokens: 3000 });
+      const rt = normalizeTitleItems(retry.titles);
+      const rs = normalizeSubtitleItems(retry.subtitles);
+      if (!options.subtitlesOnly && rt.length) t = rt;
+      if (!options.titlesOnly && rs.length) s = rs;
+    }
+    return { titles: t, subtitles: s };
+  }
+
+  async function fetchDescription(styleOverride) {
+    const style = styleOverride || DESCRIPTION_STYLES[currentDescStyleIndex % DESCRIPTION_STYLES.length];
+    // 400 words of HTML plus a plain-text mirror — the longest output in the app.
+    const descOpts = { effort: 'medium', maxTokens: 6000 };
+    let result = await callGrsai(buildDescriptionUserPrompt(style), DESCRIPTION_SYSTEM_PROMPT, descOpts);
+
+    const plain = result.preview || stripHtml(result.html);
+    if (hasBannedWords(plain).length || hasBlockedBrand(plain).length) {
+      result = await callGrsai(
+        buildDescriptionUserPrompt(style, 'IMPORTANT: Remove all promotional wording and any other publisher\'s brand name.'),
+        DESCRIPTION_SYSTEM_PROMPT, descOpts);
+    }
+
+    result.html = sanitizeHtml(result.html || '');
+    if (!result.preview) result.preview = stripHtml(result.html);
+    result.style = result.style || style;
+    currentDescStyleIndex = (DESCRIPTION_STYLES.indexOf(result.style) + 1 + DESCRIPTION_STYLES.length) % DESCRIPTION_STYLES.length;
+    return result;
+  }
+
+  async function fetchBlurb() {
+    const blurbOpts = { effort: 'medium', maxTokens: 2500 };
+    const result = await callGrsai(buildBlurbUserPrompt(), BLURB_SYSTEM_PROMPT, blurbOpts);
+    let text = String(result.blurb || '').trim();
+    if (hasBannedWords(text).length || hasBlockedBrand(text).length) {
+      const retry = await callGrsai(
+        buildBlurbUserPrompt() + '\n\nIMPORTANT: Remove all promotional wording and any other publisher\'s brand name.',
+        BLURB_SYSTEM_PROMPT, blurbOpts);
+      if (retry.blurb) text = String(retry.blurb).trim();
+    }
+    return text;
+  }
+
+  /* ======================= OUTPUT RENDER ======================= */
+
+  function counterClass(len, limit) { return len <= limit ? 'ok' : 'over'; }
+
+  function renderTitles() {
+    const subText = selectedSubtitle();
+    $('titles-list').innerHTML = titles.map((item, index) => {
+      const text = getTitleText(item);
+      const combined = text.length + subText.length;
+      const angleLabel = { direct: 'Direct', outcome: 'Outcome', audience: 'Audience' }[item.angle] ||
+        (item.angle ? item.angle.charAt(0).toUpperCase() + item.angle.slice(1) : 'Option ' + (index + 1));
+      const flags = [].concat(hasBannedWords(text), hasBlockedBrand(text));
+      return `<div class="variation-card ${index === selectedTitleIdx ? 'selected-var' : ''}" data-select-title="${index}">
+        <div class="variation-main">
+          <div class="variation-meta">${escapeHtml(angleLabel)}</div>
+          <div class="variation-title-text">${escapeHtml(text)}</div>
+          <div class="variation-counter-stack">
+            <span class="counter ${counterClass(text.length, TITLE_CHAR_LIMIT)}">Title ${text.length} / ${TITLE_CHAR_LIMIT}${text.length <= 60 ? ' · reads well' : ''}</span>
+            <span class="counter ${counterClass(combined, COMBINED_CHAR_LIMIT)}">With selected subtitle: ${combined} / ${COMBINED_CHAR_LIMIT}</span>
+            ${flags.length ? `<span class="counter over">Flagged: ${escapeHtml(flags.join(', '))}</span>` : ''}
+          </div>
+        </div>
+        <button type="button" class="btn btn-copy btn-sm" data-copy="title-${index}">Copy</button>
+      </div>`;
+    }).join('');
+  }
+
+  function renderSubtitles() {
+    const titleText = selectedTitle();
+    $('subtitles-list').innerHTML = subtitles.map((item, index) => {
+      const text = getSubtitleText(item);
+      const combined = titleText.length + text.length;
+      const flags = [].concat(hasBannedWords(text), hasBlockedBrand(text));
+      return `<div class="variation-card ${index === selectedSubtitleIdx ? 'selected-var' : ''}" data-select-subtitle="${index}">
+        <div class="variation-main">
+          <div class="variation-meta">Subtitle ${index + 1}</div>
+          <div class="variation-title-text">${escapeHtml(text)}</div>
+          <div class="variation-counter-stack">
+            <span class="counter ${counterClass(text.length, SUBTITLE_CHAR_LIMIT)}">Subtitle ${text.length} / ${SUBTITLE_CHAR_LIMIT}</span>
+            <span class="counter ${counterClass(combined, COMBINED_CHAR_LIMIT)}">With selected title: ${combined} / ${COMBINED_CHAR_LIMIT}</span>
+            ${flags.length ? `<span class="counter over">Flagged: ${escapeHtml(flags.join(', '))}</span>` : ''}
+          </div>
+        </div>
+        <button type="button" class="btn btn-copy btn-sm" data-copy="subtitle-${index}">Copy</button>
+      </div>`;
+    }).join('');
+  }
+
+  function renderCombinedPreview() {
+    const t = selectedTitle();
+    const s = selectedSubtitle();
+    if (!t && !s) { $('combined-preview').innerHTML = '<span style="color:var(--ink-mute)">Nothing selected yet.</span>'; return; }
+    const total = t.length + s.length;
+    $('combined-preview').innerHTML =
+      `<div class="cp-text">${escapeHtml(t)}${s ? ': ' + escapeHtml(s) : ''}</div>
+       <div class="cp-count counter ${counterClass(total, COMBINED_CHAR_LIMIT)}">${total} / ${COMBINED_CHAR_LIMIT} characters combined</div>`;
+  }
+
+  function highlightHtml(html) {
+    return escapeHtml(html).replace(/(&lt;\/?)([a-z0-9]+)/gi, '<span class="tag">$1$2</span>').replace(/(&gt;)/g, '<span class="tag">$1</span>');
+  }
+
+  function renderDescription() {
+    $('desc-style-pill').textContent = 'Style: ' + (description.style || '—');
+    $('desc-style-row').hidden = !description.html;
+    $('desc-preview-pane').innerHTML = description.html || '<p style="color:var(--ink-mute)">No description yet.</p>';
+    $('desc-html-pane').innerHTML = description.html ? highlightHtml(description.html) : '';
+
+    const plain = description.preview || stripHtml(description.html);
+    const words = countWords(plain);
+    const chars = (description.html || '').length;
+    const warnEl = $('desc-length-warn');
+    const notes = [];
+    if (chars > DESC_CHAR_LIMIT) notes.push('This description is ' + chars.toLocaleString() + ' characters — over Amazon\'s ' + DESC_CHAR_LIMIT.toLocaleString() + '-character limit. Trim it before publishing.');
+    if (words && (words < 150 || words > 500)) notes.push('It runs ' + words + ' words, on the ' + (words < 150 ? 'short' : 'long') + ' side — try regenerating.');
+    if (notes.length) { warnEl.textContent = notes.join(' '); warnEl.hidden = false; } else { warnEl.hidden = true; }
+  }
+
+  function renderBlurb() {
+    const words = countWords(blurb);
+    $('blurb-text').innerHTML = blurb
+      ? escapeHtml(blurb) + `<div style="margin-top:10px;font-family:var(--font-mono);font-size:0.74rem;color:var(--ink-mute)">${words} words</div>`
+      : '<span style="color:var(--ink-mute)">No blurb yet.</span>';
+  }
+
+  function renderSlotsOutput() {
+    const strings = computeSlotStrings();
+    $('slots-output').innerHTML = slots.map((slotKeywords, i) => {
+      const text = slotKeywordText(i);
+      const len = text ? kwChars(slotKeywords[0]) : 0;
+      const role = i === 0 ? 'Primary' : 'Secondary';
+      return `<div class="slot-out">
+        <span class="slot-out-num">${i + 1}</span>
+        <span class="slot-out-str">${text ? escapeHtml(text) : '<em style="color:var(--ink-mute);font-style:italic">empty</em>'} <span style="color:var(--ink-mute);font-size:0.72rem">(${role})</span></span>
+        <span class="slot-out-count">${len} / ${SLOT_CHAR_LIMIT}</span>
+        <button type="button" class="btn btn-copy btn-sm" data-copy="slot-${i}" ${text ? '' : 'disabled'}>Copy</button>
+      </div>`;
+    }).join('') +
+      `<div style="font-family:var(--font-mono);font-size:0.78rem;color:var(--ink-soft);margin-top:8px">Unique indexed words: ${allSlotWords(strings).size}</div>`;
+  }
+
+  function renderValidatorPanel() {
+    const strings = computeSlotStrings();
+    const lines = [];
+    const t = selectedTitle();
+    const s = selectedSubtitle();
+    const combined = t.length + s.length;
+
+    if (combined > COMBINED_CHAR_LIMIT) lines.push({ type: 'fail', text: 'Title + subtitle is ' + combined + ' characters, over Amazon\'s 200-character limit.' });
+    if (t.length > TITLE_CHAR_LIMIT) lines.push({ type: 'fail', text: 'Title is ' + t.length + ' characters, over the 100-character limit.' });
+    if (s.length > SUBTITLE_CHAR_LIMIT) lines.push({ type: 'fail', text: 'Subtitle is ' + s.length + ' characters, over the 100-character limit.' });
+
+    const allText = [t, s, description.preview || stripHtml(description.html), blurb].join(' ');
+    hasBlockedBrand(allText).forEach((b) => {
+      lines.push({ type: 'fail', text: '"' + b + '" is another publisher\'s brand. Using it in your metadata can get your book removed. Remove it before you publish.' });
+    });
+    const banned = hasBannedWords(allText);
+    if (banned.length) lines.push({ type: 'warn', text: 'Promotional wording found: ' + banned.join(', ') + '. Amazon\'s guidelines disallow these in metadata.' });
+
+    strings.forEach((str, i) => {
+      slotContainsBlockedBrand(i).forEach((b) => {
+        lines.push({ type: 'fail', text: 'Slot ' + (i + 1) + ' contains "' + b + '", another publisher\'s brand. Remove it before you publish.' });
+      });
+      if (str.length > SLOT_CHAR_LIMIT) lines.push({ type: 'fail', text: 'Slot ' + (i + 1) + ' is over 50 characters.' });
+    });
+
+    if (t) {
+      const tWords = titleWordSet();
+      const wasted = [];
+      strings.forEach((str, i) => {
+        const overlap = str.split(' ').filter((w) => w && tWords.has(w));
+        if (overlap.length) wasted.push('slot ' + (i + 1) + ' (' + overlap.join(' ') + ')');
+      });
+      if (wasted.length) lines.push({ type: 'warn', text: 'Already indexed by your title or subtitle: ' + wasted.join(', ') + '. Swapping those words out buys you free reach.' });
+    }
+
+    const thin = strings.map((str, i) => ({ str, i })).filter((o) => o.str.length > 0 && o.str.length < 30);
+    if (thin.length) lines.push({ type: 'warn', text: 'Room to spare in ' + thin.map((o) => 'slot ' + (o.i + 1) + ' (' + o.str.length + '/50)').join(', ') + '.' });
+
+    if (!lines.length) {
+      lines.push({ type: 'pass', text: 'Everything checks out: character limits, brand names, promotional wording and slot overlap all clear.' });
+    }
+
+    $('validator-panel').innerHTML = lines.map((l) => {
+      const mark = l.type === 'pass' ? '✓' : (l.type === 'warn' ? '⚠' : '✗');
+      return `<div class="validator-line ${l.type}"><span>${mark}</span><span>${escapeHtml(l.text)}</span></div>`;
+    }).join('');
+  }
+
+  function renderAllOutput() {
+    renderTitles();
+    renderSubtitles();
+    renderCombinedPreview();
+    renderDescription();
+    renderBlurb();
+    renderSlotsOutput();
+    renderValidatorPanel();
+  }
+
+  function updateStep3Recap() {
+    $('step3-slot-recap').innerHTML = slots.map((slotKeywords, i) => {
+      const kw = slotKeywords[0];
+      const role = i === 0 ? 'Primary' : 'Secondary';
+      if (!kw) {
+        return `${i + 1}. <em style="color:var(--ink-mute)">empty</em> <span style="color:var(--ink-mute)">[${role}]</span>`;
+      }
+      const len = kwChars(kw);
+      return `${i + 1}. ${escapeHtml(kw.keyword)} <span style="color:var(--ink-mute)">[${role} · ${len}/50]</span>`;
+    }).join('<br>');
+  }
+
+  /* ======================= GENERATION ======================= */
+
+  function showVariationSkeleton(elId, count) {
+    $(elId).innerHTML = '<div class="generating-label">Generating…</div>' +
+      Array.from({ length: count }, () => '<div class="skeleton-card"><div class="skeleton" style="height:20px;width:85%"></div><div class="skeleton" style="height:12px;width:32%"></div></div>').join('');
+  }
+
+  function showDescriptionLoading() {
+    $('desc-style-row').hidden = true;
+    document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+    document.querySelector('.tab-btn[data-tab="preview"]').classList.add('active');
+    $('desc-preview-pane').hidden = false;
+    $('desc-html-pane').hidden = true;
+    $('desc-preview-pane').innerHTML = '<div class="generating-label">Generating…</div><div class="skeleton tall"></div><div class="skeleton"></div>';
+  }
+
+  function showAiError(elId, err) {
+    const el = $(elId);
+    el.textContent = err && err.status === 401
+      ? 'Your activation key isn\'t working. Enter a new key from the badge in the top-right.'
+      : (err instanceof SyntaxError
+        ? 'The AI response came back malformed. Try regenerating.'
+        : 'AI is busy right now — try again in a moment.');
+    el.hidden = false;
+  }
+
+  function setGenerating(on) {
+    isGenerating = on;
+    const btn = $('generate-btn');
+    btn.textContent = on ? 'Generating listing…' : (hasGenerated ? 'Generate again' : 'Generate Listing');
+    btn.classList.toggle('is-loading', on);
+    btn.disabled = on;
+  }
+
+  async function runGeneration() {
+    if (isGenerating) return;
+    if (filledSlotCount() < MIN_SLOTS_TO_CONTINUE) return;
+
+    setGenerating(true);
+    $('output-empty').hidden = true;
+    $('output-content').hidden = false;
+    $('refresh-bar').classList.remove('visible');
+    slotsChangedSinceGeneration = false;
+    updateStep3Recap();
+
+    showVariationSkeleton('titles-list', 3);
+    showVariationSkeleton('subtitles-list', 3);
+    showDescriptionLoading();
+    ['titles-error', 'subtitles-error', 'desc-error', 'blurb-error'].forEach((id) => { $(id).hidden = true; });
+    $('blurb-text').innerHTML = '<div class="generating-label">Generating…</div>';
+    $('validator-panel').innerHTML = '';
+    renderSlotsOutput();
+
+    try {
+      // Titles first — the blurb quotes the chosen title.
+      try {
+        const ts = await fetchTitlesSubtitles({});
+        titles = ts.titles;
+        subtitles = ts.subtitles;
+        selectedTitleIdx = 0;
+        selectedSubtitleIdx = 0;
+        renderTitles();
+        renderSubtitles();
+        renderCombinedPreview();
+      } catch (err) {
+        console.error(err);
+        $('titles-list').innerHTML = '';
+        $('subtitles-list').innerHTML = '';
+        showAiError('titles-error', err);
+      }
+
+      const [descRes, blurbRes] = await Promise.allSettled([
+        fetchDescription(),
+        fetchBlurb(),
+      ]);
+
+      if (descRes.status === 'fulfilled') { description = descRes.value; renderDescription(); }
+      else { console.error(descRes.reason); $('desc-preview-pane').innerHTML = ''; showAiError('desc-error', descRes.reason); }
+
+      if (blurbRes.status === 'fulfilled') { blurb = blurbRes.value; renderBlurb(); }
+      else { console.error(blurbRes.reason); $('blurb-text').innerHTML = ''; showAiError('blurb-error', blurbRes.reason); }
+
+      hasGenerated = true;
+      renderValidatorPanel();
+      renderSlotPacker();
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function regenTitles() {
+    if (isGenerating) return;
+    $('titles-error').hidden = true;
+    showVariationSkeleton('titles-list', 3);
+    $('regen-titles').disabled = true;
+    try {
+      const ts = await fetchTitlesSubtitles({ isRegen: true, titlesOnly: true });
+      if (ts.titles.length) { titles = ts.titles; selectedTitleIdx = 0; }
+      renderTitles(); renderSubtitles(); renderCombinedPreview(); renderValidatorPanel(); renderSlotPacker();
+    } catch (err) {
+      console.error(err);
+      renderTitles();
+      showAiError('titles-error', err);
+    } finally { $('regen-titles').disabled = false; }
+  }
+
+  async function regenSubtitles() {
+    if (isGenerating) return;
+    $('subtitles-error').hidden = true;
+    showVariationSkeleton('subtitles-list', 3);
+    $('regen-subtitles').disabled = true;
+    try {
+      const ts = await fetchTitlesSubtitles({ isRegen: true, subtitlesOnly: true });
+      if (ts.subtitles.length) { subtitles = ts.subtitles; selectedSubtitleIdx = 0; }
+      renderSubtitles(); renderTitles(); renderCombinedPreview(); renderValidatorPanel(); renderSlotPacker();
+    } catch (err) {
+      console.error(err);
+      renderSubtitles();
+      showAiError('subtitles-error', err);
+    } finally { $('regen-subtitles').disabled = false; }
+  }
+
+  async function regenDescription(styleOverride) {
+    if (isGenerating) return;
+    $('desc-error').hidden = true;
+    showDescriptionLoading();
+    $('regen-desc').disabled = true;
+    try {
+      description = await fetchDescription(styleOverride);
+      renderDescription(); renderValidatorPanel();
+    } catch (err) {
+      console.error(err);
+      renderDescription();
+      showAiError('desc-error', err);
+    } finally { $('regen-desc').disabled = false; }
+  }
+
+  async function regenBlurb() {
+    if (isGenerating) return;
+    $('blurb-error').hidden = true;
+    $('blurb-text').innerHTML = '<div class="generating-label">Generating…</div>';
+    $('regen-blurb').disabled = true;
+    try {
+      blurb = await fetchBlurb();
+      renderBlurb(); renderValidatorPanel();
+    } catch (err) {
+      console.error(err);
+      renderBlurb();
+      showAiError('blurb-error', err);
+    } finally { $('regen-blurb').disabled = false; }
+  }
+
+  /* ======================= COPY & EXPORT ======================= */
+
+  async function copyText(text, button) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e2) { /* nothing else to try */ }
+      document.body.removeChild(ta);
+    }
+    if (button) {
+      const orig = button.textContent;
+      button.textContent = 'Copied ✓';
+      button.classList.add('copied');
+      setTimeout(() => { button.textContent = orig; button.classList.remove('copied'); }, 1500);
+    }
+  }
+
+  function getCopyText(id) {
+    if (id.startsWith('title-')) return getTitleText(titles[parseInt(id.slice(6), 10)]);
+    if (id.startsWith('subtitle-')) return getSubtitleText(subtitles[parseInt(id.slice(9), 10)]);
+    if (id.startsWith('slot-')) return slotKeywordText(parseInt(id.slice(5), 10));
+    return '';
+  }
+
+  function buildListingFile() {
+    const strings = computeSlotStrings();
+    const d = getBookDetails();
+    const t = selectedTitle();
+    const s = selectedSubtitle();
+    const combined = t + (s ? ': ' + s : '');
+    const date = new Date().toISOString().slice(0, 10);
+    const pad = (text, n) => (text.length >= n ? text + '  ' : text + ' '.repeat(n - text.length));
+
+    const out = [];
+    out.push('SHIGAI LISTING LAUNCHPAD');
+    out.push('Generated ' + date);
+    out.push('');
+    out.push('TITLE');
+    out.push(pad(t, 50) + '[' + t.length + ' chars]');
+    out.push('');
+    out.push('SUBTITLE');
+    out.push(pad(s, 50) + '[' + s.length + ' chars]');
+    out.push('');
+    out.push('COMBINED' + ' '.repeat(42) + '[' + (t.length + s.length) + ' / ' + COMBINED_CHAR_LIMIT + ' chars]');
+    out.push(combined);
+    out.push('');
+    out.push('BACKEND KEYWORDS');
+    for (let i = 0; i < SLOT_COUNT; i++) {
+      const text = slotKeywordText(i);
+      const role = i === 0 ? 'primary' : 'secondary';
+      const len = text ? text.length : 0;
+      out.push(pad((i + 1) + '. [' + role + '] ' + text, 56) + '[' + len + ' / ' + SLOT_CHAR_LIMIT + ']');
+    }
+    out.push('Unique indexed words: ' + allSlotWords(strings).size);
+    out.push('');
+    out.push('DESCRIPTION (HTML)');
+    out.push(description.html || '(none generated)');
+    out.push('');
+    out.push('DESCRIPTION (PLAIN)');
+    out.push(description.preview || stripHtml(description.html) || '(none generated)');
+    out.push('');
+    out.push('BACK COVER BLURB');
+    out.push(blurb || '(none generated)');
+    out.push('');
+    out.push('BOOK SETUP USED');
+    out.push('Case type: ' + (isHeist() ? 'The Heist' : 'Murder Investigation') +
+      ' / Cases: ' + formatContextValue(d.caseCount) +
+      ' / Difficulty: ' + d.difficultySpan +
+      ' / Grid: ' + d.gridFrom + '–' + d.gridTo +
+      ' / Trim: ' + d.trimSize + (d.largePrint ? ' (large print)' : ''));
+    out.push('Buyer: ' + formatContextValue(selectedAudience) +
+      ' / Keyword focus: ' + formatContextValue(selectedCategory) +
+      ' / Setting: ' + formatContextValue(d.settingTheme));
+    out.push('Included: ' + (d.included.length ? d.included.join('; ') : 'none ticked'));
+    if (d.seriesName) out.push('Series: ' + d.seriesName + (d.volumeNumber ? ', Volume ' + d.volumeNumber : ''));
+    if (d.authorName) out.push('Author: ' + d.authorName);
+    out.push('');
+    out.push('BEFORE YOU HIT PUBLISH');
+    CHECKLIST_ITEMS.forEach((item) => out.push('[ ] ' + item));
+    out.push('');
+
+    // CRLF throughout so the file opens cleanly in Notepad. AI-supplied blocks carry
+    // bare \n, so normalize the whole payload rather than just the joins.
+    return out.join('\n').replace(/\r?\n/g, '\r\n');
+  }
+
+  function slugify(text) {
+    return String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  }
+
+  function downloadListingFile() {
+    const d = getBookDetails();
+    const seriesSlug = slugify(d.seriesName);
+    const name = seriesSlug
+      ? seriesSlug + (d.volumeNumber ? '-vol' + d.volumeNumber : '') + '-listing.txt'
+      : 'shigai-listing-' + new Date().toISOString().slice(0, 10) + '.txt';
+
+    const blob = new Blob(['﻿' + buildListingFile()], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  /* ======================= STEP FLOW ======================= */
+
+  function setStepState(stepNum, opts) {
+    const el = $('step-' + stepNum);
+    el.classList.toggle('locked', !!opts.locked);
+    el.classList.toggle('collapsed', !!opts.collapsed);
+    if (stepNum === 1 && opts.complete) $('step-1-summary-text').textContent = buildStep1Summary();
+    if (stepNum === 2 && opts.complete) $('step-2-summary-text').textContent = buildStep2Summary();
+  }
+
+  function resetStep3() {
+    titles = [];
+    subtitles = [];
+    description = { style: '', html: '', preview: '' };
+    blurb = '';
+    selectedTitleIdx = 0;
+    selectedSubtitleIdx = 0;
+    hasGenerated = false;
+    slotsChangedSinceGeneration = false;
+    $('output-empty').hidden = false;
+    $('output-content').hidden = true;
+    $('refresh-bar').classList.remove('visible');
+    ['titles-error', 'subtitles-error', 'desc-error', 'blurb-error', 'desc-length-warn'].forEach((id) => { $(id).hidden = true; });
+    setGenerating(false);
+  }
+
+  function resetStep2() {
+    clearAllSlots();
+    activeSlot = 0;
+    step2Complete = false;
+    showAllKeywords = false;
+    tableSearch = '';
+    tablePage = 0;
+    $('kw-search').value = '';
+    renderKeywordTable();
+    renderSlotPacker();
+    updateStep3Recap();
+  }
+
+  function resetDownstreamFromStep1() {
+    resetStep2();
+    resetStep3();
+    setStepState(2, { locked: true, collapsed: true, complete: false });
+    setStepState(3, { locked: true, collapsed: true, complete: false });
+    step1Complete = false;
+  }
+
+  function flashCascadeWarning(id) {
+    const el = $(id);
+    el.classList.add('visible');
+    setTimeout(() => el.classList.remove('visible'), 6000);
+  }
+
+  /* ======================= DATA LOAD ======================= */
+
+  async function loadKeywords() {
+    let lastError = null;
+    for (const url of KEYWORD_URLS) {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const data = await response.json();
+        if (!data || !data.keywords || !data.keywords.length || !data.categories) throw new Error('Invalid keyword data');
+        keywordData = data;
+        if (data.meta && Array.isArray(data.meta.blocked_terms) && data.meta.blocked_terms.length) {
+          data.meta.blocked_terms.forEach((t) => {
+            const term = String(t).toLowerCase().trim();
+            if (term && BLOCKED_BRANDS.indexOf(term) === -1) BLOCKED_BRANDS.push(term);
+          });
+        }
+        initCaseTypeOptions();
+        initCategoryOptions();
+        initAudienceOptions();
+        return true;
+      } catch (err) {
+        console.warn('Keyword load failed:', url, err);
+        lastError = err;
+      }
+    }
+    console.error(lastError);
+    const el = $('data-load-error');
+    el.hidden = false;
+    el.innerHTML = 'Could not load the keyword data. Check your internet connection and refresh the page. ' +
+      'If it keeps failing, email <a href="mailto:' + SUPPORT_EMAIL + '">' + SUPPORT_EMAIL + '</a>.';
+    return false;
+  }
+
+  function scrollToStep(id) {
+    const el = $(id);
+    if (el && typeof el.scrollIntoView === 'function') el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /* ======================= EVENTS ======================= */
+
+  // --- Screen 1
+  $('key-help-toggle').addEventListener('click', () => $('key-help-content').classList.toggle('open'));
+
+  $('save-key-btn').addEventListener('click', () => {
+    const key = $('api-key-input').value.trim();
+    const errEl = $('setup-error');
+    const okEl = $('setup-success');
+    errEl.hidden = true;
+    okEl.hidden = true;
+
+    if (!key) {
+      errEl.textContent = 'Please paste your activation key to continue.';
+      errEl.hidden = false;
+      return;
+    }
+
+    sessionKey = key;
+    apiKey = key;
+    if ($('remember-key').checked) localStorage.setItem(STORAGE_KEY, key);
+    else localStorage.removeItem(STORAGE_KEY);
+
+    syncAiConnectionFromKey();
+    okEl.textContent = '✓ You\'re all set. Opening the Launchpad…';
+    okEl.hidden = false;
+    setTimeout(() => showScreen('workspace'), 800);
+  });
+
+  $('api-key-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('save-key-btn').click(); });
+
+  $('skip-ai-btn').addEventListener('click', () => {
+    aiConnected = false;
+    updateAiBadge();
+    showScreen('workspace');
+  });
+
+  // --- Step 1
+  $('casetype-options').addEventListener('click', (e) => {
+    const card = e.target.closest('[data-casetype]');
+    if (!card) return;
+    const value = card.dataset.casetype;
+    if (value === selectedCaseType) return;
+    if (step1Complete) { flashCascadeWarning('step1-cascade-warn'); resetDownstreamFromStep1(); }
+    selectedCaseType = value;
+    document.querySelectorAll('[data-casetype]').forEach((c) => c.classList.toggle('selected', c.dataset.casetype === value));
+
+    // Case type sets the default keyword focus (Spec 5.1).
+    const def = CASE_TYPES.find((c) => c.value === value);
+    if (def && keywordData.categories.indexOf(def.category) !== -1) {
+      selectedCategory = def.category;
+      document.querySelectorAll('[data-category]').forEach((c) => c.classList.toggle('selected', c.dataset.category === selectedCategory));
+    }
+    updateContinueKeywordsBtn();
+  });
+
+  $('category-options').addEventListener('click', (e) => {
+    const card = e.target.closest('[data-category]');
+    if (!card) return;
+    const value = card.dataset.category;
+    if (value === selectedCategory) return;
+    if (step1Complete) { flashCascadeWarning('step1-cascade-warn'); resetDownstreamFromStep1(); }
+    selectedCategory = value;
+    document.querySelectorAll('[data-category]').forEach((c) => c.classList.toggle('selected', c.dataset.category === value));
+    updateContinueKeywordsBtn();
+  });
+
+  $('audience-options').addEventListener('click', (e) => {
+    const card = e.target.closest('[data-audience]');
+    if (!card) return;
+    const value = card.dataset.audience;
+    if (value === selectedAudience) return;
+    if (step1Complete) { flashCascadeWarning('step1-cascade-warn'); resetDownstreamFromStep1(); }
+    selectedAudience = value;
+    document.querySelectorAll('[data-audience]').forEach((c) => c.classList.toggle('selected', c.dataset.audience === value));
+    updateContinueKeywordsBtn();
+  });
+
+  // Non-cascading Step 1 fields: they only invalidate Step 3.
+  const STEP1_SOFT_FIELDS = ['case-count', 'difficulty-span', 'difficulty-labels', 'grid-from', 'grid-to',
+    'cast-size', 'room-count', 'trim-size', 'large-print', 'setting-theme', 'setting-custom',
+    'series-name', 'volume-number', 'author-name'];
+
+  STEP1_SOFT_FIELDS.forEach((id) => {
+    $(id).addEventListener('input', () => {
+      if (id === 'case-count') validateCaseCount();
+      if (step1Complete) $('step-1-summary-text').textContent = buildStep1Summary();
+      if (hasGenerated) { slotsChangedSinceGeneration = true; $('refresh-bar').classList.add('visible'); }
+      updateContinueKeywordsBtn();
+    });
+    $(id).addEventListener('change', () => {
+      if (id === 'grid-from' || id === 'grid-to') validateGridRange();
+      if (id === 'setting-theme') $('setting-custom-row').hidden = $('setting-theme').value !== 'Custom';
+      if (step1Complete) $('step-1-summary-text').textContent = buildStep1Summary();
+    });
+  });
+
+  $('included-options').addEventListener('change', (e) => {
+    const label = e.target.closest('[data-inc]');
+    if (label) label.classList.toggle('on', e.target.checked);
+    if (hasGenerated) { slotsChangedSinceGeneration = true; $('refresh-bar').classList.add('visible'); }
+  });
+
+  $('large-print').addEventListener('change', () => {
+    $('large-print-item').classList.toggle('on', $('large-print').checked);
+  });
+
+  $('continue-keywords-btn').addEventListener('click', () => {
+    if (!selectedCaseType || !selectedCategory || !selectedAudience || !$('case-count').value.trim()) return;
+    const res = filterKeywords(selectedCategory, selectedAudience);
+    filteredPool = res.pool;
+    usedAudienceFilter = res.usedFilter;
+    showAllKeywords = false;
+    step1Complete = true;
+    tablePage = 0;
+    renderKeywordTable();
+    renderSlotPacker();
+    updateStep3Recap();
+    setStepState(1, { locked: false, collapsed: true, complete: true });
+    setStepState(2, { locked: false, collapsed: false, complete: false });
+    scrollToStep('step-2');
+  });
+
+  $('step-1-summary').addEventListener('click', () => setStepState(1, { locked: false, collapsed: false, complete: step1Complete }));
+
+  // --- Step 2
+  $('autopack-btn').addEventListener('click', () => {
+    autoPackSlots();
+    activeSlot = 0;
+    onSlotsChanged();
+  });
+
+  $('suggest-top7-btn').addEventListener('click', () => {
+    suggestTop7WithAi();
+  });
+
+  $('clear-all-btn').addEventListener('click', () => {
+    clearAllSlots();
+    activeSlot = 0;
+    onSlotsChanged();
+  });
+
+  $('toggle-all-keywords-btn').addEventListener('click', () => {
+    showAllKeywords = !showAllKeywords;
+    tablePage = 0;
+    renderKeywordTable();
+  });
+
+  $('kw-search').addEventListener('input', (e) => {
+    tableSearch = e.target.value.trim();
+    tablePage = 0;
+    renderKeywordTable();
+  });
+
+  $('kw-sort-select').addEventListener('change', (e) => {
+    const parts = e.target.value.split('_');
+    tableSort = { col: parts[0], dir: parts[1] };
+    tablePage = 0;
+    renderKeywordTable();
+  });
+
+  document.querySelector('.kw-table thead').addEventListener('click', (e) => {
+    const th = e.target.closest('[data-sort]');
+    if (!th) return;
+    const col = th.dataset.sort;
+    if (tableSort.col === col) tableSort.dir = tableSort.dir === 'asc' ? 'desc' : 'asc';
+    else tableSort = { col, dir: col === 'keyword' ? 'asc' : 'desc' };
+    $('kw-sort-select').value = tableSort.col + '_' + tableSort.dir;
+    tablePage = 0;
+    renderKeywordTable();
+  });
+
+  $('kw-table-body').addEventListener('click', (e) => {
+    if (e.target.closest('.info-icon')) return;
+    const row = e.target.closest('tr[data-kw]');
+    if (!row) return;
+    const kw = findKeywordInPools(row.dataset.kw);
+    if (!kw) return;
+
+    // Already at 7 and this row isn't selected — ignore (checkbox is disabled).
+    if (!isKeywordUsed(kw) && getFilledKeywords().length >= SLOT_COUNT) {
+      renderSlotPacker();
+      showSlotMessage(0, 'You already selected 7 keywords. Uncheck one to free a slot.');
+      return;
+    }
+
+    const result = toggleKeywordSelection(kw);
+    if (!result.ok) {
+      renderSlotPacker();
+      const msgSlot = Math.max(0, slots.findIndex((slot) => !slot.length));
+      showSlotMessage(msgSlot === -1 ? 0 : msgSlot, result.reason);
+      return;
+    }
+    activeSlot = Math.max(0, slots.findIndex((slot) => !slot.length));
+    onSlotsChanged();
+  });
+
+  $('kw-pagination').addEventListener('click', (e) => {
+    if (e.target.id === 'kw-prev' && tablePage > 0) { tablePage--; renderKeywordTable(); }
+    if (e.target.id === 'kw-next') { tablePage++; renderKeywordTable(); }
+  });
+
+  $('slot-packer').addEventListener('click', (e) => {
+    const removeBtn = e.target.closest('[data-remove-kw]');
+    if (removeBtn) {
+      e.stopPropagation();
+      removeKeywordFromSlot(parseInt(removeBtn.dataset.slot, 10), removeBtn.dataset.removeKw);
+      compactSlots();
+      onSlotsChanged();
+      return;
+    }
+    const primaryBtn = e.target.closest('[data-set-primary]');
+    if (primaryBtn) {
+      e.stopPropagation();
+      if (setPrimarySlot(primaryBtn.dataset.setPrimary)) onSlotsChanged();
+      return;
+    }
+    const card = e.target.closest('[data-slot-card]');
+    if (card) {
+      activeSlot = parseInt(card.dataset.slotCard, 10);
+    }
+  });
+
+  $('continue-generate-btn').addEventListener('click', () => {
+    if (filledSlotCount() < MIN_SLOTS_TO_CONTINUE) return;
+    step2Complete = true;
+    updateStep3Recap();
+    setStepState(2, { locked: false, collapsed: true, complete: true });
+    setStepState(3, { locked: false, collapsed: false, complete: false });
+    scrollToStep('step-3');
+  });
+
+  $('step-2-summary').addEventListener('click', () => {
+    if (hasGenerated) flashCascadeWarning('step2-cascade-warn');
+    setStepState(2, { locked: false, collapsed: false, complete: step2Complete });
+  });
+
+  // --- Step 3
+  $('step-3-summary').addEventListener('click', () => {
+    if (!step2Complete) return;
+    setStepState(3, { locked: false, collapsed: false, complete: hasGenerated });
+  });
+
+  $('generate-btn').addEventListener('click', runGeneration);
+  $('refresh-listing-btn').addEventListener('click', runGeneration);
+  $('regen-titles').addEventListener('click', regenTitles);
+  $('regen-subtitles').addEventListener('click', regenSubtitles);
+  $('regen-desc').addEventListener('click', () => regenDescription());
+  $('try-style-btn').addEventListener('click', () => regenDescription(DESCRIPTION_STYLES[currentDescStyleIndex % DESCRIPTION_STYLES.length]));
+  $('regen-blurb').addEventListener('click', regenBlurb);
+
+  document.addEventListener('click', (e) => {
+    const copyBtn = e.target.closest('[data-copy]');
+    if (copyBtn) { copyText(getCopyText(copyBtn.dataset.copy), copyBtn); return; }
+
+    const titleCard = e.target.closest('[data-select-title]');
+    if (titleCard) {
+      selectedTitleIdx = parseInt(titleCard.dataset.selectTitle, 10);
+      renderTitles(); renderSubtitles(); renderCombinedPreview(); renderValidatorPanel(); renderSlotPacker();
+      return;
+    }
+    const subCard = e.target.closest('[data-select-subtitle]');
+    if (subCard) {
+      selectedSubtitleIdx = parseInt(subCard.dataset.selectSubtitle, 10);
+      renderTitles(); renderSubtitles(); renderCombinedPreview(); renderValidatorPanel(); renderSlotPacker();
+    }
+  });
+
+  $('copy-combined').addEventListener('click', (e) => {
+    const t = selectedTitle(); const s = selectedSubtitle();
+    copyText(t + (s ? ': ' + s : ''), e.target);
+  });
+  $('copy-preview').addEventListener('click', (e) => copyText(description.preview || stripHtml(description.html), e.target));
+  $('copy-html').addEventListener('click', (e) => copyText(description.html || '', e.target));
+  $('copy-blurb').addEventListener('click', (e) => copyText(blurb, e.target));
+  $('copy-all-slots').addEventListener('click', (e) => {
+    const lines = [];
+    for (let i = 0; i < SLOT_COUNT; i++) lines.push(slotKeywordText(i));
+    copyText(lines.filter(Boolean).join('\n'), e.target);
+  });
+  $('copy-everything').addEventListener('click', (e) => copyText(buildListingFile().replace(/\r\n/g, '\n'), e.target));
+  $('download-txt').addEventListener('click', downloadListingFile);
+
+  document.querySelectorAll('.tab-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      const isPreview = btn.dataset.tab === 'preview';
+      $('desc-preview-pane').hidden = !isPreview;
+      $('desc-html-pane').hidden = isPreview;
+    });
+  });
+
+  // --- Modals
+  $('ai-badge').addEventListener('click', () => {
+    $('masked-key-display').textContent = maskKey(sessionKey || apiKey || getStoredKey());
+    $('key-modal').classList.add('visible');
+  });
+  $('close-key-modal').addEventListener('click', () => $('key-modal').classList.remove('visible'));
+  $('key-modal').addEventListener('click', (e) => { if (e.target === $('key-modal')) $('key-modal').classList.remove('visible'); });
+  $('replace-key-btn').addEventListener('click', () => {
+    $('key-modal').classList.remove('visible');
+    $('api-key-input').value = '';
+    showScreen('setup');
+  });
+  $('remove-key-btn').addEventListener('click', () => {
+    localStorage.removeItem(STORAGE_KEY);
+    apiKey = null;
+    sessionKey = null;
+    aiConnected = false;
+    updateAiBadge();
+    $('key-modal').classList.remove('visible');
+  });
+  $('faq-btn').addEventListener('click', () => $('faq-modal').classList.add('visible'));
+  $('close-faq-modal').addEventListener('click', () => $('faq-modal').classList.remove('visible'));
+  $('faq-modal').addEventListener('click', (e) => { if (e.target === $('faq-modal')) $('faq-modal').classList.remove('visible'); });
+  $('enter-new-key-btn').addEventListener('click', () => { setErrorBanner(false); showScreen('setup'); });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.visible').forEach((m) => m.classList.remove('visible'));
+  });
+
+  /* ======================= INIT ======================= */
+
+  async function initApp() {
+    initStaticSelects();
+    const loaded = await loadKeywords();
+
+    if (loaded) {
+      renderSlotPacker();
+      updateStep3Recap();
+    }
+
+    const stored = getStoredKey();
+    if (stored) {
+      apiKey = stored;
+      sessionKey = stored;
+      syncAiConnectionFromKey();
+      showScreen('workspace');
+    } else {
+      aiConnected = false;
+      updateAiBadge();
+      showScreen('setup');
+    }
+  }
+
+  initApp();
+})();
+  </script>
+
+</body>
+</html>

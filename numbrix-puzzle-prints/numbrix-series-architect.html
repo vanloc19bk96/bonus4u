@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Numbrix Series Architect</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        display: ['Fraunces', 'serif'],
+        sans: ['Inter', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+      },
+      colors: {
+        ink: '#15201c',
+        paper: '#f7f5ee',
+        line: '#d9d4c4',
+        path: '#1f7a5c',
+        pathlight: '#e3f0ea',
+        amber: '#c98a2b',
+      }
+    }
+  }
+}
+</script>
+<style>
+  :root { --grid: #e6e1d2; }
+  body {
+    background-color: #f7f5ee;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 26px 26px;
+    background-position: -1px -1px;
+  }
+  .card-paper {
+    background: #fffdf7;
+    box-shadow: 0 1px 0 #fff inset, 0 2px 14px rgba(21,32,28,0.06);
+  }
+  .seg { transition: all .15s ease; }
+  .seg[aria-pressed="true"] {
+    background: #15201c; color: #f7f5ee; border-color:#15201c;
+  }
+  .num-cell {
+    font-family:'JetBrains Mono', monospace;
+    display:flex;align-items:center;justify-content:center;
+  }
+  /* number-path connector animation on hero */
+  @keyframes drawpath { from { stroke-dashoffset: 600; } to { stroke-dashoffset: 0; } }
+  .pathline { stroke-dasharray: 600; animation: drawpath 2.6s ease forwards; }
+  details summary::-webkit-details-marker { display:none; }
+  .fade-in { animation: fi .4s ease; }
+  @keyframes fi { from { opacity:0; transform: translateY(6px);} to{opacity:1;transform:none;} }
+  @media (prefers-reduced-motion: reduce) {
+    .pathline { animation: none; stroke-dashoffset:0; }
+    .fade-in { animation: none; }
+  }
+  .print-hide { }
+  @media print {
+    body { background:#fff; }
+    .print-hide { display:none !important; }
+    .card-paper { box-shadow:none; border:1px solid #d9d4c4; }
+    .book-card { break-inside: avoid; }
+  }
+</style>
+</head>
+<body class="font-sans text-ink min-h-screen">
+
+<!-- ======================= HEADER ======================= -->
+<header class="max-w-5xl mx-auto px-5 pt-10 pb-6">
+  <div class="flex items-start justify-between gap-6 flex-wrap">
+    <div class="max-w-xl">
+      <div class="inline-flex items-center gap-2 mb-4">
+        <!-- tiny numbrix path mark -->
+        <svg width="34" height="34" viewBox="0 0 34 34" class="shrink-0">
+          <rect x="1" y="1" width="32" height="32" rx="6" fill="#fffdf7" stroke="#15201c" stroke-width="1.5"/>
+          <path d="M8 11 H17 V23 H26" fill="none" stroke="#1f7a5c" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="8" cy="11" r="2.4" fill="#c98a2b"/>
+          <circle cx="26" cy="23" r="2.4" fill="#c98a2b"/>
+        </svg>
+        <span class="font-mono text-xs tracking-[0.2em] text-path uppercase">Numbrix Toolkit</span>
+      </div>
+      <h1 class="font-display text-4xl sm:text-5xl leading-[1.05] font-600 tracking-tight">
+        Series&nbsp;Architect
+      </h1>
+      <p class="mt-3 text-[15px] leading-relaxed text-ink/70">
+        Don't publish one Numbrix book — plan a whole series. Pick a structure, set your numbers,
+        and get a full book-by-book plan with KDP-accurate printing cost, pricing, and royalty for every volume.
+      </p>
+    </div>
+
+    <!-- live status / data badge -->
+    <div class="card-paper rounded-xl border border-line px-4 py-3 text-xs font-mono text-ink/60 min-w-[180px]">
+      <div class="flex items-center gap-2">
+        <span id="dot" class="w-2 h-2 rounded-full bg-amber animate-pulse"></span>
+        <span id="dataStatus">loading data…</span>
+      </div>
+      <div class="mt-2 text-[10px] leading-snug text-ink/45" id="dataMeta"></div>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-5xl mx-auto px-5 pb-24">
+
+  <!-- ======================= BUILDER PANEL ======================= -->
+  <section class="card-paper rounded-2xl border border-line p-6 sm:p-8 fade-in print-hide">
+    <div class="grid md:grid-cols-2 gap-8">
+
+      <!-- LEFT: blueprint pick -->
+      <div>
+        <div class="font-mono text-[11px] tracking-[0.18em] uppercase text-ink/45 mb-3">01 · Series structure</div>
+        <div id="blueprintList" class="space-y-2"></div>
+      </div>
+
+      <!-- RIGHT: parameters -->
+      <div class="space-y-6">
+        <div>
+          <div class="font-mono text-[11px] tracking-[0.18em] uppercase text-ink/45 mb-3">02 · Defaults</div>
+
+          <label class="block text-sm font-600 mb-1.5">Grid size</label>
+          <div id="gridPick" class="flex flex-wrap gap-1.5 mb-4"></div>
+
+          <label class="block text-sm font-600 mb-1.5">Trim size</label>
+          <div id="trimPick" class="flex flex-wrap gap-1.5 mb-4"></div>
+
+          <label class="block text-sm font-600 mb-1.5">Audience</label>
+          <div id="audPick" class="flex flex-wrap gap-1.5"></div>
+        </div>
+
+        <div>
+          <div class="font-mono text-[11px] tracking-[0.18em] uppercase text-ink/45 mb-3">03 · Pricing target</div>
+          <label class="block text-sm font-600 mb-1.5">Minimum royalty you want per book</label>
+          <div class="flex items-center gap-3">
+            <input id="targetRoyalty" type="range" min="0.5" max="5" step="0.25" value="1.5"
+                   class="flex-1 accent-path">
+            <span id="targetRoyaltyVal" class="font-mono text-sm w-16 text-right">$1.50</span>
+          </div>
+          <p class="text-xs text-ink/50 mt-2 leading-snug">
+            The tool picks the lowest list price (from $7.99 up) that still clears this royalty.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <button id="buildBtn"
+      class="mt-8 w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-ink text-paper font-600 text-sm px-6 py-3 rounded-xl hover:bg-path transition-colors">
+      Build my series plan
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h9m0 0L8.5 4.5M12 8l-3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </section>
+
+  <!-- ======================= RESULTS ======================= -->
+  <section id="results" class="mt-10 hidden">
+
+    <!-- summary strip -->
+    <div class="flex items-end justify-between gap-4 flex-wrap mb-5">
+      <div>
+        <h2 id="planTitle" class="font-display text-2xl sm:text-3xl font-600"></h2>
+        <p id="planTagline" class="text-sm text-ink/60 mt-1"></p>
+      </div>
+      <div class="flex gap-2 print-hide">
+        <button onclick="window.print()" class="text-xs font-600 border border-line rounded-lg px-3 py-2 hover:bg-pathlight transition">Print / Save PDF</button>
+        <button id="copyBtn" class="text-xs font-600 border border-line rounded-lg px-3 py-2 hover:bg-pathlight transition">Copy as text</button>
+      </div>
+    </div>
+
+    <!-- stat row -->
+    <div id="statRow" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6"></div>
+
+    <!-- book cards -->
+    <div id="bookGrid" class="grid sm:grid-cols-2 gap-4"></div>
+
+    <!-- expansion ideas -->
+    <div id="expansionBox" class="card-paper rounded-2xl border border-line p-6 mt-6"></div>
+
+    <!-- disclaimer -->
+    <p id="disclaimer" class="text-[11px] leading-relaxed text-ink/45 mt-6 font-mono"></p>
+  </section>
+
+  <!-- error state -->
+  <section id="errorBox" class="hidden card-paper rounded-2xl border border-amber/40 p-6 mt-8">
+    <p class="font-600 text-amber mb-1">Couldn't load the data file.</p>
+    <p id="errorMsg" class="text-sm text-ink/60"></p>
+  </section>
+
+</main>
+
+<footer class="max-w-5xl mx-auto px-5 pb-12 print-hide">
+  <p class="text-[11px] font-mono text-ink/35">
+    Numbrix Series Architect · planning tool · figures use Amazon KDP's published US B&amp;W paperback formula
+  </p>
+</footer>
+
+<script>
+/* ============================================================
+   DATA LOADING
+   The JSON lives in the same repo. Default: same folder.
+   Override by setting window.NUMBRIX_DATA_URL before this script,
+   or by hosting the JSON and editing DATA_URL below.
+   ============================================================ */
+const DATA_URL = window.NUMBRIX_DATA_URL || "https://raw.githubusercontent.com/vanloc19bk96/affiliate-bonuses-data/refs/heads/master/numbrix-series-data.json";
+
+let DATA = null;
+const STATE = {
+  blueprint: null,
+  grid: null,
+  trim: null,
+  audience: null,
+  targetRoyalty: 1.5,
+};
+
+const $ = (id) => document.getElementById(id);
+
+/* ---------- KDP math (mirrors the JSON constants) ---------- */
+function printCost(pages) {
+  const K = DATA.kdpConstants.printCostFormula;
+  if (pages < K.lowPageCount.minPages) return null;
+  if (pages <= K.lowPageCount.maxPages) return K.lowPageCount.flatCost;
+  if (pages > K.standard.maxPages) return "OVER_MAX";
+  return Math.round((K.standard.fixedCost + K.standard.perPageCost * pages) * 100) / 100;
+}
+function royalty(price, cost) {
+  const rate = price >= 9.99 ? 0.60 : 0.50;
+  return Math.round((price * rate - cost) * 100) / 100;
+}
+function ceilDiv(a, b) { return Math.ceil(a / b); }
+
+function estimatePages(count, puzzlesPerPage, solutionsPerPage, front = 6) {
+  const pp = ceilDiv(count, puzzlesPerPage);
+  const sp = ceilDiv(count, solutionsPerPage);
+  let total = pp + sp + front;
+  if (total % 2 !== 0) total += 1; // KDP needs even pages
+  return total;
+}
+
+/* pick lowest list price (from $7.99) that clears the target royalty */
+function suggestPrice(cost, target) {
+  const ladder = [7.99, 8.99, 9.99, 10.99, 11.99, 12.99, 13.99, 14.99, 15.99, 16.99, 17.99, 18.99];
+  for (const p of ladder) {
+    if (royalty(p, cost) >= target) return p;
+  }
+  return ladder[ladder.length - 1];
+}
+
+/* ---------- build a single book's full spec ---------- */
+function planBook(spec) {
+  const gridId = spec.gridOverride || STATE.grid.id;
+  const formatCat = spec.formatOverride || (STATE.trim.category === "largePrint" ? "largePrint" : "regular");
+
+  // choose trim: if book is large print, force a large-print trim; else use selected (or fallback)
+  let trim = STATE.trim;
+  if (formatCat === "largePrint" && STATE.trim.category !== "largePrint") {
+    trim = DATA.trimSizes.find(t => t.category === "largePrint") || STATE.trim;
+  }
+  if (formatCat === "regular" && STATE.trim.category === "largePrint") {
+    trim = DATA.trimSizes.find(t => t.id === "8.5x11") || STATE.trim;
+  }
+
+  const ppp = trim.puzzlesPerPageByGrid[gridId] || 1;
+  const spp = ppp > 1 ? ppp * 2 : 6; // solutions print denser
+  const pages = estimatePages(spec.puzzleCount, ppp, spp);
+  const cost = printCost(pages);
+
+  const grid = DATA.gridSizes.find(g => g.id === gridId);
+  const diff = DATA.difficultyLevels.find(d => d.id === spec.difficulty);
+
+  let price = null, roy = null, costNum = null, overMax = false;
+  if (cost === "OVER_MAX") { overMax = true; }
+  else if (cost != null) {
+    costNum = cost;
+    price = suggestPrice(cost, STATE.targetRoyalty);
+    roy = royalty(price, cost);
+  }
+
+  return {
+    label: spec.volumeLabel,
+    gridId, grid,
+    difficulty: diff,
+    format: formatCat,
+    trim,
+    puzzleCount: spec.puzzleCount,
+    puzzlesPerPage: ppp,
+    pages, cost: costNum, overMax,
+    price, royalty: roy,
+    maxNumber: grid ? grid.numberRange.split("to")[1].trim() : "",
+  };
+}
+
+/* ---------- title + cover accent ---------- */
+function makeTitle(book) {
+  const aud = STATE.audience ? STATE.audience.titleWords[0] : "for Adults";
+  const diffWord = book.difficulty ? book.difficulty.label.replace(" (Mixed)","").replace(" / Extreme","") : "";
+  const lp = book.format === "largePrint" ? "Large Print " : "";
+  return `${lp}Numbrix ${book.grid.label} Puzzle Book ${aud}: ${book.puzzleCount} ${diffWord} Puzzles`;
+}
+
+/* ============================================================
+   RENDER: builder controls
+   ============================================================ */
+function chip(label, active, onClick, accent) {
+  const b = document.createElement("button");
+  b.className = "seg text-xs font-600 px-3 py-1.5 rounded-lg border border-line bg-white hover:border-ink/40";
+  b.textContent = label;
+  b.setAttribute("aria-pressed", active ? "true" : "false");
+  if (accent && active) { b.style.background = accent; b.style.borderColor = accent; b.style.color = "#fff"; }
+  b.onclick = onClick;
+  return b;
+}
+
+function renderBlueprints() {
+  const wrap = $("blueprintList");
+  wrap.innerHTML = "";
+  DATA.seriesBlueprints.forEach(bp => {
+    const active = STATE.blueprint && STATE.blueprint.id === bp.id;
+    const card = document.createElement("button");
+    card.className = "w-full text-left rounded-xl border p-3.5 transition " +
+      (active ? "border-path bg-pathlight" : "border-line bg-white hover:border-ink/30");
+    card.innerHTML = `
+      <div class="flex items-center justify-between gap-2">
+        <span class="font-600 text-[15px]">${bp.name}</span>
+        <span class="font-mono text-[10px] px-1.5 py-0.5 rounded ${active ? 'bg-path text-white' : 'bg-line/50 text-ink/60'}">${bp.recommendedBookCount} books</span>
+      </div>
+      <p class="text-xs text-ink/55 mt-1 leading-snug">${bp.tagline}</p>`;
+    card.onclick = () => { STATE.blueprint = bp; renderBlueprints(); };
+    wrap.appendChild(card);
+  });
+}
+
+function renderPickers() {
+  const g = $("gridPick"); g.innerHTML = "";
+  DATA.gridSizes.forEach(gr => {
+    g.appendChild(chip(gr.label, STATE.grid && STATE.grid.id === gr.id,
+      () => { STATE.grid = gr; renderPickers(); }));
+  });
+
+  const t = $("trimPick"); t.innerHTML = "";
+  DATA.trimSizes.forEach(tr => {
+    t.appendChild(chip(tr.label, STATE.trim && STATE.trim.id === tr.id,
+      () => { STATE.trim = tr; renderPickers(); }));
+  });
+
+  const a = $("audPick"); a.innerHTML = "";
+  DATA.audiences.forEach(au => {
+    a.appendChild(chip(au.label, STATE.audience && STATE.audience.id === au.id,
+      () => { STATE.audience = au; renderPickers(); }));
+  });
+}
+
+/* ============================================================
+   RENDER: results
+   ============================================================ */
+function money(n) { return n == null ? "—" : "$" + n.toFixed(2); }
+
+function statCard(big, label, accent) {
+  return `<div class="card-paper rounded-xl border border-line p-4">
+    <div class="font-display text-2xl font-600" style="color:${accent||'#15201c'}">${big}</div>
+    <div class="font-mono text-[10px] tracking-wide uppercase text-ink/45 mt-1">${label}</div>
+  </div>`;
+}
+
+function build() {
+  if (!STATE.blueprint) { flash("Pick a series structure first."); return; }
+  if (!STATE.grid || !STATE.trim || !STATE.audience) { flash("Set grid, trim and audience first."); return; }
+
+  const bp = STATE.blueprint;
+  const books = bp.books.map(planBook);
+
+  // summary numbers
+  const profitable = books.filter(b => b.royalty != null && b.royalty > 0);
+  const totalPuzzles = books.reduce((s, b) => s + b.puzzleCount, 0);
+  const avgRoyalty = profitable.length
+    ? profitable.reduce((s, b) => s + b.royalty, 0) / profitable.length : 0;
+  // "if each book sells 10 copies/month" illustrative annual figure
+  const annualPer10 = profitable.reduce((s, b) => s + b.royalty, 0) * 10 * 12;
+
+  $("planTitle").textContent = bp.name;
+  $("planTagline").textContent = bp.bestFor;
+
+  $("statRow").innerHTML =
+    statCard(books.length, "books in series", "#1f7a5c") +
+    statCard(totalPuzzles.toLocaleString(), "puzzles to generate", "#15201c") +
+    statCard(money(avgRoyalty), "avg royalty / book", "#c98a2b") +
+    statCard("$" + Math.round(annualPer10).toLocaleString(), "yr @ 10 sales/book/mo", "#1f7a5c");
+
+  // book cards
+  const grid = $("bookGrid"); grid.innerHTML = "";
+  books.forEach((b, i) => {
+    const accent = b.difficulty ? b.difficulty.coverAccent : "#15201c";
+    const lpBadge = b.format === "largePrint"
+      ? `<span class="font-mono text-[9px] px-1.5 py-0.5 rounded bg-amber/15 text-amber border border-amber/30">LARGE PRINT</span>` : "";
+    const warn = b.overMax
+      ? `<div class="mt-2 text-[11px] text-amber font-600">⚠ Exceeds KDP's 828-page max — split this volume or use a larger trim.</div>` : "";
+
+    const card = document.createElement("div");
+    card.className = "book-card card-paper rounded-xl border border-line overflow-hidden fade-in";
+    card.style.animationDelay = (i * 0.03) + "s";
+    card.innerHTML = `
+      <div class="h-1.5" style="background:${accent}"></div>
+      <div class="p-4">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="font-mono text-[10px] text-ink/40">${b.label}</div>
+            <div class="font-600 text-[15px] leading-snug mt-0.5">${makeTitle(b)}</div>
+          </div>
+          ${lpBadge}
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 mt-3 text-center">
+          <div class="bg-paper/60 rounded-lg py-2">
+            <div class="font-mono text-sm font-700">${b.puzzleCount}</div>
+            <div class="text-[9px] uppercase tracking-wide text-ink/45">puzzles</div>
+          </div>
+          <div class="bg-paper/60 rounded-lg py-2">
+            <div class="font-mono text-sm font-700">${b.overMax ? '—' : b.pages}</div>
+            <div class="text-[9px] uppercase tracking-wide text-ink/45">pages</div>
+          </div>
+          <div class="bg-paper/60 rounded-lg py-2">
+            <div class="font-mono text-sm font-700" style="color:${accent}">${b.difficulty ? b.difficulty.label.split(' ')[0] : ''}</div>
+            <div class="text-[9px] uppercase tracking-wide text-ink/45">level</div>
+          </div>
+        </div>
+
+        <div class="mt-3 flex items-center justify-between text-sm">
+          <div class="text-ink/55">
+            <span class="font-mono text-xs">${b.grid.label}</span> ·
+            <span class="text-xs">${b.trim.label}</span> ·
+            <span class="text-xs">${b.puzzlesPerPage}/pg</span>
+          </div>
+        </div>
+
+        <div class="mt-3 grid grid-cols-3 gap-2 pt-3 border-t border-line">
+          <div>
+            <div class="text-[9px] uppercase tracking-wide text-ink/40">print cost</div>
+            <div class="font-mono text-sm">${money(b.cost)}</div>
+          </div>
+          <div>
+            <div class="text-[9px] uppercase tracking-wide text-ink/40">list price</div>
+            <div class="font-mono text-sm font-700">${money(b.price)}</div>
+          </div>
+          <div>
+            <div class="text-[9px] uppercase tracking-wide text-ink/40">royalty</div>
+            <div class="font-mono text-sm font-700 text-path">${money(b.royalty)}</div>
+          </div>
+        </div>
+        ${warn}
+      </div>`;
+    grid.appendChild(card);
+  });
+
+  // expansion
+  const exp = $("expansionBox");
+  exp.innerHTML = `
+    <div class="font-mono text-[11px] tracking-[0.18em] uppercase text-ink/45 mb-3">Where to take it next</div>
+    <ul class="space-y-2">
+      ${bp.expansionIdeas.map(e => `
+        <li class="flex gap-2.5 text-sm text-ink/75">
+          <svg width="16" height="16" viewBox="0 0 16 16" class="mt-0.5 shrink-0"><path d="M3 8h7m0 0L7 5m3 3-3 3" stroke="#1f7a5c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>${e}</span>
+        </li>`).join("")}
+    </ul>`;
+
+  $("disclaimer").textContent = DATA.meta.disclaimer;
+
+  // keep text version for copy
+  window.__planText = buildPlanText(bp, books, { totalPuzzles, avgRoyalty });
+
+  $("results").classList.remove("hidden");
+  $("results").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function buildPlanText(bp, books, sum) {
+  let out = `NUMBRIX SERIES PLAN — ${bp.name}\n${bp.bestFor}\n`;
+  out += `Books: ${books.length} | Total puzzles: ${sum.totalPuzzles} | Avg royalty: $${sum.avgRoyalty.toFixed(2)}\n`;
+  out += `Audience: ${STATE.audience.label}\n\n`;
+  books.forEach((b, i) => {
+    out += `${i + 1}. ${makeTitle(b)}\n`;
+    out += `   ${b.puzzleCount} puzzles · ${b.grid.label} · ${b.trim.label}`;
+    out += b.format === "largePrint" ? " · LARGE PRINT\n" : "\n";
+    out += `   ${b.overMax ? "PAGES EXCEED KDP MAX — split needed" : b.pages + " pages"}`;
+    out += ` · print $${b.cost?.toFixed(2) ?? "-"} · list $${b.price?.toFixed(2) ?? "-"} · royalty $${b.royalty?.toFixed(2) ?? "-"}\n\n`;
+  });
+  out += "EXPANSION IDEAS\n";
+  bp.expansionIdeas.forEach(e => out += " - " + e + "\n");
+  out += "\n" + DATA.meta.disclaimer;
+  return out;
+}
+
+/* ---------- small helpers ---------- */
+let flashTimer;
+function flash(msg) {
+  const btn = $("buildBtn");
+  const orig = btn.innerHTML;
+  btn.innerHTML = msg;
+  btn.classList.add("bg-amber");
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => { btn.innerHTML = orig; btn.classList.remove("bg-amber"); }, 1600);
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+async function init() {
+  try {
+    const res = await fetch(DATA_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status + " fetching " + DATA_URL);
+    DATA = await res.json();
+  } catch (err) {
+    $("dot").classList.remove("bg-amber");
+    $("dot").classList.add("bg-red-500");
+    $("dataStatus").textContent = "data error";
+    $("errorBox").classList.remove("hidden");
+    $("errorMsg").textContent =
+      err.message + ". Make sure numbrix-series-data.json sits next to this HTML file (or set window.NUMBRIX_DATA_URL to its URL).";
+    return;
+  }
+
+  // defaults
+  STATE.blueprint = DATA.seriesBlueprints[0];
+  STATE.grid = DATA.gridSizes.find(g => g.id === "9x9") || DATA.gridSizes[0];
+  STATE.trim = DATA.trimSizes.find(t => t.id === "8.5x11") || DATA.trimSizes[0];
+  STATE.audience = DATA.audiences[0];
+
+  $("dot").classList.remove("bg-amber");
+  $("dot").classList.add("bg-path");
+  $("dataStatus").textContent = "data loaded";
+  $("dataMeta").textContent = `${DATA.seriesBlueprints.length} blueprints · KDP US B&W · updated ${DATA.meta.lastUpdated}`;
+
+  renderBlueprints();
+  renderPickers();
+
+  // royalty slider
+  const r = $("targetRoyalty");
+  r.oninput = () => {
+    STATE.targetRoyalty = parseFloat(r.value);
+    $("targetRoyaltyVal").textContent = "$" + STATE.targetRoyalty.toFixed(2);
+  };
+
+  $("buildBtn").onclick = build;
+
+  $("copyBtn").onclick = async () => {
+    if (!window.__planText) return;
+    try {
+      await navigator.clipboard.writeText(window.__planText);
+      $("copyBtn").textContent = "Copied ✓";
+      setTimeout(() => $("copyBtn").textContent = "Copy as text", 1500);
+    } catch { $("copyBtn").textContent = "Copy failed"; }
+  };
+}
+
+init();
+</script>
+</body>
+</html>

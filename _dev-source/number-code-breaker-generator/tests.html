@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Number Code Breaker — Developer Tests</title>
+<link rel="stylesheet" href="css/styles.css">
+<style>
+  .test-page { max-width: 1000px; margin: 0 auto; padding: 24px 20px 60px; }
+  .test-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; }
+  .test-head h1 { font-size: 18px; }
+  .test-page > p.lede { margin: 0 0 20px; color: var(--text-soft); font-size: 13px; max-width: 70ch; }
+
+  #summary {
+    padding: 4px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 20px;
+    border: 1px solid;
+  }
+  #summary[data-status="pass"] { color: var(--accent); background: #eef8f2; border-color: #b6ddc7; }
+  #summary[data-status="fail"] { color: var(--danger); background: #fdf0f0; border-color: #eec3c5; }
+  #summary[data-status="busy"] { color: var(--primary); background: #eff3fd; border-color: #c4d2f4; }
+
+  #status { font-size: 12.5px; color: var(--text-faint); }
+
+  .test-group {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 12px;
+  }
+  .test-group h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .tally { font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 20px; }
+  .tally.is-pass { color: var(--accent); background: #eef8f2; }
+  .tally.is-fail { color: var(--danger); background: #fdf0f0; }
+
+  .test-group ul { margin: 0; padding: 0; list-style: none; }
+  .test-group li {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    padding: 2px 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .test-group li .mark { flex: 0 0 12px; font-weight: 700; }
+  .test-group li.is-pass .mark { color: var(--accent); }
+  .test-group li.is-fail { color: var(--danger); }
+  .test-group li.is-fail .mark { color: var(--danger); }
+  .detail { color: var(--text-faint); font-size: 11.5px; }
+  .test-group li.is-fail .detail { color: var(--danger); }
+</style>
+</head>
+<body>
+
+<header class="app-bar">
+  <div class="app-bar-title">
+    <span class="app-mark" aria-hidden="true"></span>
+    <div>
+      <h1>Developer Tests</h1>
+      <p>Number Code Breaker KDP Generator</p>
+    </div>
+  </div>
+  <div class="app-bar-actions">
+    <a class="btn btn-quiet" href="index.html">Back to the app</a>
+    <button type="button" id="btn-rerun" class="btn">Run again</button>
+  </div>
+</header>
+
+<div class="test-page">
+  <div class="test-head">
+    <h1>Results</h1>
+    <span id="summary" data-status="busy">Running…</span>
+    <span id="status"></span>
+  </div>
+  <p class="lede">
+    Everything runs in this page — no server, no Node, no build step. The generator section builds 1000 puzzles
+    across all four presets and re-solves each one from scratch, so it takes a few seconds to finish.
+  </p>
+
+  <div id="results"></div>
+</div>
+
+<script src="vendor/jspdf.umd.min.js"></script>
+<script src="vendor/font-notosans.js"></script>
+
+<script src="js/constants.js"></script>
+<script src="js/seeded-random.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/kdp-layout.js"></script>
+<script src="js/puzzle-engine.js"></script>
+<script src="js/puzzle-validator.js"></script>
+<script src="js/book-builder.js"></script>
+<script src="js/kdp-compliance.js"></script>
+<script src="js/preview-renderer.js"></script>
+<script src="js/pdf-export.js"></script>
+<script src="js/project-storage.js"></script>
+<script src="js/tests.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Word Fill-In Prints</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="Book settings">
+      <header class="brand">
+        <h1>Word Fill-In Prints</h1>
+        <p>Print-ready Word Fill-In puzzle books for Amazon KDP.</p>
+      </header>
+
+      <form id="settings" novalidate>
+        <!-- 1. Words -->
+        <section class="group">
+          <h2>1. Words</h2>
+          <div class="words-card" id="words-card">
+            <p class="words-status" id="words-status">No words yet.</p>
+            <p class="help" id="words-detail">Your puzzles are built from your own word lists. Ask ChatGPT for them (free) or type your own.</p>
+            <button type="button" class="btn btn-primary btn-block" id="open-words">Add words</button>
+          </div>
+        </section>
+
+        <!-- 2. Book -->
+        <section class="group">
+          <h2>2. Book</h2>
+          <div class="field">
+            <label for="trim">Trim size</label>
+            <select id="trim" name="trim"></select>
+            <p class="help">The finished page size of your paperback.</p>
+          </div>
+
+          <div class="field">
+            <label for="difficulty">Difficulty</label>
+            <select id="difficulty" name="difficulty">
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+              <option value="mixed">Mixed (Easy to Hard)</option>
+            </select>
+            <p class="help" id="difficulty-help"></p>
+          </div>
+
+          <fieldset class="field">
+            <legend>Grid style</legend>
+            <div class="segmented" id="gridStyle">
+              <label><input type="radio" name="gridStyle" value="open"><span>Open</span></label>
+              <label><input type="radio" name="gridStyle" value="blocks"><span>Dark blocks</span></label>
+            </div>
+            <p class="help" id="gridStyle-help"></p>
+          </fieldset>
+
+          <div class="field toggle-field">
+            <label class="switch">
+              <input type="checkbox" id="largePrint" name="largePrint">
+              <span class="slider" aria-hidden="true"></span>
+              <span class="switch-label">Large print</span>
+            </label>
+            <p class="help">Bigger letters and squares. Great for seniors.</p>
+          </div>
+        </section>
+
+        <!-- 3. Solutions -->
+        <section class="group">
+          <h2>3. Solutions</h2>
+          <div class="field toggle-field">
+            <label class="switch">
+              <input type="checkbox" id="includeSolutions" name="includeSolutions">
+              <span class="slider" aria-hidden="true"></span>
+              <span class="switch-label">Include solutions</span>
+            </label>
+            <p class="help">Added after the last puzzle, with their own title page.</p>
+          </div>
+          <fieldset class="field" id="solutionsPerPage-field">
+            <legend>Solutions per page</legend>
+            <div class="segmented" id="solutionsPerPage">
+              <label><input type="radio" name="solutionsPerPage" value="1"><span>1</span></label>
+              <label><input type="radio" name="solutionsPerPage" value="2"><span>2</span></label>
+              <label><input type="radio" name="solutionsPerPage" value="4"><span>4</span></label>
+              <label><input type="radio" name="solutionsPerPage" value="6"><span>6</span></label>
+            </div>
+            <p class="help" id="solutionsPerPage-help"></p>
+          </fieldset>
+        </section>
+
+        <!-- 4. Extra pages -->
+        <section class="group">
+          <h2>4. Extra pages</h2>
+          <div class="field toggle-field">
+            <label class="switch">
+              <input type="checkbox" id="titlePage" name="titlePage" aria-controls="title-fields">
+              <span class="slider" aria-hidden="true"></span>
+              <span class="switch-label">Title page</span>
+            </label>
+          </div>
+          <div class="field toggle-field">
+            <label class="switch">
+              <input type="checkbox" id="copyrightPage" name="copyrightPage" aria-controls="title-fields">
+              <span class="slider" aria-hidden="true"></span>
+              <span class="switch-label">Copyright page</span>
+            </label>
+          </div>
+          <div class="subfields" id="title-fields">
+            <div class="field">
+              <label for="bookTitle">Book title</label>
+              <input type="text" id="bookTitle" name="bookTitle" maxlength="80" autocomplete="off" placeholder="Word Fill-In Puzzles" aria-describedby="bookTitle-error">
+              <p class="error" id="bookTitle-error" role="alert"></p>
+            </div>
+            <div class="field" id="subtitle-field">
+              <label for="subtitle">Subtitle <span class="optional">(optional)</span></label>
+              <input type="text" id="subtitle" name="subtitle" maxlength="120" autocomplete="off" placeholder="100 themed puzzles for adults" aria-describedby="subtitle-error">
+              <p class="error" id="subtitle-error" role="alert"></p>
+            </div>
+            <div class="field">
+              <label for="copyrightHolder">Author or publisher</label>
+              <input type="text" id="copyrightHolder" name="copyrightHolder" maxlength="60" autocomplete="off" placeholder="Your name" aria-describedby="copyrightHolder-error">
+              <p class="error" id="copyrightHolder-error" role="alert"></p>
+            </div>
+            <div class="copyright-only">
+              <div class="field">
+                <label for="copyrightYear">Year</label>
+                <input type="number" id="copyrightYear" name="copyrightYear" min="1900" max="2100" step="1" inputmode="numeric" aria-describedby="copyrightYear-error">
+                <p class="error" id="copyrightYear-error" role="alert"></p>
+              </div>
+              <div class="field">
+                <label for="copyrightNotes">Extra lines <span class="optional">(optional)</span></label>
+                <textarea id="copyrightNotes" name="copyrightNotes" rows="3" maxlength="400" placeholder="ISBN: 979-8-000000-00-0&#10;First edition" aria-describedby="copyrightNotes-help copyrightNotes-error"></textarea>
+                <p class="help" id="copyrightNotes-help">One item per line, such as an ISBN, edition or website.</p>
+                <p class="error" id="copyrightNotes-error" role="alert"></p>
+              </div>
+            </div>
+          </div>
+          <div class="field toggle-field">
+            <label class="switch">
+              <input type="checkbox" id="howToPlay" name="howToPlay">
+              <span class="slider" aria-hidden="true"></span>
+              <span class="switch-label">"How to Play" page</span>
+            </label>
+            <p class="help">Rules, tips and a small solved example.</p>
+          </div>
+          <div class="field toggle-field">
+            <label class="switch">
+              <input type="checkbox" id="contentsPage" name="contentsPage">
+              <span class="slider" aria-hidden="true"></span>
+              <span class="switch-label">Contents page</span>
+            </label>
+            <p class="help" id="contentsPage-help">Lists every theme with its page number.</p>
+          </div>
+          <div class="field toggle-field">
+            <label class="switch">
+              <input type="checkbox" id="pageNumbers" name="pageNumbers">
+              <span class="slider" aria-hidden="true"></span>
+              <span class="switch-label">Page numbers</span>
+            </label>
+          </div>
+        </section>
+
+        <!-- 5. Advanced -->
+        <details class="group advanced" id="advanced">
+          <summary><h2>Advanced</h2></summary>
+          <div class="field">
+            <label for="marginPreset">Margins
+              <span class="tip" tabindex="0" role="note" aria-label="Gutter: extra inside margin for the binding. KDP makes it wider as the page count grows. The app sets it for you." data-tip="Gutter: extra inside margin for the binding. KDP makes it wider as the page count grows. The app sets it for you.">?</span>
+            </label>
+            <select id="marginPreset" name="marginPreset">
+              <option value="comfortable">Comfortable (recommended)</option>
+              <option value="minimum">KDP minimum</option>
+            </select>
+            <p class="help">Comfortable adds 0.125 in to every side for a safer print.</p>
+          </div>
+          <div class="field toggle-field">
+            <label class="switch">
+              <input type="checkbox" id="bleed" name="bleed">
+              <span class="slider" aria-hidden="true"></span>
+              <span class="switch-label">Bleed
+                <span class="tip" tabindex="0" role="note" aria-label="Bleed: printing right up to the paper edge. The page gets 0.125 in wider and 0.25 in taller so the printer can trim it." data-tip="Bleed: printing right up to the paper edge. The page gets 0.125 in wider and 0.25 in taller so the printer can trim it.">?</span>
+              </span>
+            </label>
+            <p class="help">Leave off for puzzle books. Nothing here prints to the edge.</p>
+          </div>
+          <div class="field">
+            <label for="gridSize">Largest grid</label>
+            <select id="gridSize" name="gridSize">
+              <option value="auto">Auto (from difficulty and trim)</option>
+              <option value="9">9 x 9 squares</option>
+              <option value="11">11 x 11 squares</option>
+              <option value="13">13 x 13 squares</option>
+              <option value="15">15 x 15 squares</option>
+              <option value="17">17 x 17 squares</option>
+            </select>
+            <p class="help" id="gridSize-help"></p>
+          </div>
+          <div class="field">
+            <label for="titlePrefix">Puzzle label</label>
+            <input type="text" id="titlePrefix" name="titlePrefix" maxlength="24" autocomplete="off" aria-describedby="titlePrefix-help titlePrefix-error">
+            <p class="help" id="titlePrefix-help">Printed above each theme, followed by its number ("PUZZLE 12").</p>
+            <p class="error" id="titlePrefix-error" role="alert"></p>
+          </div>
+          <div class="field">
+            <label for="seed">Seed
+              <span class="tip" tabindex="0" role="note" aria-label="Seed: a code that decides the grid layouts. The same words, seed and settings always build the same book." data-tip="Seed: a code that decides the grid layouts. The same words, seed and settings always build the same book.">?</span>
+            </label>
+            <input type="text" id="seed" name="seed" maxlength="40" autocomplete="off" placeholder="Blank = random" aria-describedby="seed-help">
+            <p class="help" id="seed-help">Leave blank for brand-new layouts every time.</p>
+            <p class="help seed-used" id="seed-used" hidden></p>
+          </div>
+        </details>
+      </form>
+
+      <!-- Summary + actions: pinned to the bottom of the sidebar so they are always visible -->
+      <div class="dock">
+        <section class="summary" aria-labelledby="summary-title">
+          <h2 id="summary-title" class="visually-hidden">Summary</h2>
+          <dl class="summary-stats" aria-live="polite">
+            <div><dt>Puzzles</dt><dd id="sum-puzzles">-</dd></div>
+            <div><dt>Pages</dt><dd id="sum-pages">-</dd></div>
+            <div><dt>Gutter
+              <span class="tip tip-up" tabindex="0" role="note" aria-label="Gutter: extra inside margin for the binding, set from KDP's page-count table." data-tip="Gutter: extra inside margin for the binding, set from KDP's page-count table.">?</span>
+            </dt><dd id="sum-inside">-</dd></div>
+          </dl>
+          <h3 class="checks-title">KDP check</h3>
+          <ul class="checks" id="checks"></ul>
+          <ul class="check-problems" id="check-problems" role="alert"></ul>
+        </section>
+
+        <div class="actions">
+          <p class="notice" id="stale-notice" hidden>Settings changed. Click Generate to apply them.</p>
+          <div class="progress" id="progress" hidden>
+            <div class="progress-row">
+              <span id="progress-text">Generating 0 / 0</span>
+              <button type="button" class="btn-link" id="cancel">Cancel</button>
+            </div>
+            <div class="bar" role="progressbar" aria-labelledby="progress-text" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-bar"><span></span></div>
+          </div>
+          <p class="error" id="action-error" role="alert"></p>
+          <div class="buttons">
+            <button type="button" class="btn btn-primary" id="generate">Generate</button>
+            <button type="button" class="btn" id="download" disabled>Download PDF</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="content">
+      <div class="toolbar" role="toolbar" aria-label="Preview controls">
+        <div class="tool-group">
+          <button type="button" class="icon-btn" id="prev" aria-label="Previous page" title="Previous page">&#8249;</button>
+          <label class="page-input"><span class="visually-hidden">Page</span>
+            <input type="number" id="page-input" min="1" value="1" inputmode="numeric">
+          </label>
+          <span id="page-total" class="page-total">/ 0</span>
+          <button type="button" class="icon-btn" id="next" aria-label="Next page" title="Next page">&#8250;</button>
+        </div>
+        <div class="tool-group segmented small" role="radiogroup" aria-label="Zoom">
+          <label><input type="radio" name="zoom" value="fit" checked><span>Fit</span></label>
+          <label><input type="radio" name="zoom" value="100"><span>100%</span></label>
+        </div>
+        <div class="tool-group segmented small" role="radiogroup" aria-label="View">
+          <label><input type="radio" name="view" value="single" checked><span>Single</span></label>
+          <label><input type="radio" name="view" value="spread"><span>Spread</span></label>
+        </div>
+        <label class="check-inline"><input type="checkbox" id="show-margins"> Show margins</label>
+        <p class="gen-warnings" id="gen-warnings" hidden></p>
+      </div>
+
+      <div class="stage" id="stage" tabindex="0" aria-label="Page preview. Use the left and right arrow keys to change pages.">
+        <div class="empty" id="empty">
+          <h2>Make your Word Fill-In book in 3 steps</h2>
+          <ol>
+            <li><strong>Add your words.</strong> The app writes the ChatGPT prompt for you: copy, paste, done. Or type your own lists.
+              <div><button type="button" class="btn btn-primary btn-inline" id="empty-add-words">Add words</button></div>
+            </li>
+            <li><strong>Pick your settings</strong> on the left. Every option already has a sensible default.</li>
+            <li><strong>Click Generate</strong>, check the pages here, then click <strong>Download PDF</strong> and upload it to KDP.</li>
+          </ol>
+        </div>
+        <div class="pages" id="pages" hidden></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Words dialog -->
+  <dialog class="words-dialog" id="words-dialog" aria-labelledby="wd-title">
+    <form method="dialog" class="wd-inner" id="wd-form" novalidate>
+      <header class="wd-head">
+        <div>
+          <h2 id="wd-title">Add your words</h2>
+          <p>Each puzzle is one theme with its own word list. Get the lists from ChatGPT (left), or type them yourself (right).</p>
+        </div>
+        <button type="button" class="icon-btn" id="wd-close" aria-label="Close">&times;</button>
+      </header>
+
+      <div class="wd-body">
+        <!-- A. Prompt builder -->
+        <section class="wd-col" aria-labelledby="wd-a">
+          <h3 id="wd-a"><span class="step">A</span> Get word lists from ChatGPT</h3>
+
+          <div class="wd-grid">
+            <div class="field">
+              <label for="wz-topic">Book topic <span class="optional">(optional)</span></label>
+              <input type="text" id="wz-topic" maxlength="80" placeholder="e.g. Travel, Christmas, Animals">
+            </div>
+            <div class="field">
+              <label for="wz-audience">For</label>
+              <select id="wz-audience">
+                <option value="adults">Adults</option>
+                <option value="seniors">Seniors</option>
+                <option value="kids">Kids 8&ndash;12</option>
+                <option value="teens">Teens</option>
+                <option value="all">All ages</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="wz-language">Language</label>
+              <input type="text" id="wz-language" maxlength="30" value="English">
+            </div>
+            <div class="field">
+              <label for="wz-count">Puzzles</label>
+              <input type="number" id="wz-count" min="1" max="500" step="1" inputmode="numeric">
+            </div>
+            <div class="field">
+              <label for="wz-wordsPer">Words per list</label>
+              <input type="number" id="wz-wordsPer" min="15" max="80" step="1" inputmode="numeric" aria-describedby="wz-wordsPer-help">
+            </div>
+          </div>
+          <p class="help" id="wz-wordsPer-help"></p>
+
+          <div class="field">
+            <label for="wz-themes">Themes, one per line <span class="optional" id="wz-themes-count"></span></label>
+            <textarea id="wz-themes" rows="6" placeholder="Farm Animals&#10;In the Kitchen&#10;Garden Flowers"></textarea>
+            <div class="row-buttons">
+              <button type="button" class="btn btn-small" id="wz-ideas">Fill with random ideas</button>
+              <button type="button" class="btn btn-small" id="wz-theme-prompt">Copy a theme-ideas prompt</button>
+            </div>
+            <p class="note" id="wz-themes-note">&#8595; The prompt below updates by itself as you type here (and when you change the fields above). If you already copied it, copy it again after a change.</p>
+            <p class="help">Leave it empty and ChatGPT picks the themes. You can paste ChatGPT's theme list straight in here.</p>
+          </div>
+
+          <div class="prompts-head">
+            <strong>Prompt <span class="prompts-updated" id="prompts-updated" hidden>Updated</span></strong>
+            <span class="ai-links">Open
+              <a class="btn-link" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">ChatGPT&nbsp;&#8599;</a>
+              <a class="btn-link" href="https://claude.ai/new" target="_blank" rel="noopener noreferrer">Claude&nbsp;&#8599;</a>
+              <a class="btn-link" href="https://gemini.google.com/app" target="_blank" rel="noopener noreferrer">Gemini&nbsp;&#8599;</a>
+              <a class="btn-link" href="https://grok.com/" target="_blank" rel="noopener noreferrer">Grok&nbsp;&#8599;</a>
+            </span>
+          </div>
+          <ol class="prompt-list" id="prompt-list"></ol>
+          <p class="help">Copy prompt 1 and paste it in a new chat (ChatGPT, Claude, Gemini or Grok). Paste the answer in the box on the right and click <strong>Add</strong>. Then copy the next prompt into the <em>same</em> chat, so no theme or word repeats, and repeat until every prompt is done. If the AI stops early, type &ldquo;continue&rdquo; and Add that part too.</p>
+          <details class="prompt-preview">
+            <summary>See the prompt</summary>
+            <pre id="prompt-preview"></pre>
+          </details>
+        </section>
+
+        <!-- B. Paste box -->
+        <section class="wd-col" aria-labelledby="wd-b">
+          <h3 id="wd-b"><span class="step">B</span> Paste each answer, then click Add</h3>
+          <div class="field paste-field">
+            <label for="paste-input" class="visually-hidden">AI answer</label>
+            <textarea id="paste-input" class="words-input paste-input" spellcheck="false" placeholder="Paste the AI's answer here, then click Add.&#10;Do the same for every prompt."></textarea>
+            <div class="add-row">
+              <button type="button" class="btn btn-primary btn-small" id="wd-add">Add</button>
+              <span class="add-progress" id="add-progress" aria-live="polite"></span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="words-input" class="lists-label">Your word lists <span class="optional">(added answers collect here; you can also type or edit)</span></label>
+            <textarea id="words-input" class="words-input" spellcheck="false" placeholder="Answers you Add appear here.&#10;&#10;Or type your own lists: a title line, then its words separated by commas:&#10;1. Farm Animals&#10;COW, HORSE, SHEEP, GOAT, PIG, DONKEY&#10;&#10;Kitchen: spoon, fork, kettle, ladle, whisk&#10;&#10;A plain list of words with no themes also works: the app splits it into puzzles."></textarea>
+            <div class="row-buttons">
+              <button type="button" class="btn btn-small" id="wd-load">Open a file&hellip;</button>
+              <button type="button" class="btn btn-small" id="wd-save">Save words to a file</button>
+              <button type="button" class="btn btn-small" id="wd-clear">Clear</button>
+              <input type="file" id="wd-file" accept=".txt,.json,.csv,text/plain,application/json" hidden>
+            </div>
+          </div>
+
+          <div class="wd-options">
+            <label class="check-inline"><input type="checkbox" id="noRepeats"> No word in two puzzles</label>
+            <label class="check-inline"><input type="checkbox" id="stripAccents"> Remove accents (&Eacute; &rarr; E)</label>
+            <label class="check-inline">Shortest word
+              <select id="minLen">
+                <option value="2">2 letters</option>
+                <option value="3">3 letters</option>
+                <option value="4">4 letters</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="wd-status" id="wd-status" aria-live="polite"></div>
+        </section>
+      </div>
+
+      <footer class="wd-foot">
+        <button type="button" class="btn" id="wd-cancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="wd-apply">Use these words</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="lib/jspdf.umd.min.js"></script>
+  <script src="js/fonts.js"></script>
+  <script src="js/generator.js"></script>
+  <script src="js/kdp.js"></script>
+  <script src="js/words.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/preview.js"></script>
+  <script src="js/pdf.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

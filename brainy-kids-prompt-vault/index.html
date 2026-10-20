@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brainy Kids Vault Navigator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="loading-screen" class="loading-screen">
+    <div class="loading-screen__spinner" aria-hidden="true"></div>
+    <p id="loading-message">Loading vault…</p>
+  </div>
+
+  <div id="error-screen" class="error-screen hidden" role="alert">
+    <h1>Could not load prompts</h1>
+    <p id="error-message">Make sure prompts.js is in the same folder as index.html.</p>
+    <p class="error-screen__hint">If you only have prompts.json, run: <code>node build-prompts.js</code></p>
+    <button type="button" id="retry-load" class="btn btn--primary">Retry</button>
+  </div>
+
+  <div id="app" class="app hidden">
+    <div id="tips-banner" class="tips-banner hidden">
+      <p><strong>Tip:</strong> Use <kbd>/</kbd> to search, click any row to open details, and <kbd>C</kbd> to copy inside a prompt.</p>
+      <button type="button" id="tips-dismiss" class="tips-banner__close" aria-label="Dismiss tips">×</button>
+    </div>
+
+    <div id="warning-banner" class="warning-banner hidden" role="status"></div>
+    <div id="offline-badge" class="offline-badge hidden">Offline mode</div>
+
+    <header class="header">
+      <div class="header__brand">
+        <button type="button" id="sidebar-toggle" class="header__menu-btn" aria-label="Toggle filters">☰</button>
+        <span class="header__logo" aria-hidden="true">BK</span>
+        <div>
+          <h1 class="header__title">Brainy Kids Vault Navigator</h1>
+          <p class="header__subtitle"><span id="total-count">700</span> worksheet briefs — indexed.</p>
+        </div>
+      </div>
+      <div class="header__actions">
+        <div class="search-box">
+          <input type="search" id="search-input" placeholder="Search skills, themes…" autocomplete="off" aria-label="Search prompts">
+          <button type="button" id="search-clear" class="search-box__clear hidden" aria-label="Clear search">×</button>
+          <kbd class="search-box__kbd">⌘K</kbd>
+        </div>
+        <button type="button" id="reload-data" class="btn btn--ghost">Reload data</button>
+        <button type="button" id="help-btn" class="btn btn--ghost">Help</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside id="sidebar" class="sidebar">
+        <div class="sidebar__header">
+          <h2>Filters</h2>
+          <button type="button" id="sidebar-close" class="sidebar__close" aria-label="Close filters">×</button>
+        </div>
+        <div id="filter-groups" class="sidebar__groups"></div>
+        <div class="sidebar__toggles">
+          <label class="filter-toggle">
+            <input type="checkbox" id="filter-saved">
+            <span>Only saved</span>
+          </label>
+          <label class="filter-toggle">
+            <input type="checkbox" id="filter-hide-used">
+            <span>Hide used</span>
+          </label>
+        </div>
+        <button type="button" id="reset-filters" class="btn btn--secondary sidebar__reset">Reset filters</button>
+      </aside>
+      <div id="sidebar-backdrop" class="sidebar-backdrop hidden"></div>
+
+      <main class="main">
+        <div class="stats-bar">
+          <div id="stats-text" class="stats-bar__text"></div>
+          <div class="sort-control">
+            <label for="sort-select">Sort:</label>
+            <select id="sort-select">
+              <option value="n_asc">№ ascending</option>
+              <option value="n_desc">№ descending</option>
+              <option value="skill_asc">Skill A–Z</option>
+              <option value="skill_desc">Skill Z–A</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="active-chips" class="active-chips hidden"></div>
+        <div id="prompt-list" class="prompt-list" role="list"></div>
+        <div id="empty-state" class="empty-state hidden"></div>
+        <button type="button" id="load-more" class="btn btn--secondary load-more hidden">Show next 60 ▼</button>
+      </main>
+    </div>
+  </div>
+
+  <div id="drawer-overlay" class="drawer-overlay hidden" aria-hidden="true"></div>
+  <aside id="drawer" class="drawer hidden" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+    <div class="drawer__header">
+      <button type="button" id="drawer-close" class="drawer__close" aria-label="Close">×</button>
+      <p id="drawer-meta" class="drawer__meta"></p>
+      <h2 id="drawer-title" class="drawer__title"></h2>
+      <div id="drawer-tags" class="drawer__tags"></div>
+      <div class="drawer__actions">
+        <button type="button" id="drawer-favorite" class="btn btn--ghost">⭐ Favorite</button>
+        <button type="button" id="drawer-used" class="btn btn--ghost">✓ Mark used</button>
+        <button type="button" id="drawer-copy" class="btn btn--primary">📋 Copy prompt</button>
+      </div>
+    </div>
+    <div class="drawer__body">
+      <div id="drawer-content" class="drawer__content"></div>
+      <div class="notes-area">
+        <label for="drawer-notes">Notes</label>
+        <textarea id="drawer-notes" rows="3" placeholder="Add your notes…"></textarea>
+        <span id="notes-saved" class="notes-area__saved hidden">Saved ✓</span>
+      </div>
+      <section id="related-section" class="related-section hidden">
+        <h3>Related prompts</h3>
+        <div id="related-list" class="related-list"></div>
+      </section>
+    </div>
+  </aside>
+
+  <div id="help-modal" class="help-modal hidden" role="dialog" aria-labelledby="help-title">
+    <div class="help-modal__backdrop"></div>
+    <div class="help-modal__card">
+      <button type="button" id="help-close" class="help-modal__close" aria-label="Close help">×</button>
+      <h2 id="help-title">Keyboard shortcuts</h2>
+      <dl class="help-modal__list">
+        <dt><kbd>/</kbd> or <kbd>Ctrl+K</kbd></dt><dd>Focus search</dd>
+        <dt><kbd>Esc</kbd></dt><dd>Close drawer or clear search</dd>
+        <dt><kbd>F</kbd></dt><dd>Toggle favorite (drawer open)</dd>
+        <dt><kbd>U</kbd></dt><dd>Toggle used (drawer open)</dd>
+        <dt><kbd>C</kbd></dt><dd>Copy prompt (drawer open)</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="prompts.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

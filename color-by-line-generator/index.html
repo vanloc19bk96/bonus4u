@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Color By Line Generator</title>
+<script src="a4e2/7c91"></script>
+</head>
+<body>
+
+<!-- Amber banner, shown only when localStorage is unavailable (spec 9.3) -->
+<div id="storageBanner" class="banner" hidden>
+  This browser cannot save data when you open the file directly. The key will be lost when you close the tab.
+  Use Chrome or open via localhost to keep it.
+</div>
+
+<!-- ================= Screen 1: access key gate ================= -->
+<div id="keyGate" class="overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="keyGateTitle">
+    <h2 id="keyGateTitle">Enter access key</h2>
+
+    <label class="field">
+      <span class="field-label">Access key</span>
+      <span class="key-row">
+        <input id="apiKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="CBL1....">
+        <button id="btnToggleKey" type="button" class="btn btn-ghost" aria-label="Show or hide key">Show</button>
+      </span>
+    </label>
+
+    <label class="check">
+      <input id="rememberKey" type="checkbox" checked>
+      <span>Remember on this computer</span>
+    </label>
+
+    <p class="hint">Paste the key you received, then click Save and continue.</p>
+    <p class="warn-text">
+      The key is stored in this browser on this computer.
+      Anyone with access to the machine and this browser profile can read it.
+    </p>
+
+    <p id="keyError" class="field-error" hidden></p>
+
+    <div class="modal-actions">
+      <button id="btnClearKey" type="button" class="btn btn-ghost" hidden>Clear access key</button>
+      <button id="btnCancelKey" type="button" class="btn btn-ghost" hidden>Cancel</button>
+      <button id="btnSaveKey" type="button" class="btn btn-primary">Save and continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Screen 2: Generator (spec 7.2) ================= -->
+<div id="app" class="app" hidden>
+
+  <header class="app-header">
+    <h1>Color By Line Generator</h1>
+    <p class="subtitle">Colouring pages with coloured outlines &middot; nano-banana-2</p>
+  </header>
+
+  <main class="columns">
+
+    <!-- ---------------- Left: controls ---------------- -->
+    <section class="col col-left" id="controls">
+
+      <div class="segmented" role="tablist" aria-label="Prompt mode">
+        <label class="seg">
+          <input type="radio" name="mode" value="guided" id="modeGuided" checked>
+          <span>Guided</span>
+        </label>
+        <label class="seg">
+          <input type="radio" name="mode" value="custom" id="modeCustom">
+          <span>Custom prompt</span>
+        </label>
+      </div>
+
+      <div id="guidedFields">
+        <label class="field">
+          <span class="field-label">Subject <span class="req">*</span></span>
+          <input id="subject" type="text" placeholder="a cat sleeping on a stack of books next to a mug of cocoa">
+        </label>
+        <p id="subjectError" class="field-error" hidden></p>
+
+        <label class="field">
+          <span class="field-label">Theme</span>
+          <select id="themeId"></select>
+        </label>
+        <label class="field field-custom" id="themeCustomField" hidden>
+          <span class="field-label">Your theme</span>
+          <input id="themeCustom" type="text" placeholder="a rainy Tokyo street at night with paper lanterns">
+        </label>
+
+        <label class="field">
+          <span class="field-label">Style</span>
+          <select id="styleId"></select>
+        </label>
+        <label class="field field-custom" id="styleCustomField" hidden>
+          <span class="field-label">Your style</span>
+          <input id="styleCustom" type="text" placeholder="retro 1970s poster illustration with chunky shapes">
+        </label>
+
+        <label class="field">
+          <span class="field-label">Line colours</span>
+          <select id="lineModeId"></select>
+        </label>
+        <label class="field field-custom" id="lineModeCustomField" hidden>
+          <span class="field-label">Your line colours</span>
+          <input id="lineModeCustom" type="text" placeholder="only teal, mustard and burnt orange outlines">
+        </label>
+
+        <label class="field">
+          <span class="field-label">Complexity</span>
+          <select id="complexityId"></select>
+        </label>
+      </div>
+
+      <div id="customFields" hidden>
+        <label class="field">
+          <span class="field-label">Custom prompt <span class="req">*</span></span>
+          <textarea id="customPrompt" rows="7" placeholder="Describe the scene you want to draw..."></textarea>
+        </label>
+        <p class="hint">The Color By Line contract is always appended to the end of your prompt.</p>
+        <p id="customPromptError" class="field-error" hidden></p>
+      </div>
+
+      <label class="field">
+        <span class="field-label">Line weight</span>
+        <select id="strokeWeightId"></select>
+      </label>
+      <p class="hint">How thick the coloured outlines are. Extra thick works best with markers.</p>
+
+      <label class="field">
+        <span class="field-label">Aspect ratio</span>
+        <select id="aspectRatio"></select>
+      </label>
+      <p id="ratioNote" class="hint"></p>
+
+      <button id="btnGenerate" type="button" class="btn btn-primary btn-block">Generate</button>
+
+    </section>
+
+    <!-- ---------------- Right: output ---------------- -->
+    <section class="col col-right">
+      <div id="status" class="status status-idle">Ready.</div>
+      <div id="corsHelp" class="cors-help" hidden>
+        <p><strong>If the browser blocks the connection:</strong></p>
+        <ol>
+          <li>Open Command Prompt in this folder and run: <code>py -m http.server 8000</code></li>
+          <li>Open <code>http://localhost:8000</code> in Chrome or Edge.</li>
+          <li>Enter your access key again and try Generate.</li>
+        </ol>
+      </div>
+      <div id="results" class="results"></div>
+      <p id="emptyState" class="meta">No images yet. Enter a subject and click Generate.</p>
+    </section>
+
+  </main>
+
+  <footer class="app-footer">
+    <span id="historyCount" class="meta"></span>
+    <span class="spacer"></span>
+    <button id="btnClearHistory" type="button" class="btn btn-ghost">Clear history</button>
+    <button id="btnChangeKey" type="button" class="btn btn-ghost">Change key</button>
+    <span class="meta">Chrome or Edge recommended.</span>
+  </footer>
+
+  <!-- In-page confirm, never alert() / confirm() (spec 7.3) -->
+  <div id="confirmPanel" class="overlay" hidden>
+    <div class="modal modal-sm" role="dialog" aria-modal="true">
+      <p id="confirmText"></p>
+      <div class="modal-actions">
+        <button id="btnConfirmNo" type="button" class="btn btn-ghost">Cancel</button>
+        <button id="btnConfirmYes" type="button" class="btn btn-danger">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

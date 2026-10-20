@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Worksheet Companion Studio — Free Lesson Packet Generator</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            display: ['Playfair Display', 'Georgia', 'serif'],
+          },
+          colors: {
+            primary: { DEFAULT: '#4F46E5', hover: '#4338CA' },
+            secondary: '#F59E0B',
+            success: '#10B981',
+            danger: '#DC2626',
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    :root {
+      --primary: #4F46E5;
+      --primary-hover: #4338CA;
+      --bg: #F9FAFB;
+      --text: #1F2937;
+      --text-muted: #6B7280;
+      --border: #E5E7EB;
+    }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+    .screen { display: none; }
+    .screen.active { display: block; }
+    .grade-btn.active { background: #4F46E5; color: white; border-color: #4F46E5; }
+    .tab-btn.active { border-bottom: 2px solid #4F46E5; color: #4F46E5; font-weight: 600; }
+    .toggle-switch { position: relative; width: 48px; height: 26px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; cursor: pointer; inset: 0;
+      background: #D1D5DB; border-radius: 26px; transition: 0.3s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute; height: 20px; width: 20px;
+      left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s;
+    }
+    .toggle-switch input:checked + .toggle-slider { background: #4F46E5; }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(22px); }
+    .question-row { transition: background 0.15s; }
+    .question-row:hover { background: #F9FAFB; }
+    .question-row.dragging { opacity: 0.5; }
+    .drag-handle { cursor: grab; color: #9CA3AF; }
+    .drag-handle:active { cursor: grabbing; }
+    .editable-field { cursor: text; border-radius: 4px; padding: 2px 4px; }
+    .editable-field:hover { background: #EEF2FF; }
+    .editable-field:focus { outline: 2px solid #4F46E5; background: white; }
+    .cover-preview {
+      width: 255px; height: 330px; margin: 0 auto;
+      border: 1px solid #E5E7EB; border-radius: 12px;
+      background: white; box-shadow: 0 4px 16px rgba(79, 70, 229, 0.12);
+      display: flex; flex-direction: column; align-items: center;
+      font-family: Helvetica, Arial, sans-serif;
+      overflow: hidden;
+    }
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: center; z-index: 100;
+    }
+    .modal-overlay.hidden { display: none; }
+    @media (max-width: 480px) {
+      .touch-target { min-height: 48px; min-width: 48px; }
+    }
+    input[type="range"] { accent-color: #4F46E5; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <div id="cdn-error" class="hidden bg-red-50 border-b border-red-200 text-red-700 px-4 py-3 text-center text-sm">
+    Some libraries failed to load. Please check your internet connection and refresh the page.
+  </div>
+
+  <div id="app" class="pb-16">
+    <!-- Screen 1: Input Form -->
+    <div id="screen-1" class="screen active">
+      <div class="max-w-[800px] mx-auto px-4 py-8">
+        <header class="text-center mb-8">
+          <h1 class="font-display text-3xl md:text-4xl font-bold text-gray-800">
+            📝 Worksheet Companion Studio
+          </h1>
+          <p class="text-gray-500 mt-2 italic">Turn any topic into a 6-page lesson packet in 30 seconds</p>
+        </header>
+
+        <div class="bg-white rounded-2xl shadow-lg p-6 md:p-8 space-y-6">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Topic name <span class="text-red-500">*</span></label>
+            <input id="topic-input" type="text" maxlength="60" placeholder="e.g. Penguins"
+              class="w-full rounded-lg border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 touch-target">
+            <p id="topic-error" class="hidden text-red-500 text-sm mt-1">Please enter a topic name</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Grade level <span class="text-red-500">*</span></label>
+            <div class="flex flex-wrap gap-2" id="grade-group">
+              <button type="button" data-grade="K-1" class="grade-btn touch-target rounded-xl border border-gray-200 px-5 py-2.5 font-medium hover:border-indigo-300 transition">K-1</button>
+              <button type="button" data-grade="2-3" class="grade-btn active touch-target rounded-xl border border-gray-200 px-5 py-2.5 font-medium hover:border-indigo-300 transition">2-3</button>
+              <button type="button" data-grade="4-5" class="grade-btn touch-target rounded-xl border border-gray-200 px-5 py-2.5 font-medium hover:border-indigo-300 transition">4-5</button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+              Questions per worksheet: <span id="slider-value" class="text-indigo-600">10</span>
+            </label>
+            <input id="questions-slider" type="range" min="5" max="15" value="10" class="w-full h-2 rounded-lg cursor-pointer">
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Poster prompt from AI Infographic Poster <span class="text-red-500">*</span></label>
+            <textarea id="facts-input" rows="8" placeholder="Penguins are flightless birds that live mostly in the Southern Hemisphere. The Emperor Penguin is the largest species, standing about 4 feet tall and weighing up to 90 pounds. There are 18 species of penguins in the world..."
+              class="w-full rounded-lg border border-gray-200 px-4 py-3 min-h-[200px] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-y"></textarea>
+            <p id="facts-warning" class="hidden text-amber-600 text-sm mt-1">Add more facts for better results (minimum 50 characters recommended)</p>
+            <p id="facts-error" class="hidden text-red-500 text-sm mt-1">Please enter at least 10 characters of facts</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-3">Worksheet types</label>
+            <div class="space-y-2" id="worksheet-types">
+              <label class="flex items-center gap-3 cursor-pointer touch-target">
+                <input type="checkbox" data-type="fillBlank" checked class="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500">
+                <span>Fill in the Blanks</span>
+              </label>
+              <label class="flex items-center gap-3 cursor-pointer touch-target">
+                <input type="checkbox" data-type="trueFalse" checked class="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500">
+                <span>True or False</span>
+              </label>
+              <label class="flex items-center gap-3 cursor-pointer touch-target">
+                <input type="checkbox" data-type="vocab" checked class="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500">
+                <span>Vocabulary Matching</span>
+              </label>
+              <label class="flex items-center gap-3 cursor-pointer touch-target">
+                <input type="checkbox" data-type="shortAnswer" checked class="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500">
+                <span>Short Answer</span>
+              </label>
+            </div>
+            <p id="types-error" class="hidden text-red-500 text-sm mt-2">Select at least one worksheet type</p>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-semibold text-gray-700">Include answer key</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="answer-key-toggle" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 space-y-3">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">
+                Activate key <span class="text-red-500">*</span>
+              </label>
+              <div class="relative">
+                <input id="api-key-input" type="password" autocomplete="off" spellcheck="false"
+                  placeholder="sk-..."
+                  class="w-full rounded-lg border border-gray-200 px-4 py-3 pr-24 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 touch-target font-mono text-sm">
+                <button id="toggle-api-key-btn" type="button"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-semibold text-indigo-600 hover:text-indigo-800 px-2 py-1 touch-target">
+                  Show
+                </button>
+              </div>
+              <p id="api-key-error" class="hidden text-red-500 text-sm mt-1">Please enter your activate key</p>
+            </div>
+          </div>
+
+          <button id="generate-btn" type="button"
+            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-6 py-4 text-lg font-semibold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition touch-target disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0">
+            Generate Worksheets →
+          </button>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 2: Preview & Edit -->
+    <div id="screen-2" class="screen">
+      <div class="max-w-[800px] mx-auto px-4 py-6 pb-28">
+        <header class="mb-4">
+          <h2 class="text-2xl font-bold text-gray-800">Review & Edit Questions</h2>
+          <p class="text-gray-500 text-sm mt-1">Topic: <span id="preview-topic" class="font-semibold text-gray-700"></span></p>
+        </header>
+
+        <div id="tab-bar" class="flex overflow-x-auto border-b border-gray-200 mb-4 gap-1"></div>
+        <div id="tab-content"></div>
+
+        <div id="sticky-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg px-4 py-4 z-50">
+          <div class="max-w-[800px] mx-auto flex flex-col sm:flex-row gap-3">
+            <button id="back-btn" type="button"
+              class="flex-1 sm:flex-none rounded-xl border border-gray-300 px-6 py-3 font-semibold text-gray-700 hover:bg-gray-50 transition touch-target">
+              ← Back to edit topic
+            </button>
+            <button id="create-pdf-btn" type="button"
+              class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-6 py-3 font-semibold shadow-md hover:shadow-lg transition touch-target">
+              Create PDF →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 3: Success -->
+    <div id="screen-3" class="screen">
+      <div class="max-w-[600px] mx-auto px-4 py-12 text-center">
+        <div class="bg-white rounded-2xl shadow-lg p-8 md:p-12">
+          <div class="text-6xl mb-4">✅</div>
+          <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Your worksheet packet is ready!</h2>
+          <p id="success-subtext" class="text-gray-500 mb-8">6 pages • US Letter • Print-ready</p>
+
+          <div id="cover-preview" class="cover-preview mb-8"></div>
+
+          <div class="flex flex-col gap-3">
+            <button id="download-btn" type="button"
+              class="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-6 py-4 font-semibold shadow-md hover:shadow-lg transition touch-target">
+              Download PDF
+            </button>
+            <button id="print-btn" type="button"
+              class="w-full rounded-xl border border-gray-300 px-6 py-3 font-semibold text-gray-700 hover:bg-gray-50 transition touch-target">
+              Print
+            </button>
+            <button id="restart-btn" type="button"
+              class="w-full text-indigo-600 hover:text-indigo-800 font-semibold py-3 touch-target">
+              Generate another packet
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="text-center text-sm text-gray-400 py-6 px-4">
+    Worksheet Companion Studio v1.2.0 — A bonus from David @
+    <a href="https://fastaifactory.com" class="text-indigo-500 hover:underline" target="_blank" rel="noopener">fastaifactory.com</a>
+  </footer>
+
+  <div id="error-modal" class="modal-overlay hidden">
+    <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md mx-4 text-center">
+      <div class="text-4xl mb-4">⚠️</div>
+      <h3 class="text-xl font-bold text-gray-800 mb-2">Something went wrong</h3>
+      <p id="error-modal-message" class="text-gray-500 mb-6">Try with shorter facts or fewer questions.</p>
+      <button id="modal-close" type="button" class="bg-indigo-600 text-white rounded-xl px-6 py-3 font-semibold hover:bg-indigo-700 transition">OK</button>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    // ─── Constants ───────────────────────────────────────────────
+    const PAGE_WIDTH = 612;
+    const PAGE_HEIGHT = 792;
+    const MARGIN = 54;
+    const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
+    const FILL_BLANK_WORD_BANK_HEIGHT = 88;
+    const FILL_BLANK_WORD_BANK_GAP = 18;
+    const PDF_HEADER_HEIGHT = 72;
+    const PDF_CONTENT_TOP = MARGIN + PDF_HEADER_HEIGHT - 28;
+
+    const PDF_THEME = {
+      cover: { band: [219, 234, 254], title: [79, 70, 229], badge: [254, 243, 199], badgeText: [146, 64, 14], accent: [251, 191, 36] },
+      fillBlank: { header: [59, 130, 246], panel: [239, 246, 255] },
+      trueFalse: { header: [16, 185, 129], trueFill: [209, 250, 229], trueBorder: [5, 150, 105], falseFill: [254, 226, 226], falseBorder: [239, 68, 68] },
+      vocab: { header: [139, 92, 246], panel: [245, 243, 255], letter: [124, 58, 237] },
+      shortAnswer: { header: [245, 158, 11], line: [253, 230, 138] },
+      answerKey: { header: [220, 38, 38], bg: [255, 251, 235], panel: [254, 242, 242] },
+      text: { body: [55, 65, 81], muted: [107, 114, 128], white: [255, 255, 255], line: [209, 213, 219] },
+    };
+    const GRSAI_ACTIVATE_KEY_STORAGE = 'wcs_grsai_activate_key';
+    const GRSAI_API_URL = 'https://grsaiapi.com/v1/chat/completions';
+    const GRSAI_MODEL = 'gpt-5.5';
+
+    const WORKSHEET_LABELS = {
+      fillBlank: 'Fill in the Blanks',
+      trueFalse: 'True or False',
+      vocab: 'Vocabulary Matching',
+      shortAnswer: 'Short Answer',
+    };
+
+    const SHORT_ANSWER_TARGET = 5;
+
+    // ─── State ───────────────────────────────────────────────────
+    const state = {
+      screen: 1,
+      topic: '',
+      grade: '2-3',
+      questionsPerWorksheet: 10,
+      facts: '',
+      worksheetTypes: {
+        fillBlank: true,
+        trueFalse: true,
+        vocab: true,
+        shortAnswer: true,
+      },
+      includeAnswerKey: true,
+      activateKey: '',
+      activeTab: 'fillBlank',
+      generated: {
+        fillBlank: [],
+        trueFalse: [],
+        vocab: [],
+        shortAnswer: [],
+      },
+      vocabLetterMap: [],
+      pdfDoc: null,
+      pdfBlob: null,
+    };
+
+    let dragSrcIndex = null;
+    let dragSrcType = null;
+
+    // ─── CDN Check ───────────────────────────────────────────────
+    function checkCDN() {
+      if (typeof window.jspdf === 'undefined') {
+        document.getElementById('cdn-error').classList.remove('hidden');
+        return false;
+      }
+      return true;
+    }
+
+    // ─── Text Utilities ──────────────────────────────────────────
+    function stripUnsupportedPdfChars(text) {
+      return String(text || '')
+        .normalize('NFKD')
+        .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}\u{20E3}\u{2705}\u{274C}\u{2764}]/gu, '')
+        .replace(/[\u2018\u2019]/g, "'")
+        .replace(/[\u201C\u201D]/g, '"')
+        .replace(/[\u2013\u2014]/g, '-')
+        .replace(/[^\x20-\x7E]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function preprocess(rawText) {
+      return rawText.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+    }
+
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function uniqueBy(arr, keyFn) {
+      const seen = new Set();
+      return arr.filter((item) => {
+        const key = keyFn(item);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
+    function isValidShortQuestion(question) {
+      if (!question || question.length > 95) return false;
+      if (/^how many/i.test(question) && question.length > 50) return false;
+      if (/MYTH:|FACT:|sound fake|panel|roadmap|title:/i.test(question)) return false;
+      if (/[^\x20-\x7E]/.test(question)) return false;
+      return true;
+    }
+
+    // ─── Activate Key Storage ────────────────────────────────────
+    function loadActivateKey() {
+      try {
+        const saved = localStorage.getItem(GRSAI_ACTIVATE_KEY_STORAGE);
+        if (saved) {
+          state.activateKey = saved;
+          document.getElementById('api-key-input').value = saved;
+        }
+      } catch (err) {
+        console.warn('Could not load activate key from local storage', err);
+      }
+    }
+
+    function saveActivateKey(key) {
+      state.activateKey = key.trim();
+      try {
+        if (state.activateKey) {
+          localStorage.setItem(GRSAI_ACTIVATE_KEY_STORAGE, state.activateKey);
+        } else {
+          localStorage.removeItem(GRSAI_ACTIVATE_KEY_STORAGE);
+        }
+      } catch (err) {
+        console.warn('Could not save activate key to local storage', err);
+      }
+    }
+
+    function showErrorModal(message) {
+      document.getElementById('error-modal-message').textContent = message;
+      document.getElementById('error-modal').classList.remove('hidden');
+    }
+
+    function parseJsonFromAiContent(content) {
+      const text = String(content || '').trim();
+      if (!text) throw new Error('Empty response');
+
+      try {
+        return JSON.parse(text);
+      } catch (err) {
+        const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+        if (fenced) return JSON.parse(fenced[1].trim());
+      }
+
+      const start = text.indexOf('{');
+      const end = text.lastIndexOf('}');
+      if (start !== -1 && end > start) {
+        return JSON.parse(text.slice(start, end + 1));
+      }
+
+      throw new Error('Invalid JSON');
+    }
+
+    // ─── Worksheet Generation ────────────────────────────────────
+    function buildWorksheetPrompt() {
+      const { topic, grade, facts, questionsPerWorksheet, worksheetTypes } = state;
+      const requests = [];
+
+      if (worksheetTypes.fillBlank) {
+        requests.push(`"fillBlank": ${questionsPerWorksheet} items. Each: {"question":"sentence with ________ blank","answer":"missing word"}`);
+      }
+      if (worksheetTypes.trueFalse) {
+        requests.push(`"trueFalse": ${questionsPerWorksheet} items. Each: {"statement":"declarative sentence","isTrue":true or false}. Mix true and false roughly 50/50.`);
+      }
+      if (worksheetTypes.vocab) {
+        requests.push(`"vocab": ${questionsPerWorksheet} items. Each: {"term":"vocabulary word","definition":"child-friendly definition"}`);
+      }
+      if (worksheetTypes.shortAnswer) {
+        requests.push(`"shortAnswer": ${SHORT_ANSWER_TARGET} items. Each: {"question":"Wh- question","answer":"sample answer in 1-2 sentences"}`);
+      }
+
+      return `Create elementary worksheet content for grade ${grade} about "${topic}".
+
+Use ONLY these facts as your source (do not invent unrelated information):
+${preprocess(facts)}
+
+Return valid JSON with these keys only:
+${requests.join('\n')}
+
+Rules:
+- Age-appropriate language for grade ${grade}
+- Plain ASCII text only (no emojis or special symbols)
+- Questions must be factually accurate based on the facts provided
+- Fill-in-the-blank: blank exactly one important word per sentence using ________
+- True/false false statements should be plausible but clearly wrong`;
+    }
+
+    function sanitizeFillBlankItem(item) {
+      return {
+        question: stripUnsupportedPdfChars(item.question || ''),
+        answer: stripUnsupportedPdfChars(item.answer || ''),
+      };
+    }
+
+    function sanitizeTrueFalseItem(item) {
+      return {
+        statement: stripUnsupportedPdfChars(item.statement || ''),
+        isTrue: Boolean(item.isTrue),
+      };
+    }
+
+    function sanitizeVocabItem(item) {
+      return {
+        term: stripUnsupportedPdfChars(item.term || ''),
+        definition: stripUnsupportedPdfChars(item.definition || ''),
+      };
+    }
+
+    function sanitizeShortAnswerItem(item) {
+      let question = stripUnsupportedPdfChars(item.question || '');
+      if (!isValidShortQuestion(question)) {
+        question = `What is one important fact about ${state.topic.toLowerCase()}?`;
+      }
+      return {
+        question,
+        answer: stripUnsupportedPdfChars(item.answer || '').slice(0, 200),
+      };
+    }
+
+    function applyGeneratedContent(data) {
+      const target = state.questionsPerWorksheet;
+
+      state.generated.fillBlank = state.worksheetTypes.fillBlank
+        ? uniqueBy((data.fillBlank || []).map(sanitizeFillBlankItem).filter((q) => q.question && q.answer), (q) => q.question).slice(0, target)
+        : [];
+
+      state.generated.trueFalse = state.worksheetTypes.trueFalse
+        ? (data.trueFalse || []).map(sanitizeTrueFalseItem).filter((q) => q.statement).slice(0, target)
+        : [];
+
+      state.generated.vocab = state.worksheetTypes.vocab
+        ? uniqueBy((data.vocab || []).map(sanitizeVocabItem).filter((v) => v.term && v.definition), (v) => v.term.toLowerCase()).slice(0, target)
+        : [];
+
+      state.generated.shortAnswer = state.worksheetTypes.shortAnswer
+        ? (data.shortAnswer || []).map(sanitizeShortAnswerItem).filter((q) => q.question).slice(0, SHORT_ANSWER_TARGET)
+        : [];
+    }
+
+    async function generateAllQuestions() {
+      const activateKey = state.activateKey.trim();
+      if (!activateKey) throw new Error('Activate key is required.');
+
+      const response = await fetch(GRSAI_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${activateKey}`,
+        },
+        body: JSON.stringify({
+          model: GRSAI_MODEL,
+          stream: false,
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert elementary education worksheet author. Respond with valid JSON only, no markdown or extra text.',
+            },
+            { role: 'user', content: buildWorksheetPrompt() },
+          ],
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        const apiMessage = payload.error?.message || payload.message || `Generation request failed (${response.status})`;
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('Invalid activate key. Please check your key and try again.');
+        }
+        throw new Error(apiMessage);
+      }
+
+      const content = payload.choices?.[0]?.message?.content;
+      if (!content) throw new Error('Generation returned an empty response. Please try again.');
+
+      let parsed;
+      try {
+        parsed = parseJsonFromAiContent(content);
+      } catch (err) {
+        throw new Error('Could not parse worksheet data. Please try again.');
+      }
+
+      applyGeneratedContent(parsed);
+    }
+
+    // ─── PDF Generation ──────────────────────────────────────────
+    function getDoc() {
+      const { jsPDF } = window.jspdf;
+      return new jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait' });
+    }
+
+    function sanitizePdfText(text) {
+      return stripUnsupportedPdfChars(text)
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function stripLeadingListNumber(text) {
+      return sanitizePdfText(text).replace(/^\d+\.\s*/, '');
+    }
+
+    function setPdfColor(doc, color, mode) {
+      if (!color) return;
+      if (mode === 'fill') doc.setFillColor(...color);
+      else if (mode === 'draw') doc.setDrawColor(...color);
+      else doc.setTextColor(...color);
+    }
+
+    function preparePageText(doc, fontSize, fontStyle, textColor) {
+      doc.setFont('helvetica', fontStyle || 'normal');
+      doc.setFontSize(fontSize);
+      setPdfColor(doc, textColor || PDF_THEME.text.body, 'text');
+      if (typeof doc.setCharSpace === 'function') doc.setCharSpace(0);
+    }
+
+    function drawRoundedRect(doc, x, y, w, h, radius, style, fillColor, strokeColor) {
+      if (fillColor) setPdfColor(doc, fillColor, 'fill');
+      if (strokeColor) {
+        setPdfColor(doc, strokeColor, 'draw');
+        doc.setLineWidth(1);
+      }
+      if (typeof doc.roundedRect === 'function') {
+        doc.roundedRect(x, y, w, h, radius, radius, style);
+      } else {
+        doc.rect(x, y, w, h, style);
+      }
+    }
+
+    function drawWorksheetHeader(doc, title, subtitle, headerColor) {
+      setPdfColor(doc, headerColor, 'fill');
+      doc.rect(0, 0, PAGE_WIDTH, PDF_HEADER_HEIGHT, 'F');
+
+      setPdfColor(doc, [255, 255, 255], 'fill');
+      doc.circle(PAGE_WIDTH - 36, 22, 28, 'F');
+      doc.circle(PAGE_WIDTH - 72, 52, 14, 'F');
+      doc.circle(MARGIN - 18, 58, 20, 'F');
+
+      preparePageText(doc, 22, 'bold', PDF_THEME.text.white);
+      printLine(doc, title, MARGIN, 34);
+
+      preparePageText(doc, 10, 'normal', [239, 246, 255]);
+      printLine(doc, subtitle, MARGIN, 52);
+
+      setPdfColor(doc, headerColor, 'draw');
+      doc.setLineWidth(3);
+      doc.line(MARGIN, PDF_HEADER_HEIGHT - 4, PAGE_WIDTH - MARGIN, PDF_HEADER_HEIGHT - 4);
+    }
+
+    function drawPageFooter(doc, topic) {
+      const footerY = PAGE_HEIGHT - 28;
+      setPdfColor(doc, PDF_THEME.text.line, 'draw');
+      doc.setLineWidth(0.5);
+      doc.line(MARGIN, footerY - 8, PAGE_WIDTH - MARGIN, footerY - 8);
+      preparePageText(doc, 8, 'normal', PDF_THEME.text.muted);
+      const footerText = sanitizePdfText(topic).slice(0, 48);
+      doc.text(footerText, MARGIN, footerY);
+      doc.text('Worksheet Companion Studio', PAGE_WIDTH - MARGIN, footerY, { align: 'right' });
+    }
+
+    function splitLongWord(doc, word, maxWidth) {
+      const parts = [];
+      let chunk = '';
+      for (const char of word) {
+        const candidate = chunk + char;
+        if (doc.getTextWidth(candidate) > maxWidth && chunk) {
+          parts.push(chunk);
+          chunk = char;
+        } else {
+          chunk = candidate;
+        }
+      }
+      if (chunk) parts.push(chunk);
+      return parts.length ? parts : [word];
+    }
+
+    function wrapTextToLines(doc, text, maxWidth) {
+      const words = sanitizePdfText(text).split(' ').filter(Boolean);
+      if (!words.length) return [];
+      const lines = [];
+      let current = '';
+      for (let word of words) {
+        if (doc.getTextWidth(word) > maxWidth) {
+          const parts = splitLongWord(doc, word, maxWidth);
+          parts.forEach((part, partIndex) => {
+            if (partIndex === 0 && current) {
+              const candidate = `${current} ${part}`;
+              if (doc.getTextWidth(candidate) > maxWidth) {
+                lines.push(current);
+                current = part;
+              } else {
+                current = candidate;
+              }
+            } else if (partIndex === 0) {
+              current = part;
+            } else {
+              if (current) lines.push(current);
+              current = part;
+            }
+          });
+          continue;
+        }
+        const candidate = current ? `${current} ${word}` : word;
+        if (doc.getTextWidth(candidate) > maxWidth && current) {
+          lines.push(current);
+          current = word;
+        } else {
+          current = candidate;
+        }
+      }
+      if (current) lines.push(current);
+      return lines;
+    }
+
+    function printLine(doc, text, x, y) {
+      if (!text) return;
+      doc.text(String(text), x, y, { align: 'left' });
+    }
+
+    function drawWrappedText(doc, text, x, y, maxWidth, lineHeight) {
+      const lines = wrapTextToLines(doc, text, maxWidth);
+      lines.forEach((line, i) => printLine(doc, line, x, y + i * lineHeight));
+      return y + lines.length * lineHeight;
+    }
+
+    function wrapAnswerKeyToLines(doc, items, maxWidth) {
+      if (!items.length) return [];
+      const lines = [];
+      let current = '';
+      for (const item of items) {
+        const token = sanitizePdfText(item);
+        if (!token) continue;
+        const candidate = current ? `${current}   ${token}` : token;
+        if (current && doc.getTextWidth(candidate) > maxWidth) {
+          lines.push(current);
+          current = token;
+        } else {
+          current = candidate;
+        }
+      }
+      if (current) lines.push(current);
+      return lines;
+    }
+
+    function drawWrappedAnswerKey(doc, items, x, y, maxWidth, lineHeight) {
+      const lines = wrapAnswerKeyToLines(doc, items, maxWidth);
+      lines.forEach((line, i) => printLine(doc, line, x, y + i * lineHeight));
+      return y + lines.length * lineHeight;
+    }
+
+    function drawCenteredText(doc, text, y, fontSize) {
+      if (fontSize) doc.setFontSize(fontSize);
+      doc.text(String(text), PAGE_WIDTH / 2, y, { align: 'center' });
+    }
+
+    function getShortAnswerPdfQuestion(q, index) {
+      let question = stripLeadingListNumber(q.question);
+      if (!isValidShortQuestion(question)) {
+        question = `What is one important fact about ${state.topic.toLowerCase()}?`;
+      }
+      return `${index + 1}. ${question}`;
+    }
+
+    function drawCoverField(doc, label, labelY, labelColor) {
+      preparePageText(doc, 13, 'bold', labelColor || PDF_THEME.cover.title);
+      printLine(doc, label, MARGIN + 4, labelY);
+      const lineY = labelY + 16;
+      setPdfColor(doc, PDF_THEME.text.line, 'draw');
+      doc.setLineWidth(1);
+      doc.line(MARGIN, lineY, PAGE_WIDTH - MARGIN, lineY);
+      return lineY + 36;
+    }
+
+    function addCoverPage(doc, topic, grade) {
+      const theme = PDF_THEME.cover;
+
+      setPdfColor(doc, theme.band, 'fill');
+      doc.rect(0, 0, PAGE_WIDTH, 200, 'F');
+
+      setPdfColor(doc, [191, 219, 254], 'fill');
+      doc.circle(80, 50, 36, 'F');
+      setPdfColor(doc, [254, 215, 170], 'fill');
+      doc.circle(PAGE_WIDTH - 70, 40, 28, 'F');
+      setPdfColor(doc, [167, 243, 208], 'fill');
+      doc.circle(PAGE_WIDTH - 120, 90, 18, 'F');
+      setPdfColor(doc, [251, 207, 232], 'fill');
+      doc.circle(140, 120, 14, 'F');
+
+      preparePageText(doc, 34, 'bold', theme.title);
+      const topicLines = wrapTextToLines(doc, topic, CONTENT_WIDTH - 40);
+      const topicStartY = topicLines.length > 1 ? 118 : 132;
+      topicLines.forEach((line, i) => drawCenteredText(doc, line, topicStartY + i * 38));
+
+      const subtitleY = topicStartY + topicLines.length * 38 + 14;
+      preparePageText(doc, 15, 'normal', PDF_THEME.text.muted);
+      drawCenteredText(doc, 'Lesson Packet', subtitleY);
+
+      const badgeW = 110;
+      const badgeH = 26;
+      const badgeX = (PAGE_WIDTH - badgeW) / 2;
+      const badgeY = subtitleY + 18;
+      drawRoundedRect(doc, badgeX, badgeY, badgeW, badgeH, 13, 'F', theme.badge, theme.accent);
+      preparePageText(doc, 12, 'bold', theme.badgeText);
+      doc.text(`Grade ${grade}`, PAGE_WIDTH / 2, badgeY + 17, { align: 'center' });
+
+      setPdfColor(doc, theme.title, 'draw');
+      doc.setLineWidth(1.5);
+      const dividerY = 248;
+      doc.line(MARGIN + 60, dividerY, PAGE_WIDTH - MARGIN - 60, dividerY);
+      setPdfColor(doc, theme.accent, 'fill');
+      doc.circle(PAGE_WIDTH / 2, dividerY, 4, 'F');
+      doc.circle(PAGE_WIDTH / 2 - 20, dividerY, 3, 'F');
+      doc.circle(PAGE_WIDTH / 2 + 20, dividerY, 3, 'F');
+
+      let fieldY = 310;
+      fieldY = drawCoverField(doc, 'Name', fieldY);
+      fieldY = drawCoverField(doc, 'Date', fieldY);
+      drawCoverField(doc, 'School', fieldY);
+
+      preparePageText(doc, 10, 'italic', PDF_THEME.text.muted);
+      doc.text('Have fun learning!', PAGE_WIDTH / 2, PAGE_HEIGHT - 40, { align: 'center' });
+    }
+
+    function measureWrappedHeight(doc, text, maxWidth, lineHeight) {
+      return wrapTextToLines(doc, text, maxWidth).length * lineHeight;
+    }
+
+    function layoutWordBankInBox(doc, words, x, y, maxWidth, maxHeight) {
+      const bankWords = words.map((w) => sanitizePdfText(w)).filter(Boolean);
+      if (!bankWords.length) return;
+
+      const lineHeight = 13;
+      let colCount = 2;
+      for (let cols = 5; cols >= 2; cols--) {
+        const rows = Math.ceil(bankWords.length / cols);
+        if (rows * lineHeight <= maxHeight) {
+          colCount = cols;
+          break;
+        }
+      }
+      const colWidth = maxWidth / colCount;
+      const rowsPerCol = Math.ceil(bankWords.length / colCount);
+      const neededHeight = rowsPerCol * lineHeight;
+      const startY = neededHeight < maxHeight ? y + (maxHeight - neededHeight) / 2 : y;
+
+      bankWords.forEach((word, index) => {
+        const col = index % colCount;
+        const row = Math.floor(index / colCount);
+        const wordY = startY + row * lineHeight;
+        if (wordY > y + maxHeight) return;
+        printLine(doc, word, x + col * colWidth, wordY);
+      });
+    }
+
+    function addFillBlankPage(doc, questions, topic) {
+      const theme = PDF_THEME.fillBlank;
+      drawWorksheetHeader(doc, 'Fill in the Blanks', 'Use the word bank to complete each sentence.', theme.header);
+
+      const questionStartY = PDF_CONTENT_TOP;
+      const bankY = PAGE_HEIGHT - MARGIN - FILL_BLANK_WORD_BANK_HEIGHT - 20;
+      const maxQuestionY = bankY - FILL_BLANK_WORD_BANK_GAP;
+      const questionLineHeight = 18;
+      const questionGap = 8;
+
+      preparePageText(doc, 12, 'normal', PDF_THEME.text.body);
+      let y = questionStartY;
+      const visibleQuestions = [];
+
+      questions.forEach((q, i) => {
+        const label = `${i + 1}. ${q.question}`;
+        const blockHeight = measureWrappedHeight(doc, label, CONTENT_WIDTH - 8, questionLineHeight);
+        if (y + blockHeight > maxQuestionY) return;
+
+        if (i % 2 === 0) {
+          drawRoundedRect(doc, MARGIN - 4, y - 12, CONTENT_WIDTH + 8, blockHeight + 8, 6, 'F', theme.panel);
+        }
+
+        const lines = wrapTextToLines(doc, label, CONTENT_WIDTH - 8);
+        lines.forEach((line, li) => printLine(doc, line, MARGIN + 4, y + li * questionLineHeight));
+        y += blockHeight + questionGap;
+        visibleQuestions.push(q);
+      });
+
+      const answers = shuffle(
+        (visibleQuestions.length ? visibleQuestions : questions).map((q) => q.answer)
+      );
+
+      drawRoundedRect(
+        doc,
+        MARGIN,
+        bankY,
+        CONTENT_WIDTH,
+        FILL_BLANK_WORD_BANK_HEIGHT,
+        10,
+        'FD',
+        theme.panel,
+        theme.header
+      );
+
+      preparePageText(doc, 11, 'bold', theme.header);
+      printLine(doc, 'WORD BANK', MARGIN + 14, bankY + 18);
+
+      preparePageText(doc, 11, 'normal', PDF_THEME.text.body);
+      layoutWordBankInBox(
+        doc,
+        answers,
+        MARGIN + 14,
+        bankY + 32,
+        CONTENT_WIDTH - 28,
+        FILL_BLANK_WORD_BANK_HEIGHT - 40
+      );
+
+      drawPageFooter(doc, topic);
+    }
+
+    function drawTrueFalseChoice(doc, x, y, letter, fillColor, borderColor) {
+      setPdfColor(doc, fillColor, 'fill');
+      setPdfColor(doc, borderColor, 'draw');
+      doc.setLineWidth(1.2);
+      doc.circle(x, y - 4, 10, 'FD');
+      preparePageText(doc, 10, 'bold', borderColor);
+      printLine(doc, letter, x - 3.5, y);
+    }
+
+    function addTrueFalsePage(doc, questions, topic) {
+      const theme = PDF_THEME.trueFalse;
+      drawWorksheetHeader(doc, 'True or False?', 'Circle T if the statement is true, F if false.', theme.header);
+
+      preparePageText(doc, 12, 'normal', PDF_THEME.text.body);
+      let y = PDF_CONTENT_TOP;
+      const tfX = PAGE_WIDTH - MARGIN - 58;
+
+      questions.forEach((q, i) => {
+        const lines = wrapTextToLines(doc, `${i + 1}. ${q.statement}`, CONTENT_WIDTH - 80);
+        const blockHeight = lines.length * 20 + 4;
+        if (i % 2 === 0) {
+          drawRoundedRect(doc, MARGIN - 4, y - 14, CONTENT_WIDTH + 8, blockHeight + 10, 6, 'F', [240, 253, 250]);
+        }
+
+        lines.forEach((line, li) => {
+          preparePageText(doc, 12, 'normal', PDF_THEME.text.body);
+          printLine(doc, line, MARGIN + 4, y);
+          if (li === lines.length - 1) {
+            drawTrueFalseChoice(doc, tfX, y, 'T', theme.trueFill, theme.trueBorder);
+            drawTrueFalseChoice(doc, tfX + 30, y, 'F', theme.falseFill, theme.falseBorder);
+            preparePageText(doc, 12, 'normal', PDF_THEME.text.body);
+          }
+          y += 20;
+        });
+        y += 6;
+      });
+
+      drawPageFooter(doc, topic);
+    }
+
+    function addVocabPage(doc, pairs, topic) {
+      const theme = PDF_THEME.vocab;
+      drawWorksheetHeader(doc, 'Match the Words', 'Write the letter of the matching definition next to each word.', theme.header);
+
+      const sorted = [...pairs].sort((a, b) => a.term.localeCompare(b.term));
+      const shuffledDefs = shuffle(pairs.map((p, i) => ({ ...p, origIndex: i })));
+      const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+      state.vocabLetterMap = sorted.map((item) => {
+        const defIndex = shuffledDefs.findIndex((d) => d.term === item.term && d.definition === item.definition);
+        return letters[defIndex];
+      });
+
+      const colWidth = CONTENT_WIDTH / 2 - 14;
+      let y = PDF_CONTENT_TOP;
+      const leftX = MARGIN + 8;
+      const rightX = MARGIN + CONTENT_WIDTH / 2 + 6;
+      const panelBottom = PAGE_HEIGHT - MARGIN - 36;
+      const panelHeight = panelBottom - y + 8;
+
+      drawRoundedRect(doc, MARGIN, y - 8, CONTENT_WIDTH / 2 - 4, panelHeight, 8, 'F', theme.panel);
+      drawRoundedRect(doc, MARGIN + CONTENT_WIDTH / 2 + 4, y - 8, CONTENT_WIDTH / 2 - 4, panelHeight, 8, 'F', [250, 245, 255]);
+
+      preparePageText(doc, 10, 'bold', theme.header);
+      printLine(doc, 'Words', leftX, y + 2);
+      printLine(doc, 'Definitions', rightX, y + 2);
+      y += 20;
+
+      preparePageText(doc, 11, 'normal', PDF_THEME.text.body);
+      const maxRows = Math.max(sorted.length, shuffledDefs.length);
+      for (let i = 0; i < maxRows; i++) {
+        let rowHeight = 24;
+        if (sorted[i]) {
+          printLine(doc, `${i + 1}. ___ ${sorted[i].term}`, leftX, y);
+        }
+        if (shuffledDefs[i]) {
+          setPdfColor(doc, theme.letter, 'fill');
+          doc.circle(rightX - 6, y - 4, 7, 'F');
+          preparePageText(doc, 9, 'bold', PDF_THEME.text.white);
+          printLine(doc, letters[i], rightX - 8.5, y);
+          preparePageText(doc, 11, 'normal', PDF_THEME.text.body);
+          const defLines = wrapTextToLines(doc, shuffledDefs[i].definition, colWidth - 12);
+          defLines.forEach((line, li) => printLine(doc, line, rightX + 8, y + li * 13));
+          rowHeight = Math.max(rowHeight, defLines.length * 13 + 6);
+        }
+        y += rowHeight;
+      }
+
+      drawPageFooter(doc, topic);
+    }
+
+    function addShortAnswerPage(doc, questions, topic) {
+      const theme = PDF_THEME.shortAnswer;
+      drawWorksheetHeader(doc, 'Think and Write', 'Answer each question in complete sentences.', theme.header);
+
+      preparePageText(doc, 12, 'normal', PDF_THEME.text.body);
+      let y = PDF_CONTENT_TOP;
+      const footerSafeY = PAGE_HEIGHT - MARGIN - 44;
+      const questionLineHeight = 16;
+      const answerLineSpacing = 26;
+
+      questions.forEach((q, i) => {
+        const label = getShortAnswerPdfQuestion(q, i);
+        const lines = wrapTextToLines(doc, label, CONTENT_WIDTH - 8);
+        const blockHeight = lines.length * questionLineHeight + 10 + 3 * answerLineSpacing + 12;
+        if (y + blockHeight > footerSafeY) return;
+
+        drawRoundedRect(doc, MARGIN - 4, y - 14, CONTENT_WIDTH + 8, blockHeight, 8, 'F', [255, 251, 235]);
+
+        lines.forEach((line, li) => printLine(doc, line, MARGIN + 4, y + li * questionLineHeight));
+        y += lines.length * questionLineHeight + 12;
+
+        for (let l = 0; l < 3; l++) {
+          setPdfColor(doc, theme.line, 'draw');
+          doc.setLineWidth(0.8);
+          doc.line(MARGIN + 4, y, PAGE_WIDTH - MARGIN - 4, y);
+          y += answerLineSpacing;
+        }
+        y += 10;
+      });
+
+      drawPageFooter(doc, topic);
+    }
+
+    function addAnswerKeyPage(doc, topic) {
+      const theme = PDF_THEME.answerKey;
+
+      setPdfColor(doc, theme.bg, 'fill');
+      doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, 'F');
+
+      drawWorksheetHeader(doc, 'Answer Key', 'For teachers only — remove this page before distributing.', theme.header);
+
+      preparePageText(doc, 10, 'normal', PDF_THEME.text.body);
+      let y = PDF_CONTENT_TOP;
+
+      const g = state.generated;
+
+      function drawAnswerSection(title, items) {
+        if (!items.length) return;
+        const lineCount = wrapAnswerKeyToLines(doc, items, CONTENT_WIDTH - 24).length;
+        const sectionHeight = 34 + lineCount * 13;
+        drawRoundedRect(doc, MARGIN, y, CONTENT_WIDTH, sectionHeight, 8, 'F', theme.panel);
+        preparePageText(doc, 11, 'bold', theme.header);
+        printLine(doc, title, MARGIN + 12, y + 16);
+        preparePageText(doc, 10, 'normal', PDF_THEME.text.body);
+        y = drawWrappedAnswerKey(doc, items, MARGIN + 12, y + 30, CONTENT_WIDTH - 24, 13) + 14;
+      }
+
+      if (g.fillBlank.length) {
+        drawAnswerSection('Fill in the Blanks', g.fillBlank.map((q, i) => `${i + 1}. ${q.answer}`));
+      }
+
+      if (g.trueFalse.length) {
+        drawAnswerSection('True/False', g.trueFalse.map((q, i) => `${i + 1}. ${q.isTrue ? 'T' : 'F'}`));
+      }
+
+      if (g.vocab.length) {
+        const sorted = [...g.vocab].sort((a, b) => a.term.localeCompare(b.term));
+        drawAnswerSection('Vocabulary', sorted.map((_, i) => `${i + 1}-${state.vocabLetterMap[i] || '?'}`));
+      }
+
+      if (g.shortAnswer.length) {
+        let shortHeight = 34;
+        g.shortAnswer.forEach((q, i) => {
+          shortHeight += wrapTextToLines(doc, `${i + 1}. ${q.answer}`, CONTENT_WIDTH - 24).length * 13 + 4;
+        });
+        drawRoundedRect(doc, MARGIN, y, CONTENT_WIDTH, shortHeight, 8, 'F', theme.panel);
+        preparePageText(doc, 11, 'bold', theme.header);
+        printLine(doc, 'Short Answer:', MARGIN + 12, y + 16);
+        y += 30;
+        preparePageText(doc, 10, 'italic', PDF_THEME.text.body);
+        g.shortAnswer.forEach((q, i) => {
+          y = drawWrappedText(doc, `${i + 1}. ${q.answer}`, MARGIN + 12, y, CONTENT_WIDTH - 24, 13);
+          y += 4;
+        });
+        y += 10;
+      }
+
+      drawPageFooter(doc, topic);
+    }
+
+    function buildPDF() {
+      const doc = getDoc();
+      const { topic, grade, worksheetTypes, includeAnswerKey, generated } = state;
+
+      // Sanitize short-answer questions saved from a prior session
+      generated.shortAnswer = generated.shortAnswer.map((q) => {
+        if (!isValidShortQuestion(q.question)) {
+          return {
+            ...q,
+            question: `What is one important fact about ${topic.toLowerCase()}?`,
+          };
+        }
+        return q;
+      });
+
+      addCoverPage(doc, topic, grade);
+
+      if (worksheetTypes.fillBlank && generated.fillBlank.length) {
+        doc.addPage();
+        addFillBlankPage(doc, generated.fillBlank, topic);
+      }
+
+      if (worksheetTypes.trueFalse && generated.trueFalse.length) {
+        doc.addPage();
+        addTrueFalsePage(doc, generated.trueFalse, topic);
+      }
+
+      if (worksheetTypes.vocab && generated.vocab.length) {
+        doc.addPage();
+        addVocabPage(doc, generated.vocab, topic);
+      }
+
+      if (worksheetTypes.shortAnswer && generated.shortAnswer.length) {
+        doc.addPage();
+        addShortAnswerPage(doc, generated.shortAnswer, topic);
+      }
+
+      if (includeAnswerKey) {
+        doc.addPage();
+        addAnswerKeyPage(doc, topic);
+      }
+
+      state.pdfDoc = doc;
+      state.pdfBlob = doc.output('blob');
+      return doc;
+    }
+
+    function countPDFPages() {
+      let count = 1;
+      const { worksheetTypes, includeAnswerKey, generated } = state;
+      if (worksheetTypes.fillBlank && generated.fillBlank.length) count++;
+      if (worksheetTypes.trueFalse && generated.trueFalse.length) count++;
+      if (worksheetTypes.vocab && generated.vocab.length) count++;
+      if (worksheetTypes.shortAnswer && generated.shortAnswer.length) count++;
+      if (includeAnswerKey) count++;
+      return count;
+    }
+
+    // ─── UI Rendering ────────────────────────────────────────────
+    function showScreen(n) {
+      state.screen = n;
+      document.querySelectorAll('.screen').forEach((el) => el.classList.remove('active'));
+      document.getElementById(`screen-${n}`).classList.add('active');
+      window.scrollTo(0, 0);
+    }
+
+    function getEnabledTabs() {
+      return Object.entries(state.worksheetTypes)
+        .filter(([key, enabled]) => enabled)
+        .map(([key]) => key)
+        .filter((key) => {
+          if (state.screen !== 2) return true;
+          return state.generated[key] && state.generated[key].length > 0;
+        });
+    }
+
+    function renderTabs() {
+      const tabBar = document.getElementById('tab-bar');
+      const tabs = getEnabledTabs();
+      if (!tabs.includes(state.activeTab)) state.activeTab = tabs[0] || 'fillBlank';
+
+      tabBar.innerHTML = tabs.map((key) => `
+        <button type="button" data-tab="${key}"
+          class="tab-btn whitespace-nowrap px-4 py-2 text-sm text-gray-500 hover:text-indigo-600 transition ${key === state.activeTab ? 'active' : ''}">
+          ${WORKSHEET_LABELS[key]}
+        </button>
+      `).join('');
+
+      tabBar.querySelectorAll('.tab-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.activeTab = btn.dataset.tab;
+          render();
+        });
+      });
+    }
+
+    function renderQuestionList() {
+      const container = document.getElementById('tab-content');
+      const type = state.activeTab;
+      const target = state.questionsPerWorksheet;
+      const showAnswer = state.includeAnswerKey;
+
+      const items = state.generated[type] || [];
+      if (items.length === 0) {
+        container.innerHTML = `<div class="bg-amber-50 border border-amber-200 rounded-xl p-6 text-amber-800">
+          <p class="font-semibold">No questions generated for this type</p>
+          <p class="text-sm mt-1">This worksheet page will be skipped in the PDF.</p>
+        </div>`;
+        return;
+      }
+
+      const countTarget = type === 'shortAnswer' ? SHORT_ANSWER_TARGET : target;
+      const isUnder = items.length < countTarget;
+
+      container.innerHTML = `
+        <div class="space-y-2" id="question-list">
+          ${items.map((item, i) => renderQuestionRow(type, item, i, showAnswer)).join('')}
+        </div>
+        <button type="button" id="add-question-btn"
+          class="mt-4 text-indigo-600 hover:text-indigo-800 font-semibold text-sm touch-target">
+          + Add question manually
+        </button>
+        <p class="mt-2 text-sm ${isUnder ? 'text-amber-600' : 'text-gray-500'}">
+          ${items.length} / ${countTarget} questions${isUnder ? ' — consider adding more' : ''}
+        </p>
+      `;
+
+      bindQuestionEvents(type);
+    }
+
+    function renderQuestionRow(type, item, index, showAnswer) {
+      let questionText = '';
+      let answerText = '';
+
+      if (type === 'fillBlank') {
+        questionText = item.question;
+        answerText = item.answer;
+      } else if (type === 'trueFalse') {
+        questionText = item.statement;
+        answerText = item.isTrue ? 'True' : 'False';
+      } else if (type === 'vocab') {
+        questionText = item.term;
+        answerText = item.definition;
+      } else if (type === 'shortAnswer') {
+        questionText = item.question;
+        answerText = item.answer;
+      }
+
+      return `
+        <div class="question-row flex items-start gap-2 bg-white border border-gray-200 rounded-lg p-3"
+          draggable="true" data-index="${index}">
+          <span class="drag-handle mt-1 touch-target" title="Drag to reorder">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/>
+              <circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/>
+            </svg>
+          </span>
+          <div class="flex-1 min-w-0">
+            <div class="editable-field question-text text-gray-800" contenteditable="true" data-field="question">${escapeHtml(questionText)}</div>
+            ${showAnswer ? `<div class="editable-field answer-text text-sm text-gray-500 mt-1" contenteditable="true" data-field="answer">Answer: ${escapeHtml(answerText)}</div>` : ''}
+          </div>
+          <button type="button" class="delete-btn text-gray-400 hover:text-red-500 p-1 touch-target" data-index="${index}" title="Delete">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      `;
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function bindQuestionEvents(type) {
+      const list = document.getElementById('question-list');
+      if (!list) return;
+
+      list.querySelectorAll('.question-row').forEach((row) => {
+        row.addEventListener('dragstart', (e) => {
+          dragSrcIndex = parseInt(row.dataset.index, 10);
+          dragSrcType = type;
+          row.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        row.addEventListener('dragend', () => row.classList.remove('dragging'));
+        row.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+        row.addEventListener('drop', (e) => {
+          e.preventDefault();
+          const destIndex = parseInt(row.dataset.index, 10);
+          if (dragSrcType === type && dragSrcIndex !== null && dragSrcIndex !== destIndex) {
+            const items = state.generated[type];
+            const [moved] = items.splice(dragSrcIndex, 1);
+            items.splice(destIndex, 0, moved);
+            render();
+          }
+        });
+
+        row.querySelectorAll('.editable-field').forEach((field) => {
+          field.addEventListener('blur', () => {
+            const idx = parseInt(row.dataset.index, 10);
+            const item = state.generated[type][idx];
+            const text = field.textContent.replace(/^Answer:\s*/, '').trim();
+            if (field.dataset.field === 'question') {
+              if (type === 'fillBlank') item.question = text;
+              else if (type === 'trueFalse') item.statement = text;
+              else if (type === 'vocab') item.term = text;
+              else if (type === 'shortAnswer') item.question = text;
+            } else {
+              if (type === 'fillBlank') item.answer = text;
+              else if (type === 'trueFalse') item.isTrue = text.toLowerCase().startsWith('t');
+              else if (type === 'vocab') item.definition = text;
+              else if (type === 'shortAnswer') item.answer = text;
+            }
+          });
+        });
+      });
+
+      list.querySelectorAll('.delete-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.index, 10);
+          state.generated[type].splice(idx, 1);
+          render();
+        });
+      });
+
+      document.getElementById('add-question-btn')?.addEventListener('click', () => {
+        if (type === 'fillBlank') {
+          state.generated.fillBlank.push({ question: 'New sentence with ________.', answer: 'answer' });
+        } else if (type === 'trueFalse') {
+          state.generated.trueFalse.push({ statement: 'New true/false statement.', isTrue: true });
+        } else if (type === 'vocab') {
+          state.generated.vocab.push({ term: 'NewTerm', definition: 'Definition here.' });
+        } else if (type === 'shortAnswer') {
+          state.generated.shortAnswer.push({ question: 'New question?', answer: 'Sample answer.' });
+        }
+        render();
+      });
+    }
+
+    function renderCoverPreview() {
+      const el = document.getElementById('cover-preview');
+      el.innerHTML = `
+        <div style="width:100%;height:90px;background:linear-gradient(180deg,#DBEAFE 0%,#EFF6FF 100%);position:relative;">
+          <div style="position:absolute;width:28px;height:28px;border-radius:50%;background:#FED7AA;top:14px;right:18px;"></div>
+          <div style="position:absolute;width:18px;height:18px;border-radius:50%;background:#A7F3D0;top:36px;right:42px;"></div>
+          <div style="position:absolute;width:22px;height:22px;border-radius:50%;background:#BFDBFE;top:24px;left:20px;"></div>
+        </div>
+        <div style="padding:0 20px;width:100%;box-sizing:border-box;margin-top:-8px;">
+          <div style="font-size:20px;font-weight:bold;text-align:center;color:#4F46E5;line-height:1.2;">${escapeHtml(state.topic)}</div>
+          <div style="font-size:11px;color:#6B7280;text-align:center;margin-top:6px;">Lesson Packet</div>
+          <div style="display:inline-block;margin:10px auto 0;padding:4px 14px;border-radius:999px;background:#FEF3C7;color:#92400E;font-size:10px;font-weight:bold;text-align:center;width:fit-content;display:block;width:max-content;margin-left:auto;margin-right:auto;">Grade ${escapeHtml(state.grade)}</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:16px 0 20px;">
+            <div style="flex:1;height:1px;background:#E5E7EB;max-width:60px;"></div>
+            <div style="width:6px;height:6px;border-radius:50%;background:#FBBF24;"></div>
+            <div style="flex:1;height:1px;background:#E5E7EB;max-width:60px;"></div>
+          </div>
+          <div style="margin-bottom:12px;">
+            <div style="font-size:10px;font-weight:bold;color:#4F46E5;margin-bottom:4px;">Name</div>
+            <div style="width:100%;border-bottom:1px solid #D1D5DB;"></div>
+          </div>
+          <div style="margin-bottom:12px;">
+            <div style="font-size:10px;font-weight:bold;color:#4F46E5;margin-bottom:4px;">Date</div>
+            <div style="width:100%;border-bottom:1px solid #D1D5DB;"></div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:bold;color:#4F46E5;margin-bottom:4px;">School</div>
+            <div style="width:100%;border-bottom:1px solid #D1D5DB;"></div>
+          </div>
+        </div>
+        <div style="margin-top:auto;padding-bottom:12px;font-size:9px;color:#9CA3AF;font-style:italic;">Have fun learning!</div>
+      `;
+    }
+
+    function render() {
+      if (state.screen === 2) {
+        document.getElementById('preview-topic').textContent = state.topic;
+        renderTabs();
+        renderQuestionList();
+      }
+      if (state.screen === 3) {
+        const pages = countPDFPages();
+        document.getElementById('success-subtext').textContent =
+          `${pages} page${pages !== 1 ? 's' : ''} • US Letter • Print-ready`;
+        renderCoverPreview();
+      }
+      validateForm();
+    }
+
+    function validateForm() {
+      const topic = document.getElementById('topic-input').value.trim();
+      const facts = document.getElementById('facts-input').value.trim();
+      const apiKey = document.getElementById('api-key-input').value.trim();
+      const typesChecked = [...document.querySelectorAll('#worksheet-types input:checked')].length;
+      const btn = document.getElementById('generate-btn');
+
+      const topicError = document.getElementById('topic-error');
+      const factsError = document.getElementById('facts-error');
+      const factsWarning = document.getElementById('facts-warning');
+      const typesError = document.getElementById('types-error');
+      const apiKeyError = document.getElementById('api-key-error');
+      const topicInput = document.getElementById('topic-input');
+      const apiKeyInput = document.getElementById('api-key-input');
+
+      const topicValid = topic.length > 0;
+      const factsValid = facts.length >= 10;
+      const typesValid = typesChecked > 0;
+      const apiKeyValid = apiKey.length > 0;
+
+      topicError.classList.toggle('hidden', topicValid || !topicInput.matches(':focus'));
+      topicInput.classList.toggle('border-red-500', !topicValid && topicInput.value.length === 0);
+      factsError.classList.toggle('hidden', factsValid);
+      factsWarning.classList.toggle('hidden', facts.length >= 50 || facts.length < 10);
+      typesError.classList.toggle('hidden', typesValid);
+      apiKeyError.classList.toggle('hidden', apiKeyValid || !apiKeyInput.matches(':focus'));
+      apiKeyInput.classList.toggle('border-red-500', !apiKeyValid && apiKeyInput.value.length === 0);
+
+      btn.disabled = !topicValid || !factsValid || !typesValid || !apiKeyValid;
+    }
+
+    function readFormState() {
+      state.topic = document.getElementById('topic-input').value.trim();
+      state.facts = document.getElementById('facts-input').value;
+      state.questionsPerWorksheet = parseInt(document.getElementById('questions-slider').value, 10);
+      state.includeAnswerKey = document.getElementById('answer-key-toggle').checked;
+      saveActivateKey(document.getElementById('api-key-input').value);
+
+      document.querySelectorAll('#worksheet-types input').forEach((cb) => {
+        state.worksheetTypes[cb.dataset.type] = cb.checked;
+      });
+    }
+
+    function resetForm() {
+      document.getElementById('topic-input').value = '';
+      document.getElementById('facts-input').value = '';
+      document.getElementById('questions-slider').value = '10';
+      document.getElementById('slider-value').textContent = '10';
+      document.getElementById('answer-key-toggle').checked = true;
+      document.querySelectorAll('#worksheet-types input').forEach((cb) => { cb.checked = true; });
+      document.querySelectorAll('.grade-btn').forEach((b) => {
+        b.classList.toggle('active', b.dataset.grade === '2-3');
+      });
+      state.grade = '2-3';
+      state.generated = {
+        fillBlank: [], trueFalse: [], vocab: [], shortAnswer: [],
+      };
+      state.pdfDoc = null;
+      state.pdfBlob = null;
+      validateForm();
+    }
+
+    // ─── Event Bindings ──────────────────────────────────────────
+    function bindEvents() {
+      document.querySelectorAll('.grade-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.grade-btn').forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.grade = btn.dataset.grade;
+        });
+      });
+
+      document.getElementById('questions-slider').addEventListener('input', (e) => {
+        document.getElementById('slider-value').textContent = e.target.value;
+      });
+
+      document.getElementById('topic-input').addEventListener('input', validateForm);
+      document.getElementById('facts-input').addEventListener('input', validateForm);
+      document.getElementById('api-key-input').addEventListener('input', validateForm);
+      document.getElementById('api-key-input').addEventListener('blur', () => {
+        saveActivateKey(document.getElementById('api-key-input').value);
+        validateForm();
+      });
+      document.querySelectorAll('#worksheet-types input').forEach((cb) => {
+        cb.addEventListener('change', validateForm);
+      });
+
+      document.getElementById('toggle-api-key-btn').addEventListener('click', () => {
+        const input = document.getElementById('api-key-input');
+        const btn = document.getElementById('toggle-api-key-btn');
+        const isHidden = input.type === 'password';
+        input.type = isHidden ? 'text' : 'password';
+        btn.textContent = isHidden ? 'Hide' : 'Show';
+      });
+
+      document.getElementById('generate-btn').addEventListener('click', async () => {
+        if (!checkCDN()) return;
+        readFormState();
+        const btn = document.getElementById('generate-btn');
+        btn.disabled = true;
+        btn.textContent = 'Generating...';
+
+        try {
+          await generateAllQuestions();
+          state.activeTab = getEnabledTabs()[0] || 'fillBlank';
+          showScreen(2);
+          render();
+        } catch (err) {
+          console.error(err);
+          const message = err.message === 'Failed to fetch'
+            ? 'Network error. Check your internet connection and try again.'
+            : (err.message || 'Something went wrong. Try with shorter facts or fewer questions.');
+          showErrorModal(message);
+        } finally {
+          btn.textContent = 'Generate Worksheets →';
+          validateForm();
+        }
+      });
+
+      document.getElementById('back-btn').addEventListener('click', () => showScreen(1));
+
+      document.getElementById('create-pdf-btn').addEventListener('click', () => {
+        const btn = document.getElementById('create-pdf-btn');
+        btn.disabled = true;
+        btn.textContent = 'Creating PDF...';
+
+        setTimeout(() => {
+          try {
+            if (!checkCDN()) return;
+            buildPDF();
+            showScreen(3);
+            render();
+          } catch (err) {
+            console.error(err);
+            showErrorModal(err.message || 'Could not create PDF. Please try again.');
+          } finally {
+            btn.disabled = false;
+            btn.textContent = 'Create PDF →';
+          }
+        }, 50);
+      });
+
+      document.getElementById('download-btn').addEventListener('click', () => {
+        if (!state.pdfDoc) return;
+        const filename = `${state.topic.replace(/[^a-zA-Z0-9]/g, '_')}_Lesson_Packet.pdf`;
+        state.pdfDoc.save(filename);
+      });
+
+      document.getElementById('print-btn').addEventListener('click', () => {
+        if (!state.pdfBlob) return;
+        const url = URL.createObjectURL(state.pdfBlob);
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = url;
+        document.body.appendChild(iframe);
+        iframe.onload = () => {
+          iframe.contentWindow.print();
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+            URL.revokeObjectURL(url);
+          }, 1000);
+        };
+      });
+
+      document.getElementById('restart-btn').addEventListener('click', () => {
+        resetForm();
+        showScreen(1);
+      });
+
+      document.getElementById('modal-close').addEventListener('click', () => {
+        document.getElementById('error-modal').classList.add('hidden');
+      });
+    }
+
+    // ─── Init ────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+      checkCDN();
+      loadActivateKey();
+      bindEvents();
+      validateForm();
+    });
+  })();
+  </script>
+</body>
+</html>

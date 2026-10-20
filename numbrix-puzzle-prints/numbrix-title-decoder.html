@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Numbrix Title Formula Decoder</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: { extend: {
+    fontFamily: { display:['Fraunces','serif'], sans:['Inter','sans-serif'], mono:['JetBrains Mono','monospace'] },
+    colors: { ink:'#15201c', paper:'#f7f5ee', line:'#d9d4c4', path:'#1f7a5c', pathlight:'#e3f0ea', amber:'#c98a2b', flag:'#c2362c' }
+  }}
+}
+</script>
+<style>
+  :root { --grid:#e6e1d2; }
+  body {
+    background-color:#f7f5ee;
+    background-image: linear-gradient(var(--grid) 1px,transparent 1px), linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:26px 26px; background-position:-1px -1px;
+  }
+  .card-paper { background:#fffdf7; box-shadow:0 1px 0 #fff inset,0 2px 14px rgba(21,32,28,.06); }
+  .seg { transition:all .15s ease; }
+  .seg[aria-pressed="true"] { background:#15201c; color:#f7f5ee; border-color:#15201c; }
+  .fade-in { animation:fi .4s ease; }
+  @keyframes fi { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:none;} }
+  /* score ring */
+  .ring { transform:rotate(-90deg); }
+  @media (prefers-reduced-motion: reduce){ .fade-in{animation:none;} }
+  @media print { body{background:#fff;} .print-hide{display:none!important;} .card-paper{box-shadow:none;border:1px solid #d9d4c4;} .title-card{break-inside:avoid;} }
+</style>
+</head>
+<body class="font-sans text-ink min-h-screen">
+
+<header class="max-w-4xl mx-auto px-5 pt-10 pb-6">
+  <div class="flex items-start justify-between gap-6 flex-wrap">
+    <div class="max-w-xl">
+      <div class="inline-flex items-center gap-2 mb-4">
+        <svg width="34" height="34" viewBox="0 0 34 34" class="shrink-0">
+          <rect x="1" y="1" width="32" height="32" rx="6" fill="#fffdf7" stroke="#15201c" stroke-width="1.5"/>
+          <path d="M8 17 H14 M18 11 V23 M22 17 H26" stroke="#1f7a5c" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="18" cy="11" r="2.2" fill="#c98a2b"/>
+        </svg>
+        <span class="font-mono text-xs tracking-[0.2em] text-path uppercase">Numbrix Toolkit</span>
+      </div>
+      <h1 class="font-display text-4xl sm:text-5xl leading-[1.05] font-600 tracking-tight">Title&nbsp;Formula&nbsp;Decoder</h1>
+      <p class="mt-3 text-[15px] leading-relaxed text-ink/70">
+        Your Amazon title is the single biggest factor in whether a Numbrix book gets found and clicked.
+        Set your book's details and get ready-to-use titles built from the patterns that work in the category —
+        each one checked against KDP's rules so it won't get flagged.
+      </p>
+    </div>
+    <div class="card-paper rounded-xl border border-line px-4 py-3 text-xs font-mono text-ink/60 min-w-[180px]">
+      <div class="flex items-center gap-2">
+        <span id="dot" class="w-2 h-2 rounded-full bg-amber animate-pulse"></span>
+        <span id="dataStatus">loading data…</span>
+      </div>
+      <div class="mt-2 text-[10px] leading-snug text-ink/45" id="dataMeta"></div>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-4xl mx-auto px-5 pb-24">
+
+  <!-- INPUT -->
+  <section class="card-paper rounded-2xl border border-line p-6 sm:p-8 fade-in print-hide">
+    <div class="grid sm:grid-cols-2 gap-x-8 gap-y-6">
+
+      <div>
+        <label class="block text-sm font-600 mb-1.5">Grid size</label>
+        <div id="gridPick" class="flex flex-wrap gap-1.5"></div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-600 mb-1.5">Difficulty</label>
+        <div id="diffPick" class="flex flex-wrap gap-1.5"></div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-600 mb-1.5">Audience</label>
+        <div id="audPick" class="flex flex-wrap gap-1.5"></div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-600 mb-1.5">Format</label>
+        <div id="fmtPick" class="flex flex-wrap gap-1.5"></div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-600 mb-1.5">Puzzle count</label>
+        <input id="countInput" type="number" min="20" max="2000" value="500"
+          class="w-full bg-white border border-line rounded-lg px-3 py-2 font-mono text-sm focus:border-path focus:outline-none">
+      </div>
+
+      <div>
+        <label class="block text-sm font-600 mb-1.5">Your series / brand word <span class="text-ink/40 font-400">(optional)</span></label>
+        <input id="brandInput" type="text" maxlength="40" placeholder="e.g. BrainPath"
+          class="w-full bg-white border border-line rounded-lg px-3 py-2 text-sm focus:border-path focus:outline-none">
+        <p class="text-[11px] text-ink/45 mt-1">Adds a distinctive series name so your books read as a set.</p>
+      </div>
+    </div>
+
+    <button id="buildBtn"
+      class="mt-7 w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-ink text-paper font-600 text-sm px-6 py-3 rounded-xl hover:bg-path transition-colors">
+      Decode my titles
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h9m0 0L8.5 4.5M12 8l-3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="results" class="mt-9 hidden">
+    <div class="flex items-end justify-between gap-3 flex-wrap mb-4">
+      <h2 class="font-display text-2xl font-600">Your title options</h2>
+      <div class="text-xs font-mono text-ink/50 print-hide">
+        sorted by score · <span id="charBudget"></span>
+      </div>
+    </div>
+    <div id="titleList" class="space-y-3"></div>
+
+    <!-- subtitle helper -->
+    <div id="subtitleBox" class="card-paper rounded-2xl border border-line p-6 mt-6"></div>
+
+    <p id="disclaimer" class="text-[11px] leading-relaxed text-ink/45 mt-6 font-mono"></p>
+  </section>
+
+  <section id="errorBox" class="hidden card-paper rounded-2xl border border-amber/40 p-6 mt-8">
+    <p class="font-600 text-amber mb-1">Couldn't load the data file.</p>
+    <p id="errorMsg" class="text-sm text-ink/60"></p>
+  </section>
+</main>
+
+<footer class="max-w-4xl mx-auto px-5 pb-12 print-hide">
+  <p class="text-[11px] font-mono text-ink/35">Numbrix Title Formula Decoder · rules from Amazon KDP's published metadata guidelines · scores are guidance, not a ranking guarantee</p>
+</footer>
+
+<script>
+const DATA_URL = window.NUMBRIX_TITLE_DATA_URL || "https://raw.githubusercontent.com/vanloc19bk96/affiliate-bonuses-data/refs/heads/master/numbrix-title-data.json";
+let DATA = null;
+const $ = id => document.getElementById(id);
+
+const STATE = { grid:"9x9", difficulty:"mixed", audience:"adults", format:"regular", count:500, brand:"" };
+
+/* ---------- template fill ---------- */
+function fill(tpl, ctx){
+  const brandFull = ctx.brand ? `${ctx.brand} Numbrix Puzzle Book` : "Numbrix Puzzle Book";
+  const lp = ctx.format==='largePrint' ? `Large Print ${ctx.grid}` : "";
+  return tpl
+    .replace(/{grid}/g, ctx.grid)
+    .replace(/{count}/g, ctx.count)
+    .replace(/{maxNumber}/g, ctx.maxNumber)
+    .replace(/{difficulty}/g, ctx.difficultyWord)
+    .replace(/{audience}/g, ctx.audienceWord)
+    .replace(/{brandFull}/g, brandFull)
+    .replace(/{largePrintPrefix}/g, lp)
+    .replace(/{gridParen}/g, `(${ctx.grid})`)
+    .replace(/{gridOn}/g, `on ${ctx.grid} Grids`)
+    .replace(/{descriptor}/g, DATA.components.descriptor[0])
+    .replace(/{solution}/g, DATA.components.solutionTag[0])
+    .replace(/{benefit}/g, DATA.components.benefitTag[0])
+    .replace(/{layout}/g, DATA.components.layoutTag.onePerPage)
+    .replace(/\s+/g,' ').replace(/\s+:/g,':').replace(/:\s*—/g,' —').trim();
+}
+
+/* ---------- scoring ---------- */
+function scoreTitle(title, ctx){
+  let score=0; const good=[]; const bad=[];
+  const lower=title.toLowerCase();
+
+  if(title.length<=DATA.kdpRules.titleSubtitleMaxChars){score+=25; good.push("Within KDP's 200-char limit");}
+  else bad.push("Over 200 characters — KDP will reject this");
+
+  const promo=[].concat(...DATA.kdpRules.prohibited.map(p=>p.examples.map(e=>e.toLowerCase())));
+  const hit=promo.find(w=> new RegExp("\\b"+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+"\\b").test(lower));
+  if(!hit){score+=25; good.push("No prohibited promo words");}
+  else bad.push("Contains prohibited word: \""+hit+"\"");
+
+  if(lower.includes(String(ctx.count))){score+=12; good.push("States the puzzle count");}
+  else bad.push("Doesn't state the puzzle count");
+
+  if(lower.includes(ctx.difficultyWord.toLowerCase().split(' ')[0])){score+=12; good.push("States the difficulty");}
+  else bad.push("Doesn't state the difficulty");
+
+  if(lower.includes(ctx.grid.toLowerCase())){score+=8; good.push("Mentions the grid size");}
+  else bad.push("Doesn't mention the grid size");
+
+  if(/solution|answer/.test(lower)){score+=8; good.push("Mentions solutions");}
+
+  if(title.length<=130){score+=5;}
+  else bad.push("A bit long for a main title (over 130 chars)");
+
+  const words=lower.replace(/[^a-z0-9 ]/g,'').split(' ').filter(w=>w.length>3);
+  const counts={}; let rep=null;
+  words.forEach(w=>{counts[w]=(counts[w]||0)+1; if(counts[w]>2 && !rep) rep=w;});
+  if(!rep){score+=5;}
+  else bad.push("Repeats \""+rep+"\" — may read as keyword stuffing");
+
+  return { score, good, bad };
+}
+
+/* ---------- UI builders ---------- */
+function chip(label, active, onClick){
+  const b=document.createElement("button");
+  b.className="seg text-xs font-600 px-3 py-1.5 rounded-lg border border-line bg-white hover:border-ink/40";
+  b.textContent=label; b.setAttribute("aria-pressed", active?"true":"false");
+  b.onclick=onClick; return b;
+}
+
+function renderPickers(){
+  const g=$("gridPick"); g.innerHTML="";
+  Object.keys(DATA.gridData).forEach(id=>{
+    g.appendChild(chip(id, STATE.grid===id, ()=>{STATE.grid=id; renderPickers();}));
+  });
+  const d=$("diffPick"); d.innerHTML="";
+  Object.entries(DATA.difficultyData).forEach(([id,o])=>{
+    d.appendChild(chip(o.label, STATE.difficulty===id, ()=>{STATE.difficulty=id; renderPickers();}));
+  });
+  const a=$("audPick"); a.innerHTML="";
+  Object.entries(DATA.audienceData).forEach(([id,o])=>{
+    a.appendChild(chip(o.label, STATE.audience===id, ()=>{STATE.audience=id; renderPickers();}));
+  });
+  const f=$("fmtPick"); f.innerHTML="";
+  [["regular","Regular"],["largePrint","Large Print"]].forEach(([id,lbl])=>{
+    f.appendChild(chip(lbl, STATE.format===id, ()=>{STATE.format=id; renderPickers();}));
+  });
+}
+
+function ringColor(s){ return s>=85 ? "#1f7a5c" : s>=70 ? "#c98a2b" : "#c2362c"; }
+
+function scoreRing(s){
+  const r=18, c=2*Math.PI*r, off=c*(1-s/100), col=ringColor(s);
+  return `<svg width="52" height="52" viewBox="0 0 52 52" class="shrink-0">
+    <circle cx="26" cy="26" r="${r}" fill="none" stroke="#e6e1d2" stroke-width="4"/>
+    <circle class="ring" cx="26" cy="26" r="${r}" fill="none" stroke="${col}" stroke-width="4"
+      stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}"/>
+    <text x="26" y="30" text-anchor="middle" font-family="JetBrains Mono" font-size="13" font-weight="700" fill="${col}">${s}</text>
+  </svg>`;
+}
+
+function build(){
+  const count=parseInt($("countInput").value)||500;
+  STATE.count=count;
+  STATE.brand=$("brandInput").value.trim().replace(/[^A-Za-z0-9 ]/g,'');
+
+  const ctx={
+    grid:STATE.grid, count:count,
+    maxNumber:DATA.gridData[STATE.grid].maxNumber,
+    difficultyWord:DATA.components.difficultyPhrase[STATE.difficulty],
+    audienceWord:DATA.components.audiencePhrase[STATE.audience],
+    format:STATE.format, brand:STATE.brand
+  };
+
+  const items = DATA.titleFormulas
+    .filter(f => !f.requiresFormat || f.requiresFormat===STATE.format)
+    .map(f=>{
+      const title=fill(f.structure, ctx);
+      const s=scoreTitle(title, ctx);
+      return { f, title, ...s };
+    })
+    .sort((a,b)=>b.score-a.score);
+
+  // if large print selected but the LP formula was filtered for regular, ensure at least the others show
+  $("charBudget").textContent = `${DATA.kdpRules.titleSubtitleMaxChars}-char title+subtitle budget`;
+
+  const list=$("titleList"); list.innerHTML="";
+  items.forEach((it,i)=>{
+    const remaining = DATA.kdpRules.titleSubtitleMaxChars - it.title.length;
+    const card=document.createElement("div");
+    card.className="title-card card-paper rounded-xl border border-line p-4 fade-in";
+    card.style.animationDelay=(i*0.04)+"s";
+    card.innerHTML=`
+      <div class="flex items-start gap-4">
+        ${scoreRing(it.score)}
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="font-mono text-[10px] tracking-wide uppercase text-ink/45">${it.f.name}</span>
+            <span class="font-mono text-[10px] text-ink/35">· ${it.title.length} chars · ${remaining} left for subtitle</span>
+          </div>
+          <p class="font-display text-[17px] leading-snug font-500 text-ink">${it.title}</p>
+          <p class="text-xs text-ink/50 mt-1.5 leading-snug">${it.f.bestFor}</p>
+
+          <div class="mt-2.5 flex flex-wrap gap-1.5">
+            ${it.good.map(g=>`<span class="text-[10px] px-2 py-0.5 rounded-full bg-pathlight text-path font-600">✓ ${g}</span>`).join("")}
+            ${it.bad.map(b=>`<span class="text-[10px] px-2 py-0.5 rounded-full bg-flag/10 text-flag font-600">! ${b}</span>`).join("")}
+          </div>
+
+          <button class="copyOne mt-3 text-xs font-600 border border-line rounded-lg px-3 py-1.5 hover:bg-pathlight transition print-hide" data-title="${it.title.replace(/"/g,'&quot;')}">
+            Copy title
+          </button>
+        </div>
+      </div>`;
+    list.appendChild(card);
+  });
+
+  // copy handlers
+  list.querySelectorAll(".copyOne").forEach(btn=>{
+    btn.onclick=async()=>{
+      try{ await navigator.clipboard.writeText(btn.dataset.title);
+        const o=btn.textContent; btn.textContent="Copied ✓";
+        setTimeout(()=>btn.textContent=o,1400);
+      }catch{ btn.textContent="Copy failed"; }
+    };
+  });
+
+  // subtitle helper
+  const sb=$("subtitleBox");
+  const P=DATA.subtitleBuilder.pieces;
+  const f0=(arr)=>arr.map(t=>fill(t, ctx));
+  sb.innerHTML=`
+    <div class="font-mono text-[11px] tracking-[0.18em] uppercase text-ink/45 mb-2">Subtitle pieces</div>
+    <p class="text-xs text-ink/55 mb-4">${DATA.subtitleBuilder.note}</p>
+    <div class="grid sm:grid-cols-3 gap-4">
+      ${[["Spec",f0(P.spec)],["Audience",f0(P.audience)],["Benefit",f0(P.benefit)]].map(([h,arr])=>`
+        <div>
+          <div class="text-[10px] uppercase tracking-wide text-ink/40 mb-1.5">${h}</div>
+          <ul class="space-y-1.5">
+            ${arr.map(s=>`<li class="text-xs text-ink/75 leading-snug">${s}</li>`).join("")}
+          </ul>
+        </div>`).join("")}
+    </div>`;
+
+  $("disclaimer").textContent = DATA.meta.disclaimer;
+  $("results").classList.remove("hidden");
+  $("results").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+async function init(){
+  try{
+    const res=await fetch(DATA_URL,{cache:"no-store"});
+    if(!res.ok) throw new Error("HTTP "+res.status+" fetching "+DATA_URL);
+    DATA=await res.json();
+  }catch(err){
+    $("dot").classList.remove("bg-amber"); $("dot").classList.add("bg-red-500");
+    $("dataStatus").textContent="data error";
+    $("errorBox").classList.remove("hidden");
+    $("errorMsg").textContent=err.message+". Make sure numbrix-title-data.json sits next to this HTML file (or set window.NUMBRIX_TITLE_DATA_URL).";
+    return;
+  }
+  $("dot").classList.remove("bg-amber"); $("dot").classList.add("bg-path");
+  $("dataStatus").textContent="data loaded";
+  $("dataMeta").textContent=`${DATA.titleFormulas.length} formulas · KDP rules · updated ${DATA.meta.lastUpdated}`;
+  renderPickers();
+  $("buildBtn").onclick=build;
+}
+init();
+</script>
+</body>
+</html>

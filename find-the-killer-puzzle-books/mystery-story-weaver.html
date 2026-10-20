@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mystery Story Weaver</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #dc2626;
+      --accent-hover: #b91c1c;
+      --success: #10b981;
+      --error: #ef4444;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .font-serif-story {
+      font-family: Georgia, 'Times New Roman', serif;
+    }
+
+    .story-text {
+      font-size: 1.05rem;
+      line-height: 1.7;
+    }
+
+    .section-label {
+      font-variant: small-caps;
+      letter-spacing: 0.08em;
+      font-family: ui-monospace, monospace;
+      font-size: 0.75rem;
+    }
+
+    .story-card {
+      border-left: 4px solid var(--accent);
+    }
+
+    .drop-zone-active {
+      border-color: var(--accent) !important;
+      background-color: rgba(220, 38, 38, 0.08);
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .spinner {
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateX(1rem); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes toast-out {
+      from { opacity: 1; transform: translateX(0); }
+      to { opacity: 0; transform: translateX(1rem); }
+    }
+
+    .toast-enter { animation: toast-in 0.25s ease forwards; }
+    .toast-exit { animation: toast-out 0.25s ease forwards; }
+
+    .tone-radio:checked + label {
+      border-color: var(--accent);
+      background-color: rgba(220, 38, 38, 0.12);
+    }
+
+    .tracking-title { letter-spacing: 0.02em; }
+
+    #sticky-footer {
+      backdrop-filter: blur(8px);
+      background-color: rgba(15, 23, 42, 0.92);
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-24">
+  <!-- Header -->
+  <header class="border-b border-slate-700">
+    <div class="max-w-7xl mx-auto px-6 md:px-8 py-6">
+      <h1 class="font-serif-story text-3xl md:text-4xl font-bold tracking-title text-slate-100">
+        Mystery Story Weaver
+      </h1>
+      <p class="text-slate-400 mt-1 text-sm md:text-base">
+        Turn your puzzle's 4 chapter titles into a connected mystery story
+      </p>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="max-w-7xl mx-auto px-6 md:px-8 py-6 md:py-8">
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-6 md:gap-8">
+      <!-- Input Panel -->
+      <section id="input-panel" class="md:col-span-2 space-y-6">
+        <!-- File Upload -->
+        <div
+          id="drop-zone"
+          class="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center cursor-pointer hover:border-slate-500 transition-colors bg-slate-800/50"
+        >
+          <input type="file" id="file-input" accept=".txt" class="hidden">
+          <div class="text-4xl mb-3">📄</div>
+          <p class="text-slate-200 font-medium">Drop your <code class="text-red-400 text-sm">puzzle_clues_*.txt</code> file here</p>
+          <p class="text-slate-400 text-sm mt-1">or click to browse</p>
+        </div>
+
+        <!-- Parsed Preview -->
+        <div id="parsed-preview" class="hidden rounded-xl border border-emerald-500/40 bg-slate-800 p-5 space-y-3 shadow-lg shadow-black/30">
+          <div class="flex items-center justify-between">
+            <h2 class="section-label text-emerald-400">Parsed Puzzle Data</h2>
+            <button id="replace-file-btn" type="button" class="text-sm text-slate-400 hover:text-slate-200 underline">
+              Replace file
+            </button>
+          </div>
+          <div class="space-y-2 text-sm">
+            <p>✅ Killer's name: <span id="preview-killer" class="text-slate-100 font-medium"></span></p>
+            <p>✅ Killer's chapter: <span id="preview-chapter" class="text-slate-100 font-medium"></span></p>
+            <p id="preview-position-row" class="hidden">✅ Killer position: <span id="preview-position" class="text-slate-100 font-medium"></span></p>
+            <div>
+              <p class="text-slate-400 mb-1">✅ Chapter list:</p>
+              <ol id="preview-chapters" class="list-decimal list-inside space-y-0.5 text-slate-200"></ol>
+            </div>
+          </div>
+        </div>
+
+        <!-- Story Settings -->
+        <div id="story-settings" class="hidden space-y-5 rounded-xl border border-slate-700 bg-slate-800 p-5 shadow-lg shadow-black/30">
+          <h2 class="section-label text-slate-400 border-b border-slate-700 pb-2">Story Settings</h2>
+
+          <div>
+            <label for="theme-select" class="block text-sm text-slate-300 mb-1">Theme</label>
+            <select
+              id="theme-select"
+              class="w-full rounded-lg bg-slate-900 border border-slate-600 px-3 py-2 text-slate-100 focus:outline-none focus:border-red-500"
+            >
+              <option value="">Select a theme…</option>
+              <option value="Corporate Office">Corporate Office</option>
+              <option value="Vegas Casino">Vegas Casino</option>
+              <option value="Victorian Mansion">Victorian Mansion</option>
+              <option value="Cruise Ship">Cruise Ship</option>
+              <option value="Ski Resort">Ski Resort</option>
+              <option value="1920s Speakeasy">1920s Speakeasy</option>
+              <option value="Tech Startup">Tech Startup</option>
+              <option value="Hollywood Film Set">Hollywood Film Set</option>
+              <option value="Art Gallery">Art Gallery</option>
+              <option value="Small Town America">Small Town America</option>
+              <option value="Wedding Reception">Wedding Reception</option>
+              <option value="Hospital">Hospital</option>
+              <option value="Luxury Hotel">Luxury Hotel</option>
+              <option value="University Campus">University Campus</option>
+              <option value="Cooking Competition">Cooking Competition</option>
+              <option value="custom">Custom…</option>
+            </select>
+            <input
+              type="text"
+              id="custom-theme"
+              maxlength="100"
+              placeholder="Enter custom theme…"
+              class="hidden w-full mt-2 rounded-lg bg-slate-900 border border-slate-600 px-3 py-2 text-slate-100 focus:outline-none focus:border-red-500"
+            >
+          </div>
+
+          <fieldset>
+            <legend class="block text-sm text-slate-300 mb-2">Tone</legend>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <input type="radio" name="tone" id="tone-cozy" value="Cozy" class="tone-radio sr-only">
+                <label for="tone-cozy" class="block cursor-pointer rounded-lg border border-slate-600 px-3 py-2 text-sm hover:border-slate-500 transition-colors">
+                  🌸 Cozy
+                </label>
+              </div>
+              <div>
+                <input type="radio" name="tone" id="tone-classic" value="Classic Detective" class="tone-radio sr-only">
+                <label for="tone-classic" class="block cursor-pointer rounded-lg border border-slate-600 px-3 py-2 text-sm hover:border-slate-500 transition-colors">
+                  🕵️ Classic Detective
+                </label>
+              </div>
+              <div>
+                <input type="radio" name="tone" id="tone-noir" value="Noir" class="tone-radio sr-only">
+                <label for="tone-noir" class="block cursor-pointer rounded-lg border border-slate-600 px-3 py-2 text-sm hover:border-slate-500 transition-colors">
+                  🌃 Noir
+                </label>
+              </div>
+              <div>
+                <input type="radio" name="tone" id="tone-hardboiled" value="Hardboiled" class="tone-radio sr-only">
+                <label for="tone-hardboiled" class="block cursor-pointer rounded-lg border border-slate-600 px-3 py-2 text-sm hover:border-slate-500 transition-colors">
+                  💀 Hardboiled
+                </label>
+              </div>
+            </div>
+          </fieldset>
+
+          <div>
+            <label for="victim-input" class="block text-sm text-slate-300 mb-1">Victim <span class="text-slate-500">(optional)</span></label>
+            <input
+              type="text"
+              id="victim-input"
+              maxlength="100"
+              placeholder='e.g. "Marcus Vance, 58, CEO of Vance Industries"'
+              class="w-full rounded-lg bg-slate-900 border border-slate-600 px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-red-500"
+            >
+          </div>
+
+          <div>
+            <label for="motive-input" class="block text-sm text-slate-300 mb-1">Killer's motive hint <span class="text-slate-500">(optional)</span></label>
+            <input
+              type="text"
+              id="motive-input"
+              maxlength="100"
+              placeholder='e.g. "discovered embezzlement"'
+              class="w-full rounded-lg bg-slate-900 border border-slate-600 px-3 py-2 text-slate-100 text-sm focus:outline-none focus:border-red-500"
+            >
+          </div>
+        </div>
+
+        <!-- Activate Key -->
+        <div class="rounded-xl border border-slate-700 bg-slate-800 p-5 shadow-lg shadow-black/30 space-y-2">
+          <label for="activate-key-input" class="block text-sm text-slate-300">
+            Activate key <span class="text-red-400">*</span>
+          </label>
+          <div class="relative">
+            <input
+              type="password"
+              id="activate-key-input"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="sk-..."
+              class="w-full rounded-lg bg-slate-900 border border-slate-600 px-3 py-2 pr-20 text-slate-100 font-mono text-sm focus:outline-none focus:border-red-500"
+            >
+            <button
+              id="toggle-activate-key-btn"
+              type="button"
+              class="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-semibold text-red-400 hover:text-red-300 px-2 py-1"
+            >
+              Show
+            </button>
+          </div>
+        </div>
+
+        <!-- Generate Button -->
+        <button
+          id="generate-btn"
+          type="button"
+          disabled
+          title="Upload a file, select theme and tone, and enter your activate key"
+          class="w-full rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-4 px-6 text-lg transition-colors flex items-center justify-center gap-2"
+        >
+          <span id="generate-btn-text">✨ Generate Story</span>
+          <svg id="generate-spinner" class="hidden w-5 h-5 spinner" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+        </button>
+      </section>
+
+      <!-- Output Panel -->
+      <section id="output-panel" class="md:col-span-3 relative">
+        <div id="output-toast-anchor" class="mb-4"></div>
+
+        <div id="empty-state" class="rounded-xl border border-slate-700 bg-slate-800 p-12 text-center shadow-lg shadow-black/30">
+          <div class="text-6xl mb-4 opacity-60">🔍</div>
+          <p class="font-serif-story text-xl text-slate-400 tracking-title">
+            Your mystery story will appear here
+          </p>
+          <div class="mt-6 h-px bg-gradient-to-r from-transparent via-slate-600 to-transparent"></div>
+        </div>
+
+        <div id="output-cards" class="hidden space-y-4"></div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Sticky Footer -->
+  <footer id="sticky-footer" class="hidden fixed bottom-0 left-0 right-0 border-t border-slate-700 z-40">
+    <div class="max-w-7xl mx-auto px-6 md:px-8 py-4 flex flex-wrap gap-3 justify-center md:justify-end">
+      <button id="download-btn" type="button" class="rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium px-5 py-2.5 transition-colors">
+        📥 Download as .txt
+      </button>
+      <button id="regenerate-btn" type="button" class="rounded-lg border border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium px-5 py-2.5 transition-colors">
+        🔄 Regenerate All
+      </button>
+      <button id="clear-btn" type="button" class="rounded-lg border border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500 font-medium px-5 py-2.5 transition-colors">
+        🗑️ Clear
+      </button>
+    </div>
+  </footer>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm"></div>
+
+  <script>
+    const STORAGE_KEYS = {
+      activateKey: 'msw_grsai_activate_key',
+      lastTheme: 'msw_last_theme',
+      lastTone: 'msw_last_tone',
+    };
+
+    const GRSAI_API_URL = 'https://grsaiapi.com/v1/chat/completions';
+    const GRSAI_MODEL = 'gpt-5.5';
+
+    const TONE_MAP = {
+      cozy: 'Cozy',
+      classic: 'Classic Detective',
+      noir: 'Noir',
+      hardboiled: 'Hardboiled',
+    };
+
+    const state = {
+      parsedData: null,
+      uploadedFileName: '',
+      generatedStory: null,
+      isGenerating: false,
+      activateKey: '',
+    };
+
+    // ─── DOM refs ───────────────────────────────────────────────
+    const $ = (id) => document.getElementById(id);
+
+    // ─── localStorage ───────────────────────────────────────────
+    function loadSettings() {
+      try {
+        const savedKey = localStorage.getItem(STORAGE_KEYS.activateKey);
+        if (savedKey) {
+          state.activateKey = savedKey;
+          $('activate-key-input').value = savedKey;
+        }
+      } catch (err) {
+        console.warn('Could not load activate key from local storage', err);
+      }
+
+      const lastTheme = localStorage.getItem(STORAGE_KEYS.lastTheme);
+      if (lastTheme) {
+        const themeSelect = $('theme-select');
+        const options = Array.from(themeSelect.options).map((o) => o.value);
+        if (options.includes(lastTheme)) {
+          themeSelect.value = lastTheme;
+        } else {
+          themeSelect.value = 'custom';
+          $('custom-theme').value = lastTheme;
+          $('custom-theme').classList.remove('hidden');
+        }
+      }
+
+      const lastTone = localStorage.getItem(STORAGE_KEYS.lastTone);
+      if (lastTone) {
+        const toneValue = TONE_MAP[lastTone] || lastTone;
+        const toneRadio = document.querySelector(`input[name="tone"][value="${toneValue}"]`);
+        if (toneRadio) toneRadio.checked = true;
+      }
+
+      updateGenerateButton();
+    }
+
+    function saveActivateKey(key) {
+      state.activateKey = key.trim();
+      try {
+        if (state.activateKey) {
+          localStorage.setItem(STORAGE_KEYS.activateKey, state.activateKey);
+        } else {
+          localStorage.removeItem(STORAGE_KEYS.activateKey);
+        }
+      } catch (err) {
+        console.warn('Could not save activate key to local storage', err);
+      }
+    }
+
+    // ─── Toast ──────────────────────────────────────────────────
+    function showToast(message, type = 'error') {
+      const container = $('toast-container');
+      const colors = {
+        error: 'border-red-500/50 bg-red-950/90 text-red-100',
+        success: 'border-emerald-500/50 bg-emerald-950/90 text-emerald-100',
+        info: 'border-blue-500/50 bg-blue-950/90 text-blue-100',
+      };
+      const icons = { error: '⚠️', success: '✅', info: 'ℹ️' };
+
+      const toast = document.createElement('div');
+      toast.className = `toast-enter flex items-start gap-2 rounded-lg border px-4 py-3 shadow-lg ${colors[type] || colors.error}`;
+      toast.innerHTML = `
+        <span>${icons[type] || icons.error}</span>
+        <span class="flex-1 text-sm toast-message">${escapeHtml(message)}</span>
+        <button type="button" class="toast-close text-lg leading-none opacity-70 hover:opacity-100">&times;</button>
+      `;
+
+      const dismiss = () => {
+        toast.classList.remove('toast-enter');
+        toast.classList.add('toast-exit');
+        setTimeout(() => toast.remove(), 250);
+      };
+
+      toast.querySelector('.toast-close').addEventListener('click', dismiss);
+      container.appendChild(toast);
+      setTimeout(dismiss, 5000);
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ─── File Parsing ───────────────────────────────────────────
+    function extractAnswerBlock(content) {
+      const segments = content.split(/={5,}/);
+      for (const segment of segments) {
+        const trimmed = segment.trim();
+        if (/^the killer is [A-Z]/im.test(trimmed)) {
+          return trimmed;
+        }
+      }
+      return null;
+    }
+
+    function parseCluesFile(content) {
+      if (!content || !content.trim()) {
+        throw new Error('File appears to be empty');
+      }
+
+      const answerBlock = extractAnswerBlock(content);
+      if (!answerBlock) {
+        throw new Error('Could not find killer answer section in file');
+      }
+
+      const killerMatch = answerBlock.match(/^the killer is ([A-Z][a-z]+)\s*$/im);
+      if (!killerMatch) {
+        throw new Error('Could not find killer name in file');
+      }
+
+      const chapterMatch = answerBlock.match(/^the killer'?s? chapter is (.+)$/im);
+      if (!chapterMatch) {
+        throw new Error("Could not find killer's chapter in file");
+      }
+
+      const positionPageMatch = answerBlock.match(/the killer is number (\d+) on page (\d+)/i);
+
+      const chapterListMatch = content.match(/Chapter List\s*([\s\S]*?)(?:={3,}|$)/i);
+      if (!chapterListMatch) {
+        throw new Error('Could not find chapter list in file. Make sure you uploaded the correct puzzle_clues_*.txt file.');
+      }
+
+      const chapterLines = chapterListMatch[1].match(/Chapter\s+\d+:\s*(.+)/gi);
+      if (!chapterLines || chapterLines.length < 4) {
+        throw new Error('Could not find chapter list in file. Make sure you uploaded the correct puzzle_clues_*.txt file.');
+      }
+
+      const chapters = chapterLines.map((line) => line.replace(/Chapter\s+\d+:\s*/i, '').trim());
+
+      return {
+        killerName: killerMatch[1],
+        killerChapter: chapterMatch[1].trim(),
+        killerPosition: positionPageMatch ? parseInt(positionPageMatch[1], 10) : null,
+        killerPage: positionPageMatch ? parseInt(positionPageMatch[2], 10) : null,
+        chapters,
+      };
+    }
+
+    function handleFile(file) {
+      if (!file.name.toLowerCase().endsWith('.txt')) {
+        showToast('Please upload a .txt file');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsed = parseCluesFile(e.target.result);
+          state.parsedData = parsed;
+          state.uploadedFileName = file.name;
+
+          renderParsedPreview(parsed);
+          $('parsed-preview').classList.remove('hidden');
+          $('story-settings').classList.remove('hidden');
+          updateGenerateButton();
+          showToast('Puzzle file parsed successfully.', 'success');
+        } catch (err) {
+          showToast(err.message);
+        }
+      };
+      reader.onerror = () => showToast('Could not read file.');
+      reader.readAsText(file);
+    }
+
+    function renderParsedPreview(data) {
+      $('preview-killer').textContent = data.killerName;
+      $('preview-chapter').textContent = data.killerChapter;
+
+      const hasPosition = data.killerPosition != null && data.killerPage != null;
+      $('preview-position-row').classList.toggle('hidden', !hasPosition);
+      if (hasPosition) {
+        $('preview-position').textContent = `${data.killerPosition} on page ${data.killerPage}`;
+      }
+
+      $('preview-chapters').innerHTML = data.chapters
+        .map((ch) => `<li>${escapeHtml(ch)}</li>`)
+        .join('');
+    }
+
+    function resetFile() {
+      state.parsedData = null;
+      state.uploadedFileName = '';
+      $('file-input').value = '';
+      $('parsed-preview').classList.add('hidden');
+      $('story-settings').classList.add('hidden');
+      updateGenerateButton();
+    }
+
+    // ─── Form helpers ───────────────────────────────────────────
+    function getSelectedTheme() {
+      const select = $('theme-select');
+      if (select.value === 'custom') {
+        return $('custom-theme').value.trim();
+      }
+      return select.value;
+    }
+
+    function getSelectedTone() {
+      return document.querySelector('input[name="tone"]:checked')?.value || '';
+    }
+
+    function getMissingRequirements() {
+      const missing = [];
+      if (!state.parsedData) missing.push('upload a puzzle clues file');
+      if (!getSelectedTheme()) missing.push('select a theme');
+      if (!getSelectedTone()) missing.push('select a tone');
+      if (!state.activateKey) missing.push('enter your activate key');
+      return missing;
+    }
+
+    function updateGenerateButton() {
+      const btn = $('generate-btn');
+      const missing = getMissingRequirements();
+      btn.disabled = missing.length > 0 || state.isGenerating;
+      btn.title = missing.length
+        ? `Missing: ${missing.join(', ')}`
+        : 'Generate your mystery story';
+    }
+
+    function persistFormPreferences() {
+      const theme = getSelectedTheme();
+      const tone = getSelectedTone();
+      if (theme) localStorage.setItem(STORAGE_KEYS.lastTheme, theme);
+      if (tone) {
+        const toneKey = Object.entries(TONE_MAP).find(([, v]) => v === tone)?.[0] || tone.toLowerCase();
+        localStorage.setItem(STORAGE_KEYS.lastTone, toneKey);
+      }
+    }
+
+    // ─── Prompt Builder ─────────────────────────────────────────
+    function buildPrompt(data, settings) {
+      const [chapter1, chapter2, chapter3, chapter4] = data.chapters;
+      const victimLine = settings.victim || 'invent a fitting victim based on the theme';
+      const motiveLine = settings.motiveHint || 'invent a fitting motive';
+
+      return `You are a professional mystery novelist writing for a "Find The Killer" puzzle book.
+
+The reader will be given a list of suspects and 18 logic clues to deduce who the killer is. Your job is to wrap that puzzle in a compelling narrative.
+
+FIXED DATA — DO NOT CHANGE THESE VALUES:
+
+- The four chapter titles (in order, MUST appear verbatim in output):
+  1. ${chapter1}
+  2. ${chapter2}
+  3. ${chapter3}
+  4. ${chapter4}
+- The killer's first name: ${data.killerName}
+- The killer is hidden in chapter: "${data.killerChapter}"
+
+STORY SETTINGS:
+
+- Theme/Setting: ${settings.theme}
+- Tone: ${settings.tone}
+- Victim: ${victimLine}
+- Killer's motive: ${motiveLine}
+
+YOUR TASK:
+
+Generate a JSON object with this exact structure:
+
+{
+  "title": "string (max 8 words, theme-appropriate book title)",
+  "subtitle": "string (max 15 words, mentions the puzzle nature and logic-clue deduction)",
+  "chapters": [
+    {
+      "number": 1,
+      "title": "${chapter1}",
+      "story": "string (150-250 words)"
+    },
+    {
+      "number": 2,
+      "title": "${chapter2}",
+      "story": "string (150-250 words)"
+    },
+    {
+      "number": 3,
+      "title": "${chapter3}",
+      "story": "string (150-250 words)"
+    },
+    {
+      "number": 4,
+      "title": "${chapter4}",
+      "story": "string (150-250 words)"
+    }
+  ]
+}
+
+STORY REQUIREMENTS:
+
+1. The four chapter titles are FIXED. Use each title as a meaningful story element — not just decoration. The story for each chapter should explain WHY that chapter is named what it is named.
+
+2. The four stories must connect into ONE cohesive mystery — a single crime, a single victim, a single investigation flowing across all 4 chapters.
+
+3. For the killer's chapter ("${data.killerChapter}"), drop a SUBTLE hint that the killer is hiding here — without naming them, without making it too obvious.
+
+4. NEVER reveal the killer's name (${data.killerName}) in any chapter story. The reader's job is to deduce that from the clues.
+
+5. Match the tone: ${settings.tone}. For "Cozy" keep it family-friendly. For "Noir" use atmospheric, moody language. For "Hardboiled" use gritty, modern crime language. For "Classic Detective" emulate Agatha Christie's measured, observant style.
+
+6. End each chapter story with a hook that pulls the reader to the next chapter.
+
+7. Address the reader as a detective investigating the crime. Use second-person where natural ("You arrive at...", "Your first clue...").
+
+8. Return ONLY the JSON object. No markdown code fences. No explanation. No preamble.`;
+    }
+
+    // ─── API Calls ──────────────────────────────────────────────
+    function parseJsonFromAiContent(content) {
+      const text = String(content || '').trim();
+      if (!text) throw new Error('Empty response');
+
+      try {
+        return JSON.parse(text);
+      } catch {
+        const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+        if (fenced) return JSON.parse(fenced[1].trim());
+      }
+
+      const start = text.indexOf('{');
+      const end = text.lastIndexOf('}');
+      if (start !== -1 && end > start) {
+        return JSON.parse(text.slice(start, end + 1));
+      }
+
+      throw new Error('Invalid JSON');
+    }
+
+    async function callGrsai(prompt) {
+      const activateKey = state.activateKey.trim();
+      if (!activateKey) throw new Error('Activate key is required.');
+
+      const response = await fetch(GRSAI_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${activateKey}`,
+        },
+        body: JSON.stringify({
+          model: GRSAI_MODEL,
+          stream: false,
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a professional mystery novelist. Respond with valid JSON only, no markdown or extra text.',
+            },
+            { role: 'user', content: prompt },
+          ],
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        const apiMessage = payload.error?.message || payload.message || `Generation request failed (${response.status})`;
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('Invalid activate key. Please check your key and try again.');
+        }
+        if (response.status === 429) {
+          throw new Error('Rate limit hit. Wait a moment and try again.');
+        }
+        if (response.status >= 500) {
+          throw new Error('AI service is having issues. Try again in a minute.');
+        }
+        throw new Error(apiMessage);
+      }
+
+      const content = payload.choices?.[0]?.message?.content;
+      if (!content) {
+        throw new Error('AI returned invalid format. Try regenerating.');
+      }
+
+      return content;
+    }
+
+    async function generateStory() {
+      const missing = getMissingRequirements();
+      if (missing.length) {
+        showToast(`Please ${missing.join(', ')}.`, 'info');
+        return;
+      }
+
+      const settings = {
+        theme: getSelectedTheme(),
+        tone: getSelectedTone(),
+        victim: $('victim-input').value.trim(),
+        motiveHint: $('motive-input').value.trim(),
+      };
+
+      persistFormPreferences();
+      saveActivateKey($('activate-key-input').value);
+
+      const prompt = buildPrompt(state.parsedData, settings);
+
+      state.isGenerating = true;
+      $('generate-btn-text').textContent = 'Generating…';
+      $('generate-spinner').classList.remove('hidden');
+      updateGenerateButton();
+
+      try {
+        const rawText = await callGrsai(prompt);
+
+        let story;
+        try {
+          story = parseJsonFromAiContent(rawText);
+        } catch {
+          throw new Error('AI returned invalid format. Try regenerating.');
+        }
+
+        validateStoryOutput(story, state.parsedData.chapters);
+        state.generatedStory = story;
+        renderOutput(story);
+        showToast('Story generated successfully!', 'success');
+      } catch (err) {
+        if (err.name === 'TypeError' && err.message.includes('fetch')) {
+          showToast('Could not reach AI service. Check your internet.');
+        } else {
+          showToast(err.message || 'Generation failed. Try again.');
+        }
+      } finally {
+        state.isGenerating = false;
+        $('generate-btn-text').textContent = '✨ Generate Story';
+        $('generate-spinner').classList.add('hidden');
+        updateGenerateButton();
+      }
+    }
+
+    function validateStoryOutput(story, expectedChapters) {
+      if (!story.title || !story.subtitle || !Array.isArray(story.chapters) || story.chapters.length !== 4) {
+        throw new Error('AI returned invalid format. Try regenerating.');
+      }
+      expectedChapters.forEach((expected, i) => {
+        if (story.chapters[i].title !== expected) {
+          story.chapters[i].title = expected;
+        }
+      });
+    }
+
+    // ─── Output Rendering ───────────────────────────────────────
+    const CHAPTER_ICONS = ['📕', '📗', '📘', '📙'];
+
+    function renderOutput(story) {
+      $('empty-state').classList.add('hidden');
+      $('sticky-footer').classList.remove('hidden');
+
+      const container = $('output-cards');
+      container.classList.remove('hidden');
+      container.innerHTML = '';
+
+      const titleCard = createCard('📖 Book Title', story.title, 'text-3xl font-bold font-serif-story tracking-title', story.title, 'Copy');
+      container.appendChild(titleCard);
+
+      const subtitleCard = createCard('📜 Subtitle', story.subtitle, 'text-xl font-serif-story', story.subtitle, 'Copy');
+      container.appendChild(subtitleCard);
+
+      story.chapters.forEach((chapter, index) => {
+        const icon = CHAPTER_ICONS[index] || '📕';
+        const card = document.createElement('div');
+        card.className = 'story-card rounded-xl border border-slate-700 bg-slate-800 p-5 shadow-lg shadow-black/30';
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <span class="section-label text-slate-400">${icon} Chapter ${chapter.number}</span>
+            <button type="button" class="copy-btn shrink-0 text-sm text-red-400 hover:text-red-300 border border-slate-600 rounded px-3 py-1 transition-colors" data-text="${escapeAttr(chapter.story)}">Copy story</button>
+          </div>
+          <h3 class="text-xl font-bold font-serif-story tracking-title mb-3">${escapeHtml(chapter.title)}</h3>
+          <p class="story-text font-serif-story text-slate-200 whitespace-pre-wrap">${escapeHtml(chapter.story)}</p>
+        `;
+        container.appendChild(card);
+      });
+
+      bindCopyButtons(container);
+    }
+
+    function createCard(label, content, headingClass, copyText, copyLabel) {
+      const card = document.createElement('div');
+      card.className = 'rounded-xl border border-slate-700 bg-slate-800 p-5 shadow-lg shadow-black/30';
+      card.innerHTML = `
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex-1 min-w-0">
+            <span class="section-label text-slate-400 block mb-2">${label}</span>
+            <div class="${headingClass} text-slate-100">${escapeHtml(content)}</div>
+          </div>
+          <button type="button" class="copy-btn shrink-0 text-sm text-red-400 hover:text-red-300 border border-slate-600 rounded px-3 py-1 transition-colors" data-text="${escapeAttr(copyText)}">${copyLabel}</button>
+        </div>
+      `;
+      return card;
+    }
+
+    function escapeAttr(text) {
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function bindCopyButtons(root) {
+      root.querySelectorAll('.copy-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const text = btn.getAttribute('data-text');
+          try {
+            await navigator.clipboard.writeText(text);
+            const original = btn.textContent;
+            btn.textContent = '✓ Copied!';
+            setTimeout(() => { btn.textContent = original; }, 2000);
+          } catch {
+            showToast('Could not copy to clipboard.');
+          }
+        });
+      });
+    }
+
+    // ─── Download ───────────────────────────────────────────────
+    function buildTxtContent(story) {
+      const lines = [
+        '================================',
+        `TITLE: ${story.title}`,
+        `SUBTITLE: ${story.subtitle}`,
+        '================================',
+        '',
+        '',
+      ];
+
+      story.chapters.forEach((ch) => {
+        lines.push(`CHAPTER ${ch.number} — ${ch.title}`);
+        lines.push('--------------------------------');
+        lines.push('');
+        lines.push(ch.story);
+        lines.push('');
+        lines.push('');
+      });
+
+      lines.push('================================');
+      lines.push('Generated by Mystery Story Weaver');
+      lines.push('================================');
+
+      return lines.join('\n');
+    }
+
+    function downloadTxt(content, filename) {
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function handleDownload() {
+      if (!state.generatedStory || !state.parsedData) return;
+      const date = new Date().toISOString().slice(0, 10);
+      const filename = `mystery-story-${state.parsedData.killerName}-${date}.txt`;
+      downloadTxt(buildTxtContent(state.generatedStory), filename);
+    }
+
+    function clearOutput() {
+      if (!confirm('Clear the generated story? This cannot be undone.')) return;
+      state.generatedStory = null;
+      $('output-cards').classList.add('hidden');
+      $('output-cards').innerHTML = '';
+      $('empty-state').classList.remove('hidden');
+      $('sticky-footer').classList.add('hidden');
+    }
+
+    // ─── Event Listeners ────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSettings();
+
+      const dropZone = $('drop-zone');
+      const fileInput = $('file-input');
+      const activateKeyInput = $('activate-key-input');
+
+      dropZone.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files[0]) handleFile(e.target.files[0]);
+      });
+
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drop-zone-active');
+      });
+      dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drop-zone-active'));
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drop-zone-active');
+        if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+      });
+
+      $('replace-file-btn').addEventListener('click', resetFile);
+
+      $('theme-select').addEventListener('change', (e) => {
+        const isCustom = e.target.value === 'custom';
+        $('custom-theme').classList.toggle('hidden', !isCustom);
+        updateGenerateButton();
+      });
+
+      $('custom-theme').addEventListener('input', updateGenerateButton);
+
+      document.querySelectorAll('input[name="tone"]').forEach((radio) => {
+        radio.addEventListener('change', updateGenerateButton);
+      });
+
+      activateKeyInput.addEventListener('input', () => {
+        saveActivateKey(activateKeyInput.value);
+        updateGenerateButton();
+      });
+      activateKeyInput.addEventListener('blur', () => {
+        saveActivateKey(activateKeyInput.value);
+        updateGenerateButton();
+      });
+
+      $('toggle-activate-key-btn').addEventListener('click', () => {
+        const btn = $('toggle-activate-key-btn');
+        const isHidden = activateKeyInput.type === 'password';
+        activateKeyInput.type = isHidden ? 'text' : 'password';
+        btn.textContent = isHidden ? 'Hide' : 'Show';
+      });
+
+      $('generate-btn').addEventListener('click', generateStory);
+      $('regenerate-btn').addEventListener('click', generateStory);
+      $('download-btn').addEventListener('click', handleDownload);
+      $('clear-btn').addEventListener('click', clearOutput);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+COZY MYSTERY WORD SEARCH BOOK MAKER
+===================================
+
+Double-click index.html to get started. It opens in your web browser
+(Chrome, Edge, Safari or Firefox) and works without the internet.

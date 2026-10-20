@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WYR Book Studio — make a Would You Rather book for Amazon KDP</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============================ LEFT BAR ============================ -->
+  <aside class="sidebar" id="sidebar">
+    <header class="brand">
+      <div class="brand__mark">WYR</div>
+      <div class="brand__text">
+        <strong>Book Studio</strong>
+        <span>Would You Rather books, print ready for KDP</span>
+      </div>
+      <button type="button" class="btn btn--ghost btn--tiny" id="btn-new-project" title="Clear everything and start again">New project</button>
+    </header>
+
+    <!-- ---------------------------- STEP 1 ---------------------------- -->
+    <section class="step" data-step="1">
+      <button type="button" class="step__head">
+        <span class="step__no">1</span>
+        <span class="step__title">Set up the content</span>
+        <span class="step__badge" id="badge-1"></span>
+        <span class="step__chev" aria-hidden="true"></span>
+      </button>
+      <div class="step__body">
+
+        <label class="field">
+          <span class="field__label">Who is the book for?</span>
+          <select id="f-audience"></select>
+        </label>
+
+        <label class="field">
+          <span class="field__label">Theme / edition</span>
+          <select id="f-theme"></select>
+        </label>
+        <label class="field field--hidden" id="field-custom-theme">
+          <span class="field__label">Your theme</span>
+          <input type="text" id="f-custom-theme" placeholder="football, dinosaurs, summer camp…">
+        </label>
+
+        <div class="field">
+          <span class="field__label">How many questions
+            <button type="button" class="hint" data-hint="Best sellers usually have 200 to 300 questions. More questions means a thicker book and more rounds with the AI.">?</button>
+          </span>
+          <div class="row">
+            <input type="number" id="f-count" min="20" max="500" step="10">
+            <div class="chips" id="count-chips"></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="field__label">Style of question</span>
+          <div class="segmented" id="f-style"></div>
+        </div>
+
+        <label class="field">
+          <span class="field__label">Language inside the book</span>
+          <select id="f-language"></select>
+        </label>
+
+        <button type="button" class="btn btn--primary btn--block" id="btn-make-prompt">Build the prompt →</button>
+      </div>
+    </section>
+
+    <!-- ---------------------------- STEP 2 ---------------------------- -->
+    <!-- Prompt and reply live together: a book takes several rounds with the
+         AI, and bouncing between two panels for every round is miserable. -->
+    <section class="step" data-step="2">
+      <button type="button" class="step__head">
+        <span class="step__no">2</span>
+        <span class="step__title">Get the questions from an AI</span>
+        <span class="step__badge" id="badge-2"></span>
+        <span class="step__chev" aria-hidden="true"></span>
+      </button>
+      <div class="step__body">
+
+        <p class="note" id="batch-info"></p>
+
+        <div class="field" id="batch-picker-field">
+          <span class="field__label">Prompt for round</span>
+          <div class="row">
+            <select id="f-batch"></select>
+            <span class="note note--inline">Round 1 first, then type <code>next</code> in the AI.</span>
+          </div>
+        </div>
+
+        <div class="half" id="half-prompt">
+          <h3 class="half__title"><span class="half__no">A</span> Copy the prompt</h3>
+
+          <div class="promptbox">
+            <pre id="prompt-text" class="promptbox__text"></pre>
+            <button type="button" class="btn btn--ghost btn--tiny promptbox__toggle" id="btn-expand-prompt">Show all</button>
+          </div>
+
+          <button type="button" class="btn btn--primary btn--block" id="btn-copy-prompt">📋 Copy prompt</button>
+
+          <ol class="howto">
+            <li>Open ChatGPT, Claude, Gemini or Grok.</li>
+            <li>Paste the prompt and send it.</li>
+            <li>Copy the whole reply and bring it back to <strong>B</strong> below.</li>
+          </ol>
+
+          <button type="button" class="btn btn--ghost btn--block" id="btn-copy-next">📋 Copy the “next” command</button>
+          <p class="tip">Tip: use the strongest model you have (GPT‑5, Claude, Gemini Pro). Better questions sell better books.</p>
+        </div>
+
+        <div class="half" id="half-paste">
+          <h3 class="half__title"><span class="half__no">B</span> Paste the reply</h3>
+
+          <textarea id="paste-box" rows="6" placeholder="Paste the whole reply from the AI here (extra chatter around it is fine)"></textarea>
+          <button type="button" class="btn btn--primary btn--block" id="btn-add-questions">Add to the book</button>
+
+          <div class="progress">
+            <div class="progress__bar"><span id="progress-fill"></span></div>
+            <p class="progress__text" id="progress-text">0 / 0 questions</p>
+          </div>
+          <p class="note" id="paste-hint"></p>
+        </div>
+
+        <div class="qlist-head">
+          <label class="checkline"><input type="checkbox" id="q-select-all"> <span>Select all</span></label>
+          <span class="note note--inline" id="q-selected-count"></span>
+        </div>
+        <div class="qlist" id="qlist"></div>
+
+        <div class="btnrow">
+          <button type="button" class="btn btn--ghost btn--tiny" id="btn-rewrite">Rewrite prompt</button>
+          <button type="button" class="btn btn--ghost btn--tiny" id="btn-export">Export JSON</button>
+          <button type="button" class="btn btn--ghost btn--tiny" id="btn-import">Import JSON</button>
+          <button type="button" class="btn btn--ghost btn--tiny btn--danger" id="btn-clear">Delete all</button>
+        </div>
+        <input type="file" id="import-file" accept=".json,application/json" hidden>
+      </div>
+    </section>
+
+    <!-- ---------------------------- STEP 3 ---------------------------- -->
+    <section class="step" data-step="3">
+      <button type="button" class="step__head">
+        <span class="step__no">3</span>
+        <span class="step__title">Layout &amp; download</span>
+        <span class="step__badge" id="badge-3"></span>
+        <span class="step__chev" aria-hidden="true"></span>
+      </button>
+      <div class="step__body">
+
+        <label class="field">
+          <span class="field__label">Book title</span>
+          <input type="text" id="f-title" placeholder="Would You Rather Book for Kids">
+        </label>
+        <div class="ideas" id="title-ideas"></div>
+
+        <label class="field">
+          <span class="field__label">Subtitle</span>
+          <input type="text" id="f-subtitle" placeholder="200 Hilarious Questions for Family Game Night">
+        </label>
+
+        <label class="field">
+          <span class="field__label">Author / imprint</span>
+          <input type="text" id="f-author" placeholder="leave blank if you like">
+        </label>
+
+        <label class="field">
+          <span class="field__label">Trim size
+            <button type="button" class="hint" data-hint="6 x 9 inches is by far the most common size for this genre. Bigger pages cost more to print.">?</button>
+          </span>
+          <select id="f-trim"></select>
+        </label>
+
+        <div class="field">
+          <span class="field__label">Questions per page</span>
+          <div class="segmented" id="f-perpage">
+            <button type="button" data-value="1">One</button>
+            <button type="button" data-value="2">Two</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="field__label">What goes in the book</span>
+          <label class="checkline"><input type="checkbox" id="s-howto"> <span>How to play &amp; score sheet</span></label>
+          <label class="checkline"><input type="checkbox" id="s-answers"> <span>“Behind the Choices” answer section</span></label>
+          <label class="checkline"><input type="checkbox" id="s-chapters"> <span>Split into chapters by theme</span></label>
+          <label class="checkline"><input type="checkbox" id="s-yourturn"> <span>Write your own pages (5 pages)</span></label>
+          <label class="checkline"><input type="checkbox" id="s-thankyou"> <span>Thank you page</span></label>
+        </div>
+
+        <details class="advanced">
+          <summary>Advanced</summary>
+          <label class="field">
+            <span class="field__label">Copyright year</span>
+            <input type="number" id="f-year" min="2000" max="2100">
+          </label>
+          <label class="field">
+            <span class="field__label">Tick boxes</span>
+            <select id="f-checkbox-style">
+              <option value="players">Two boxes: Player 1 / Player 2</option>
+              <option value="single">One box</option>
+              <option value="none">No tick boxes</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field__label">Put the answers</span>
+            <select id="f-answers-placement">
+              <option value="end">At the back of the book</option>
+              <option value="chapter">At the end of each chapter</option>
+            </select>
+          </label>
+          <label class="checkline"><input type="checkbox" id="f-chapter-odd"> <span>Start each chapter on a right-hand page</span></label>
+        </details>
+
+        <div class="kdpinfo" id="kdp-info"></div>
+
+        <button type="button" class="btn btn--primary btn--block" id="btn-download">⬇ Download PDF</button>
+        <div class="progress progress--pdf" id="pdf-progress" hidden>
+          <div class="progress__bar"><span id="pdf-fill"></span></div>
+          <p class="progress__text" id="pdf-text"></p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="sidebar__foot">
+      <p>Runs entirely offline. Your work never leaves this computer.</p>
+    </footer>
+  </aside>
+
+  <!-- ============================ CONTENT ============================= -->
+  <main class="content">
+    <div class="toolbar" id="toolbar">
+      <div class="toolbar__group">
+        <button type="button" class="btn btn--icon" id="btn-first-page" title="First page">⏮</button>
+        <button type="button" class="btn btn--icon" id="btn-prev-page" title="Previous page (←)">◀</button>
+        <span class="pagejump">
+          <label class="visually-hidden" for="f-page">Page number</label>
+          <input type="number" id="f-page" min="1" step="1" value="1">
+          <span class="pagejump__total" id="page-total">of 1</span>
+        </span>
+        <button type="button" class="btn btn--icon" id="btn-next-page" title="Next page (→)">▶</button>
+        <button type="button" class="btn btn--icon" id="btn-last-page" title="Last page">⏭</button>
+      </div>
+      <div class="toolbar__group">
+        <button type="button" class="btn btn--icon" id="btn-zoom-out" title="Zoom out">−</button>
+        <span class="zoomval" id="zoom-indicator">100%</span>
+        <button type="button" class="btn btn--icon" id="btn-zoom-in" title="Zoom in">+</button>
+      </div>
+      <label class="checkline checkline--inline">
+        <input type="checkbox" id="f-show-margins"> <span>Show margins</span>
+      </label>
+      <div class="toolbar__spacer"></div>
+      <span class="status" id="layout-status"></span>
+      <button type="button" class="btn btn--primary btn--small" id="btn-download-top">⬇ Download PDF</button>
+    </div>
+
+    <div class="preview" id="preview"></div>
+
+    <div class="empty" id="empty">
+      <div class="empty__art" aria-hidden="true">
+        <div class="empty__page"></div>
+        <div class="empty__page empty__page--2"></div>
+      </div>
+      <h2>No questions yet</h2>
+      <ol>
+        <li>Pick an audience and a theme in step 1.</li>
+        <li>In step 2, copy the prompt into an AI and paste the reply straight back.</li>
+        <li>Check the preview and download the PDF for KDP.</li>
+      </ol>
+      <button type="button" class="btn btn--primary" id="btn-sample">Try it with sample questions</button>
+    </div>
+  </main>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<div class="modal" id="modal" hidden></div>
+
+<script src="js/namespace.js"></script>
+<script src="lib/jspdf.umd.min.js"></script>
+<script src="fonts/baloo2-bold.js"></script>
+<script src="fonts/nunito-regular.js"></script>
+<script src="fonts/nunito-bold.js"></script>
+<script src="fonts/nunito-italic.js"></script>
+<script src="js/config.js"></script>
+<script src="js/state.js"></script>
+<script src="js/prompt.js"></script>
+<script src="js/parser.js"></script>
+<script src="js/kdp.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/render-preview.js"></script>
+<script src="js/render-pdf.js"></script>
+<script src="sample/sample-data.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

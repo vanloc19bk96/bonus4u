@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Murder Mystery Word Search</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">M</div>
+      <div>
+        <h1>Murder Search</h1>
+        <p>Offline KDP interior builder</p>
+      </div>
+    </div>
+
+    <section class="step is-open" id="step-1">
+      <button type="button" class="step-h" data-open="1">1 · Setup</button>
+      <div class="step-body">
+        <label for="f-title">Book title</label>
+        <input id="f-title" type="text" value="Murder Search" maxlength="80">
+
+        <label for="f-author">Author name</label>
+        <input id="f-author" type="text" maxlength="80" placeholder="Optional">
+
+        <label for="f-count">Number of puzzles</label>
+        <input id="f-count" type="number" min="1" max="200" value="60">
+
+        <label for="f-trim">Trim size</label>
+        <select id="f-trim"></select>
+
+        <span class="lbl">Difficulty</span>
+        <div class="seg" id="f-diff">
+          <label><input type="radio" name="diff" value="easy"> Easy</label>
+          <label><input type="radio" name="diff" value="standard" checked> Standard</label>
+          <label><input type="radio" name="diff" value="hard"> Hard</label>
+        </div>
+
+        <label for="f-theme">Book theme</label>
+        <input id="f-theme" type="text" placeholder="vintage detective">
+
+        <label class="check"><input id="f-answers" type="checkbox" checked> Include answer key</label>
+
+        <details class="advanced">
+          <summary>Advanced</summary>
+          <label for="f-seed">Random seed</label>
+          <input id="f-seed" type="text" value="184729">
+          <label for="f-grid">Grid size override</label>
+          <select id="f-grid">
+            <option value="auto" selected>Auto</option>
+            <option value="9">9 x 9</option>
+            <option value="11">11 x 11</option>
+            <option value="13">13 x 13</option>
+          </select>
+          <label class="check"><input id="f-howto" type="checkbox" checked> Include the how-to-solve page</label>
+          <label for="f-pagepos">Page number position</label>
+          <select id="f-pagepos">
+            <option value="center" selected>Bottom center</option>
+            <option value="outside">Bottom outside corner</option>
+          </select>
+          <label for="f-perkey">Puzzles per answer key page</label>
+          <input id="f-perkey" type="number" min="4" max="20" value="12">
+          <label for="f-copyright">Copyright notice</label>
+          <textarea id="f-copyright" rows="5" maxlength="1200" placeholder="Copyright text shown on the copyright page"></textarea>
+          <label for="ht1">How-to step 1 title</label>
+          <input id="ht1" type="text" maxlength="60">
+          <label for="h1">How-to paragraph 1</label>
+          <textarea id="h1" rows="2"></textarea>
+          <label for="ht2">How-to step 2 title</label>
+          <input id="ht2" type="text" maxlength="60">
+          <label for="h2">How-to paragraph 2</label>
+          <textarea id="h2" rows="2"></textarea>
+          <label for="ht3">How-to step 3 title</label>
+          <input id="ht3" type="text" maxlength="60">
+          <label for="h3">How-to paragraph 3</label>
+          <textarea id="h3" rows="2"></textarea>
+          <label for="ht4">How-to step 4 title</label>
+          <input id="ht4" type="text" maxlength="60">
+          <label for="h4">How-to paragraph 4</label>
+          <textarea id="h4" rows="2"></textarea>
+          <label for="ht5">How-to step 5 title</label>
+          <input id="ht5" type="text" maxlength="60">
+          <label for="h5">How-to paragraph 5</label>
+          <textarea id="h5" rows="2"></textarea>
+        </details>
+
+        <button type="button" class="btn btn-primary" id="btn-continue">Continue</button>
+      </div>
+    </section>
+
+    <section class="step is-locked" id="step-2">
+      <button type="button" class="step-h" data-open="2">2 · Get the content</button>
+      <p class="lock-note" id="lock-2">Finish setup first.</p>
+      <div class="step-body">
+        <details class="prompt-preview" id="prompt-preview">
+          <summary>
+            <span>Prompt preview</span>
+            <span class="prompt-preview-nav" id="prompt-preview-nav">
+              <button type="button" class="prompt-nav-btn" id="btn-prompt-prev" aria-label="Previous prompt">‹</button>
+              <span class="prompt-preview-meta" id="prompt-meta">Prompt 1 of 3</span>
+              <button type="button" class="prompt-nav-btn" id="btn-prompt-next" aria-label="Next prompt">›</button>
+            </span>
+          </summary>
+          <pre class="prompt-preview-body" id="prompt-preview-body"></pre>
+        </details>
+        <button type="button" class="btn btn-primary" id="btn-copy">Copy prompt</button>
+        <p class="hint">Paste it into ChatGPT, Claude, Gemini or Grok, then bring the reply back here.</p>
+        <label for="f-paste">Paste the AI's reply here</label>
+        <textarea id="f-paste" placeholder="Paste the whole reply, including both curly braces."></textarea>
+        <button type="button" class="btn btn-text" id="btn-import">Add these cases</button>
+        <div class="status" id="load-status">0 of 60 cases loaded</div>
+        <button type="button" class="btn btn-text" id="btn-fix" hidden>Fix these cases</button>
+        <button type="button" class="btn btn-primary" id="btn-to-build" disabled>Continue</button>
+      </div>
+    </section>
+
+    <section class="step is-locked" id="step-3">
+      <button type="button" class="step-h" data-open="3">3 · Build and export</button>
+      <p class="lock-note" id="lock-3">Load cases before you build the book.</p>
+      <div class="step-body">
+        <button type="button" class="btn btn-primary" id="btn-build">Build book</button>
+        <div class="progress-wrap" id="progress-wrap" hidden>
+          <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
+          <p class="progress-text" id="progress-text"></p>
+        </div>
+        <div class="readout" id="readout" hidden></div>
+        <button type="button" class="btn btn-primary" id="btn-pdf" hidden>Download PDF</button>
+        <div class="btn-row">
+          <button type="button" class="btn btn-text" id="btn-save">Save project</button>
+          <button type="button" class="btn btn-text" id="btn-open">Open project</button>
+          <input id="f-open" type="file" accept=".json,application/json" hidden>
+        </div>
+      </div>
+    </section>
+  </aside>
+
+  <main class="workspace">
+    <div class="toolbar">
+      <button type="button" class="btn btn-text" id="btn-prev">Previous</button>
+      <label class="nav-page">Page <input id="f-page" type="number" min="1" value="" disabled> <span id="page-of"></span></label>
+      <button type="button" class="btn btn-text" id="btn-next">Next</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-text" id="btn-fit">Zoom to fit</button>
+      <button type="button" class="btn btn-text" id="btn-100">100%</button>
+      <label class="toggle"><input id="f-show-answers" type="checkbox"> Show answers</label>
+      <label class="toggle"><input id="f-show-margins" type="checkbox"> Show margins</label>
+    </div>
+    <div class="stage" id="stage">
+      <div class="stage-inner" id="stage-inner"></div>
+    </div>
+  </main>
+</div>
+
+<div class="selftest" id="selftest"></div>
+
+<script src="js/vendor/jspdf.umd.min.js"></script>
+<script src="js/fonts.base64.js"></script>
+<script src="js/rng.js"></script>
+<script src="js/validate.js"></script>
+<script src="js/prompt.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/preview.js"></script>
+<script src="js/pdf.js"></script>
+<script src="js/store.js"></script>
+<script src="js/sample.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

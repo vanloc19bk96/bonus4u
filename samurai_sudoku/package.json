@@ -1,0 +1,21 @@
+{
+  "name": "samurai_sudoku",
+  "version": "1.0.0",
+  "description": "Offline generator for Samurai Sudoku KDP paperback interiors. Open `index.html` directly (file://). There's no build step and no server. See `spec.md` for the requirements.",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "clean-css": "^5.3.3",
+    "html-minifier-terser": "^7.2.0",
+    "javascript-obfuscator": "^5.8.0"
+  }
+}

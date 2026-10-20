@@ -1,0 +1,54 @@
+Murder Archive Studio
+=====================
+
+Double-click index.html. It opens in your web browser (Chrome, Edge, Firefox or Safari)
+and works without the internet. Nothing to install.
+
+Make "Thousands of suspects. A few clues. One killer." puzzle books for Amazon KDP:
+the reader crosses out records one clue at a time until only the killer is left.
+
+Eight kinds of book (step 1, "Book type"):
+  - Lottery & raffle tickets   ticket number, time, table, price, payment, lucky numbers
+  - Passenger manifest         name, occupation, class, cabin, port (ocean liner, night train,
+                               riverboat, cruise ship, overnight flight)
+  - Hotel guest register       entry, guest, arrival date, room, nights, rate
+  - Staff roster               badge, name, department, role, floor, clock-in time
+                               (hospital, museum, casino, country estate, film studio)
+  - Guest list (names only)    up to 20,000 names; every clue is about the letters
+  - Phone records              phone ID, time, call length, tower, number called
+  - Coordinates archive        latitude and longitude, with an Atlas of real cities
+  - Visitor log                museum, theme park, zoo or film festival scans
+Each kind has several settings, plus "My own setting" for your own idea.
+
+Four steps, on the left of the screen:
+  1. Set up your book    - book type, pen name, setting, difficulty, size, number of records.
+  2. Write the story     - copy one prompt into ChatGPT, Claude or Gemini, paste the reply back.
+  3. Design the cover    - pick one of 50 cover designs. Each thumbnail shows your own title,
+                           pen name and real records from your case. "For your book" shows the
+                           designs that suit your book type (ships, hotels, hospitals, museums,
+                           phone records, maps...); the other buttons show the six groups:
+                           Classic, Case file, Bold, Tickets & travel, Places, Noir & seasonal.
+                           The front, spine and back are made for you at the exact size KDP asks for.
+  4. Check and download  - the app checks every KDP print rule, then gives you two PDFs:
+                           the interior (manuscript) and the cover.
+
+What every book can include:
+  - The archive told in chapters (by class, department, arrival date, hour or surname)
+  - Clues that lead to exactly one record, with every clue needed (checked by the app)
+  - A title, a story note and a one-line reading tip for every clue
+  - Three short story interludes between the clues
+  - The Practice Case: seven records and four clues, worked through, for first-time readers
+  - Detective's Hints: two hints for every clue, never giving the answer away
+  - Checkpoints: how many records should be left after each clue
+  - The Verdict Cipher: readers unlock the killer's name with their answer, so they can check
+    it with no spoilers
+  - Cut-out clue cards (printed with a blank back), notes pages and a Certificate of Detection
+  - Your Amazon listing: title, subtitle, description and 7 keywords, ready to copy
+
+Click "New case" (step 1, More options) for every new book: each case file is an archive,
+an answer and a set of clues no other book has.
+
+"See a finished sample" shows two complete example books (a lottery register and a passenger
+manifest). Project files saved by the Lottery Murder Book Maker open here too, unchanged.
+
+If you have any questions, feel free to let me know.

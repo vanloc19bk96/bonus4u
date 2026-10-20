@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>365-Day Coaster Launch Calendar</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Fraunces', 'Georgia', 'serif'],
+            body: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            peach: { DEFAULT: '#f89a87', light: '#fae8e5' },
+            sage: '#dae7e2',
+            taupe: { DEFAULT: '#856149', light: '#a6846f' },
+            base: '#fdf9f1',
+            slate: '#5c6e83',
+            export: { DEFAULT: '#ef9e82', hover: '#e78f71' },
+            success: '#5d9c70',
+            warning: '#e58a4d',
+            danger: '#d65a4d',
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    :root {
+      --color-peach: #f89a87;
+      --color-peach-light: #fae8e5;
+      --color-sage: #dae7e2;
+      --color-taupe: #856149;
+      --color-taupe-light: #a6846f;
+      --color-base: #fdf9f1;
+      --color-slate: #5c6e83;
+      --color-danger: #d65a4d;
+      --color-success: #5d9c70;
+      --color-card-border: rgba(133, 97, 73, 0.12);
+    }
+    body { background: var(--color-base); color: var(--color-taupe-light); }
+    *:focus-visible { outline: 2px solid var(--color-peach); outline-offset: 2px; }
+    .event-chip { font-size: 11px; line-height: 18px; border-radius: 3px; padding: 0 4px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+    .chip-major { background: var(--color-peach-light); color: var(--color-taupe); }
+    .chip-medium { background: var(--color-sage); color: var(--color-taupe); }
+    .chip-minor { background: #e8e8e8; color: var(--color-slate); }
+    .chip-critical { background: var(--color-danger); color: white; }
+    .day-past { opacity: 0.6; }
+    .day-today .day-num { background: var(--color-peach); color: white; border-radius: 9999px; width: 1.75rem; height: 1.75rem; display: inline-flex; align-items: center; justify-content: center; }
+    .event-launched { opacity: 0.7; }
+    .event-launched::after { content: '✓'; position: absolute; top: 4px; right: 4px; color: var(--color-success); font-weight: 600; }
+    #mobile-detail-panel { transition: transform 250ms ease-out; transform: translateY(100%); }
+    #mobile-detail-panel.open { transform: translateY(0); }
+    .timeline-bar { height: 8px; border-radius: 4px; background: rgba(133,97,73,0.15); position: relative; }
+    .timeline-marker { position: absolute; top: -4px; width: 16px; height: 16px; border-radius: 50%; transform: translateX(-50%); }
+    .swatch { width: 2rem; height: 2rem; border-radius: 4px; border: 1px solid var(--color-card-border); }
+    .chip-copied { background: var(--color-success) !important; color: white !important; }
+    .toast-enter { animation: toastIn 250ms ease-out; }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    .view-tab.active { background: var(--color-peach); color: white; }
+    .upcoming-range-btn.active { background: var(--color-peach-light); border-color: var(--color-peach); color: var(--color-taupe); font-weight: 600; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+    @media (max-width: 639px) {
+      .calendar-grid { display: none; }
+      .calendar-list { display: block; }
+    }
+    @media (min-width: 640px) {
+      .calendar-list { display: none; }
+    }
+    .line-clamp-1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  </style>
+</head>
+<body class="font-body text-sm antialiased">
+  <div id="loading-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-base">
+    <div class="text-center">
+      <div class="font-display text-2xl text-taupe mb-2">Loading calendar…</div>
+      <p class="text-slate">Loading launch events…</p>
+    </div>
+  </div>
+  <div id="error-screen" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-base p-6">
+    <div class="max-w-md text-center bg-white rounded-md p-8 border border-[rgba(133,97,73,0.12)]">
+      <h2 class="font-display text-xl text-taupe mb-3">Could not load calendar data</h2>
+      <p id="error-detail" class="text-slate mb-4">Please check your internet connection and try again. This tool loads calendar data from an online source.</p>
+      <button id="retry-load-btn" type="button" class="bg-export hover:bg-export-hover text-white px-6 py-2.5 rounded font-medium">Try again</button>
+    </div>
+  </div>
+
+  <div id="app" class="hidden min-h-screen flex flex-col">
+    <header class="border-b border-[rgba(133,97,73,0.12)] bg-white/80 backdrop-blur-sm sticky top-0 z-30">
+      <div class="max-w-[1400px] mx-auto px-4 py-5 md:py-6">
+        <div class="flex flex-wrap items-start gap-4 justify-between">
+          <div>
+            <div class="flex flex-wrap items-center gap-3 mb-1">
+              <span class="font-display text-lg font-semibold text-peach italic">CE</span>
+              <span class="text-xs uppercase tracking-wider text-slate bg-peach-light px-2 py-0.5 rounded">Bonus for Coaster Empire owners</span>
+              <span id="launched-counter" class="text-xs text-success font-medium hidden"></span>
+            </div>
+            <h1 id="tool-title" class="font-display text-2xl md:text-[32px] font-semibold text-taupe leading-tight">365-Day Coaster Launch Calendar</h1>
+            <p id="tool-subtitle" class="text-slate mt-1 max-w-2xl">69 dated events. Pre-computed list-by deadlines. Built for Etsy coaster sellers.</p>
+          </div>
+          <div class="text-right">
+            <p id="today-display" class="font-display text-lg md:text-xl font-semibold text-taupe"></p>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div id="alert-bar" class="border-b" role="region" aria-label="Action alerts"></div>
+
+    <div class="md:hidden sticky top-0 z-20 bg-white border-b border-[rgba(133,97,73,0.12)] px-4 py-2">
+      <button id="mobile-filter-toggle" class="w-full flex items-center justify-between py-2 text-taupe font-medium" aria-expanded="false" aria-controls="filters-sidebar">
+        <span>Filters &amp; View</span>
+        <span id="filter-toggle-icon" aria-hidden="true">▼</span>
+      </button>
+    </div>
+
+    <main class="flex-1 max-w-[1400px] mx-auto w-full px-4 py-5">
+      <div class="flex flex-col md:flex-row gap-5">
+        <aside id="filters-sidebar" class="hidden md:block w-full md:w-[260px] flex-shrink-0 md:sticky md:top-28 md:self-start md:max-h-[calc(100vh-8rem)] md:overflow-y-auto" aria-label="Filters">
+          <div class="bg-white rounded-md border border-[rgba(133,97,73,0.12)] p-4 space-y-5">
+            <fieldset>
+              <legend class="text-xs uppercase tracking-wider text-slate font-medium mb-2">View mode</legend>
+              <div class="space-y-1.5" id="view-mode-filters">
+                <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="view-mode" value="calendar" checked class="accent-peach"> Calendar</label>
+                <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="view-mode" value="timeline" class="accent-peach"> Timeline</label>
+                <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="view-mode" value="upcoming" class="accent-peach"> Upcoming</label>
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend class="text-xs uppercase tracking-wider text-slate font-medium mb-2">Region</legend>
+              <div id="region-filters" class="space-y-1.5">
+                <label class="flex items-center gap-2"><input type="checkbox" data-region="global" checked class="accent-peach"> 🌐 Global</label>
+                <label class="flex items-center gap-2"><input type="checkbox" data-region="US" checked class="accent-peach"> 🇺🇸 US</label>
+                <label class="flex items-center gap-2"><input type="checkbox" data-region="UK" class="accent-peach"> 🇬🇧 UK</label>
+              </div>
+              <button type="button" id="uk-only-preset" class="text-xs text-peach hover:underline mt-1">UK Only preset</button>
+            </fieldset>
+
+            <fieldset>
+              <legend class="text-xs uppercase tracking-wider text-slate font-medium mb-2">Importance</legend>
+              <div id="importance-filters" class="space-y-1.5">
+                <label class="flex items-center gap-2"><input type="checkbox" data-importance="major" checked class="accent-peach"> 🔴 Major</label>
+                <label class="flex items-center gap-2"><input type="checkbox" data-importance="medium" checked class="accent-peach"> 🟡 Medium</label>
+                <label class="flex items-center gap-2"><input type="checkbox" data-importance="minor" class="accent-peach"> ⚪ Minor</label>
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend class="text-xs uppercase tracking-wider text-slate font-medium mb-2 flex items-center justify-between w-full">
+                <span>Category</span>
+                <button type="button" id="toggle-categories" class="text-xs text-peach normal-case" aria-expanded="true">Collapse</button>
+              </legend>
+              <div id="category-filters" class="space-y-1.5 max-h-48 overflow-y-auto"></div>
+              <div class="flex flex-wrap gap-2 mt-2">
+                <button type="button" id="sales-only-preset" class="text-xs text-peach hover:underline">Sales events only</button>
+                <button type="button" id="wedding-only-preset" class="text-xs text-peach hover:underline">Wedding-related only</button>
+              </div>
+            </fieldset>
+
+            <div>
+              <label for="search-input" class="text-xs uppercase tracking-wider text-slate font-medium block mb-1.5">Search</label>
+              <input type="search" id="search-input" placeholder="Search events, niches, or keywords…" class="w-full border border-[rgba(133,97,73,0.2)] rounded px-3 py-2 text-taupe bg-base focus:border-peach">
+            </div>
+
+            <button id="reset-filters" type="button" class="w-full border border-[rgba(133,97,73,0.2)] text-taupe py-2 rounded hover:bg-peach-light transition-colors">Reset filters</button>
+          </div>
+        </aside>
+
+        <div class="flex-1 flex gap-5 min-w-0">
+          <section class="flex-1 min-w-0" aria-label="Calendar content">
+            <div id="main-view-tabs" class="hidden sm:flex gap-1 mb-4 bg-white border border-[rgba(133,97,73,0.12)] rounded-md p-1 w-fit">
+              <button type="button" data-view="calendar" class="view-tab active px-4 py-1.5 rounded text-sm font-medium text-taupe">Calendar</button>
+              <button type="button" data-view="timeline" class="view-tab px-4 py-1.5 rounded text-sm font-medium text-taupe">Timeline</button>
+              <button type="button" data-view="upcoming" class="view-tab px-4 py-1.5 rounded text-sm font-medium text-taupe">Upcoming</button>
+            </div>
+            <div id="upcoming-range" class="hidden mb-4 flex gap-2">
+              <button type="button" data-days="30" class="upcoming-range-btn active px-3 py-1 rounded border border-[rgba(133,97,73,0.2)] text-sm">30 days</button>
+              <button type="button" data-days="60" class="upcoming-range-btn px-3 py-1 rounded border border-[rgba(133,97,73,0.2)] text-sm">60 days</button>
+              <button type="button" data-days="90" class="upcoming-range-btn px-3 py-1 rounded border border-[rgba(133,97,73,0.2)] text-sm">90 days</button>
+            </div>
+            <p id="results-count" class="text-slate text-xs uppercase tracking-wider mb-3"></p>
+            <div id="main-content"></div>
+            <div id="empty-state" class="hidden text-center py-16 px-4">
+              <div class="text-4xl mb-4" aria-hidden="true">📅</div>
+              <h2 class="font-display text-xl text-taupe mb-2">No events match your filters</h2>
+              <button type="button" id="empty-reset" class="bg-export hover:bg-export-hover text-white px-6 py-2.5 rounded font-medium mt-4">Reset filters</button>
+            </div>
+          </section>
+
+          <aside id="detail-panel" class="hidden md:flex md:flex-col w-[400px] flex-shrink-0 md:sticky md:top-28 md:self-start md:max-h-[calc(100vh-8rem)] overflow-y-auto bg-white rounded-md border border-[rgba(133,97,73,0.12)]" aria-label="Event details" aria-hidden="true">
+            <div id="detail-content" class="p-5 hidden"></div>
+            <div id="detail-placeholder" class="flex flex-1 flex-col items-center justify-center p-8 text-center text-slate min-h-[320px]">
+              <p class="font-display text-lg text-taupe mb-2">Select an event</p>
+              <p class="text-sm max-w-[260px]">Click a calendar chip or timeline card to see your launch plan.</p>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </main>
+
+    <footer class="border-t border-[rgba(133,97,73,0.12)] bg-white mt-auto">
+      <div class="max-w-[1400px] mx-auto px-4 py-6 text-center text-sm text-slate">
+        <p id="footer-text" class="italic"></p>
+      </div>
+    </footer>
+  </div>
+
+  <div id="mobile-detail-overlay" class="fixed inset-0 z-40 hidden md:hidden" role="dialog" aria-modal="true" aria-labelledby="mobile-detail-title">
+    <div id="mobile-backdrop" class="absolute inset-0 bg-black/40"></div>
+    <div id="mobile-detail-panel" class="absolute inset-x-0 bottom-0 top-12 bg-white rounded-t-md overflow-y-auto">
+      <div id="mobile-detail-content" class="p-5 pb-8"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-taupe text-white px-5 py-2.5 rounded-md shadow-lg text-sm toast-enter" role="status" aria-live="polite"></div>
+
+<script id="embedded-events" type="application/json">
+{"meta":{"version":"1.0.0","last_updated":"2026-06-20","calendar_year":2026,"data_sources":["OPM federal holidays 2026 (US)","GOV.UK bank holidays 2026 (UK + regions)","Etsy Seller Handbook seasonal lead-time guidance","Pinterest Predicts 2026 trend report","Etsy holiday calendar industry analyses (ListifyAI 2026, Marmalead, Insight Agent)","American Nurses Association observance dates 2026","National Day Calendar (drink days)","Wedding industry data (April-October US peak months)"],"notes":"All dates verified for 2026. list_by_date is auto-computed (event_date - lead_time_weeks * 7 days). Lead times follow Etsy SEO best practice: 8-10 weeks for major gift holidays, 6-8 for medium, 4-6 for minor, 12+ for wedding/event planning niches. Etsy ranking algorithm typically takes 3-6 weeks to mature new listings.","categories":["major_gift_holiday","us_holiday","uk_holiday","shopping_event","appreciation_week","appreciation_day","awareness_month","awareness_day","drink_day","celebration","religious_holiday","seasonal_kickoff","aesthetic_season","wedding_season","event_lead","critical_deadline"],"importance_levels":{"major":"Top-priority sales event — must list within lead time window","medium":"Strong niche-specific opportunity","minor":"Promo-timing only, not a themed product launch trigger"},"regions":["global","US","UK"],"niches_reference":"Niche IDs in recommended_niches map to niches.json database from the Coaster Niche Profit Scanner tool. The two tools are designed to work together."},"events":[{"id":"new-years-day","name":"New Year's Day","event_date":"2026-01-01","category":"us_holiday","region":"global","importance":"minor","lead_time_weeks":6,"summary":"Year-themed coasters and 'New Year, New Home' housewarming gifts. Buyers planning fresh-start home decor refreshes.","recommended_niches":["housewarming-coasters","minimalist-line-art-coasters","anniversary-personalized-coasters"],"design_angles":"'Cheers to 2026' typography. Champagne flute illustrations. 'New Year, New Home' for housewarming sub-niche. Minimalist gold-on-white aesthetic.","color_palette":"Champagne gold + ivory + black accent","pro_tip":"Most buyers tired of holiday-themed gifts by Jan 1. Pivot designs to FRESH START / NEW HOME / GOALS rather than continued Christmas vibes.","seo_keywords":["new year coasters","new home 2026","fresh start gift"],"list_by_date":"2025-11-20","peak_window_start":"2025-12-18","peak_window_end":"2026-01-03"},{"id":"hot-toddy-day","name":"National Hot Toddy Day","event_date":"2026-01-11","category":"drink_day","region":"US","importance":"minor","lead_time_weeks":4,"summary":"Niche drink day — cocktail recipe coaster opportunity.","recommended_niches":["cocktail-recipe-coasters","whiskey-bourbon-coasters"],"design_angles":"Hot toddy recipe coaster (lemon + honey + whiskey + clove). Winter cabin aesthetic.","color_palette":"Amber + cinnamon + cream","pro_tip":"Bundle in '5 winter cocktail recipes' coaster set — outperforms single-drink listings.","seo_keywords":["hot toddy recipe coaster","winter cocktail gift"],"list_by_date":"2025-12-14","peak_window_start":"2025-12-28","peak_window_end":"2026-01-13"},{"id":"mlk-day","name":"Martin Luther King Jr. Day","event_date":"2026-01-19","category":"us_holiday","region":"US","importance":"minor","lead_time_weeks":4,"summary":"Not a major coaster sales event but a federal holiday — useful for promo/sale timing rather than themed product launches.","recommended_niches":[],"design_angles":"No specific themed coasters recommended (avoid commercializing the civil rights commemoration).","color_palette":null,"pro_tip":"Run a general 'MLK Day weekend sale' rather than themed listings. Use this 3-day weekend for traffic-driven promos.","seo_keywords":[],"list_by_date":"2025-12-22","peak_window_start":"2026-01-05","peak_window_end":"2026-01-21"},{"id":"engagement-season-peak","name":"Engagement / Wedding Planning Season Peak","event_date":"2026-01-31","category":"wedding_season","region":"global","importance":"major","lead_time_weeks":4,"summary":"Dec-Feb is peak engagement season. 40% of US engagements happen between Thanksgiving and Valentine's Day. Newly-engaged couples start planning weddings in January-February for spring/summer ceremonies.","recommended_niches":["wedding-favor-coasters","wedding-place-card-coasters","bridal-shower-coasters","anniversary-personalized-coasters"],"design_angles":"'Just Engaged' / 'Future Mrs.' aesthetics. Save-the-date inspired coaster designs. Wedding planning checklist coasters as bridal party gifts.","color_palette":"Ivory + dusty rose + champagne + gold","pro_tip":"January = highest Pinterest traffic for wedding terms. Pin your wedding favor designs in early January. List 'wedding favor coasters' by early Feb to capture spring/summer wedding planners 4-6 months out.","seo_keywords":["wedding favor coasters","just engaged gift","wedding planning"],"list_by_date":"2026-01-03","peak_window_start":"2026-01-17","peak_window_end":"2026-02-02"},{"id":"black-history-month","name":"Black History Month","event_date":"2026-02-01","category":"awareness_month","region":"US","importance":"medium","lead_time_weeks":6,"summary":"All-February observance. Afrohemian Decor is a Pinterest Predicts 2026 trend (80-100% search increase for related terms). Strong window for Afrohemian-style coasters.","recommended_niches":["boho-coasters"],"design_angles":"African textile patterns, mudcloth motifs, Adinkra symbols, terracotta + sage + cream palette. Afrohemian Decor aesthetic.","color_palette":"Terracotta + black + gold + cream + sage","pro_tip":"Pinterest 2026 trend report calls out 'Afrohemian Decor' explicitly. Sub-niche of boho with major growth window.","seo_keywords":["afrohemian decor","african textile coaster","boho coaster"],"list_by_date":"2025-12-21","peak_window_start":"2026-01-18","peak_window_end":"2026-02-03"},{"id":"groundhog-day","name":"Groundhog Day","event_date":"2026-02-02","category":"us_holiday","region":"US","importance":"minor","lead_time_weeks":3,"summary":"Pop culture reference day — not a gifting event.","recommended_niches":[],"design_angles":null,"color_palette":null,"pro_tip":"Skip themed listings — no real demand.","seo_keywords":[],"list_by_date":"2026-01-12","peak_window_start":"2026-01-19","peak_window_end":"2026-02-04"},{"id":"galentines-day","name":"Galentine's Day","event_date":"2026-02-13","category":"celebration","region":"US","importance":"medium","lead_time_weeks":6,"summary":"Feb 13. Female friendship celebration that's exploded as a buying occasion since 2020. Strong for funny/sarcastic and wine-themed coasters as friend gifts.","recommended_niches":["funny-sarcastic-drinking-coasters","wine-lover-coasters","coquette-coasters","mom-life-coasters"],"design_angles":"'Galentine's' typography. Wine + champagne + bestie humor. Coquette aesthetic with bow motifs. 'Friendship is the wine of life' quotes.","color_palette":"Pink + red + champagne + ivory","pro_tip":"Galentine's gift sets (set of 4 different designs) outperform single coasters. 'Coquette aesthetic' is the breakout sub-style — pink bows + cursive 'best friend'.","seo_keywords":["galentines gift","best friend coaster","wine bestie gift"],"list_by_date":"2026-01-02","peak_window_start":"2026-01-30","peak_window_end":"2026-02-15"},{"id":"valentines-day","name":"Valentine's Day","event_date":"2026-02-14","category":"major_gift_holiday","region":"global","importance":"major","lead_time_weeks":10,"summary":"Top 4 coaster sales event of the year. Romantic couples buy personalized coasters for partners. Peak buyer search window: Jan 10 - Feb 12.","recommended_niches":["valentines-couple-coasters","personalized-photo-car-coasters","anniversary-personalized-coasters","coquette-coasters"],"design_angles":"His + Hers (and Hers + Hers / His + His for inclusive sets). Names + 'Est. [year]' typography. Heart motifs. Coordinates of where you met. 'First Valentine's' premium niche for new couples.","color_palette":"Deep red + dusty pink + ivory + gold OR coquette pink + black ribbon","pro_tip":"List by Dec 6 latest for SEO ranking by Jan 10. Last-minute shoppers (Feb 10-13) want fast shipping — offer expedited. 'First Valentine's' personalized commands premium AOV.","seo_keywords":["valentines gift for him","couple coaster","first valentines","his and hers"],"list_by_date":"2025-12-06","peak_window_start":"2026-01-31","peak_window_end":"2026-02-16"},{"id":"presidents-day","name":"Presidents' Day","event_date":"2026-02-16","category":"us_holiday","region":"US","importance":"minor","lead_time_weeks":3,"summary":"Federal holiday — used for sales/promo timing rather than themed launches.","recommended_niches":[],"design_angles":null,"color_palette":null,"pro_tip":"Run weekend promos (Feb 14-16) for an extra Valentine's revenue tail.","seo_keywords":[],"list_by_date":"2026-01-26","peak_window_start":"2026-02-02","peak_window_end":"2026-02-18"},{"id":"national-drink-wine-day","name":"National Drink Wine Day","event_date":"2026-02-18","category":"drink_day","region":"US","importance":"minor","lead_time_weeks":4,"summary":"Niche drink celebration — solid for wine lover coaster sub-niche.","recommended_niches":["wine-lover-coasters","cocktail-recipe-coasters"],"design_angles":"Wine varietal coasters (Cabernet, Pinot, Rosé as separate designs). 'Tastes like Tuesday' wine mom humor.","color_palette":"Burgundy + cream + gold","pro_tip":"Bundle 'Sommelier sip set' (6 varietals) for premium pricing vs single quote coasters.","seo_keywords":["wine coaster","wine lover gift","wine varietal coaster"],"list_by_date":"2026-01-21","peak_window_start":"2026-02-04","peak_window_end":"2026-02-20"},{"id":"national-margarita-day","name":"National Margarita Day","event_date":"2026-02-22","category":"drink_day","region":"US","importance":"minor","lead_time_weeks":4,"summary":"Margarita-themed coaster opportunity — cocktail recipe niche.","recommended_niches":["cocktail-recipe-coasters"],"design_angles":"Margarita recipe coaster as part of cocktail set. Pair with bachelorette/cinco-de-mayo seasonality.","color_palette":"Lime green + salt-white + tequila amber","pro_tip":"Drink-day listings are evergreen if you tag 'cocktail recipe' as primary — they sell year-round, not just on the day.","seo_keywords":["margarita coaster","cocktail recipe coaster","margarita lover"],"list_by_date":"2026-01-25","peak_window_start":"2026-02-08","peak_window_end":"2026-02-24"},{"id":"bridal-shower-season-spring","name":"Spring Bridal Shower Season Begins","event_date":"2026-02-28","category":"wedding_season","region":"global","importance":"medium","lead_time_weeks":4,"summary":"Spring/summer wedding showers cluster March-May. Brides-to-be order favors and decor 6-8 weeks before their shower.","recommended_niches":["bridal-shower-coasters","wedding-favor-coasters"],"design_angles":"'Miss to Mrs', 'Bride to Be', champagne + pearl motifs, dusty pink + champagne palette.","color_palette":"Champagne + dusty pink + ivory + soft sage","pro_tip":"Bridal showers are a TWO-MONTH-AHEAD purchase. Buyers planning April-May showers buy in March. Tag 'bridal shower 2026' specifically.","seo_keywords":["bridal shower favor","miss to mrs","shower hostess gift"],"list_by_date":"2026-01-31","peak_window_start":"2026-02-14","peak_window_end":"2026-03-02"},{"id":"womens-history-month","name":"Women's History Month","event_date":"2026-03-01","category":"awareness_month","region":"global","importance":"minor","lead_time_weeks":6,"summary":"Empowerment-themed coasters — strong for office gifting context.","recommended_niches":["office-work-humor-coasters","mom-life-coasters"],"design_angles":"Inspirational quotes by historical women (public domain or paraphrased). 'Boss energy' typography. Suffragette purple palette.","color_palette":"Purple + gold + cream","pro_tip":"Avoid trademarked quotes/likenesses. Use public domain figures (Susan B. Anthony, Eleanor Roosevelt).","seo_keywords":["women empowerment gift","boss lady coaster","feminist coaster"],"list_by_date":"2026-01-18","peak_window_start":"2026-02-15","peak_window_end":"2026-03-03"},{"id":"cottagecore-spring-window","name":"Cottagecore Spring Aesthetic Window Opens","event_date":"2026-03-05","category":"aesthetic_season","region":"global","importance":"medium","lead_time_weeks":4,"summary":"Cottagecore peaks twice a year (spring + fall). Pinterest 2026 forecasts continued strength. Spring window: March-May, especially around Easter.","recommended_niches":["cottagecore-coasters","minimalist-line-art-coasters"],"design_angles":"Wildflower bouquets, mushrooms, fern fronds, watercolor botanicals, vintage book plate illustrations, dusty sage + butter cream palette.","color_palette":"Butter cream + sage + dusty rose + soft brown","pro_tip":"Cottagecore aesthetic still strong per Pinterest 2026 Predicts. Spring window is peak Pinterest traffic for this niche — list by early March to ride the curve.","seo_keywords":["cottagecore decor","spring botanical coaster","mushroom coaster"],"list_by_date":"2026-02-05","peak_window_start":"2026-02-19","peak_window_end":"2026-03-07"},{"id":"st-patricks-day","name":"St. Patrick's Day","event_date":"2026-03-17","category":"us_holiday","region":"global","importance":"medium","lead_time_weeks":6,"summary":"Irish pub / drinking culture. Strong for funny coaster sub-niche and pub-themed home bars. Also bank holiday in Northern Ireland.","recommended_niches":["funny-sarcastic-drinking-coasters","beer-craft-coasters","whiskey-bourbon-coasters"],"design_angles":"Shamrock motifs, 'Kiss me I'm Irish' humor, Guinness-inspired (generic stout — not branded), Irish whiskey humor, Irish blessings typography.","color_palette":"Emerald green + gold + ivory","pro_tip":"St. Patrick's Day humor coasters sell as gag/party gifts. Avoid trademarked brands (Guinness, Jameson). Use generic 'Irish stout' references.","seo_keywords":["st patricks coaster","irish gift","kiss me im irish"],"list_by_date":"2026-02-03","peak_window_start":"2026-03-03","peak_window_end":"2026-03-19"},{"id":"uk-mothers-day","name":"Mother's Day (UK / Mothering Sunday)","event_date":"2026-03-22","category":"major_gift_holiday","region":"UK","importance":"major","lead_time_weeks":8,"summary":"UK Mother's Day is COMPLETELY DIFFERENT date from US (March 22 vs May 10 in 2026). Critical for UK-targeted sellers. Falls on 4th Sunday of Lent.","recommended_niches":["mom-life-coasters","anniversary-personalized-coasters","personalized-photo-car-coasters","cottagecore-coasters"],"design_angles":"'Mum' (not Mom) typography for UK market. British florals (English wildflowers, hydrangea). 'World's Best Mum' personalization with kids' names.","color_palette":"Soft pink + cream + sage + dusty lavender","pro_tip":"If targeting UK buyers: use 'Mum' spelling and ship-from-UK if possible. List 8 weeks before March 22 = list by late January.","seo_keywords":["mothers day uk","best mum gift","mum coaster","mothering sunday"],"list_by_date":"2026-01-25","peak_window_start":"2026-03-08","peak_window_end":"2026-03-24"},{"id":"spring-equinox","name":"Spring Equinox / First Day of Spring","event_date":"2026-03-20","category":"seasonal_kickoff","region":"global","importance":"minor","lead_time_weeks":4,"summary":"Marks the official start of spring aesthetics. Spring florals, pastels, garden motifs hit peak search.","recommended_niches":["cottagecore-coasters","plant-lover-coasters","floral-car-coasters"],"design_angles":"Tulips, daffodils, cherry blossoms. Pastel palettes. Fresh green + butter yellow + dusty pink.","color_palette":"Butter yellow + sage + dusty pink + cream","pro_tip":"Refresh shop banner / photos with spring aesthetics by mid-March. Even if products don't change, listing photos with spring styling boost CTR.","seo_keywords":["spring coaster","spring florals home decor"],"list_by_date":"2026-02-20","peak_window_start":"2026-03-06","peak_window_end":"2026-03-22"},{"id":"april-fools-day","name":"April Fools' Day","event_date":"2026-04-01","category":"celebration","region":"global","importance":"minor","lead_time_weeks":3,"summary":"Not a gift day — minor humor coaster relevance.","recommended_niches":["funny-sarcastic-drinking-coasters"],"design_angles":"Skip themed listings.","color_palette":null,"pro_tip":"Skip — no commercial pull.","seo_keywords":[],"list_by_date":"2026-03-11","peak_window_start":"2026-03-18","peak_window_end":"2026-04-03"},{"id":"good-friday-easter","name":"Easter Weekend","event_date":"2026-04-05","category":"major_gift_holiday","region":"global","importance":"medium","lead_time_weeks":6,"summary":"Easter brunch gifting and spring bridal/baby showers cluster around this weekend. Good Friday + Easter Sunday + Easter Monday (UK).","recommended_niches":["cottagecore-coasters","baby-shower-coasters","bridal-shower-coasters","floral-car-coasters"],"design_angles":"Pastel Easter eggs (no Disney references), spring florals, 'Hop into spring' humor for car coasters, 'Bunny mama' kid-friendly. Garden + brunch table aesthetics.","color_palette":"Pastel pink + sage + butter yellow + lilac","pro_tip":"Easter brunch host gifts = micro-spike. Spring shower season uses Easter as date anchor for gifting timing.","seo_keywords":["easter gift","easter brunch host","spring coaster"],"list_by_date":"2026-02-22","peak_window_start":"2026-03-22","peak_window_end":"2026-04-07"},{"id":"national-pet-day","name":"National Pet Day","event_date":"2026-04-11","category":"awareness_day","region":"US","importance":"medium","lead_time_weeks":5,"summary":"Strong pet coaster sales day. Pet owners self-purchase + gift to fellow pet parents.","recommended_niches":["pet-memorial-dog-coasters","pet-memorial-cat-coasters","horse-equestrian-coasters"],"design_angles":"Custom pet portrait coasters (line art from photo). 'Furparent' typography. Specific breed illustrations.","color_palette":"Warm browns + cream + sage","pro_tip":"Don't lead with 'memorial' for this day — celebrate living pets. Save memorial angle for Pet Memorial Day (Sep).","seo_keywords":["pet day gift","custom pet portrait","pet parent gift"],"list_by_date":"2026-03-07","peak_window_start":"2026-03-28","peak_window_end":"2026-04-13"},{"id":"kentucky-derby","name":"Kentucky Derby (First Saturday in May — list now)","event_date":"2026-04-15","category":"event_lead","region":"US","importance":"medium","lead_time_weeks":6,"summary":"Kentucky Derby falls on May 2, 2026. Derby party hosts buy themed coasters 2-4 weeks before. List by mid-April latest.","recommended_niches":["horse-equestrian-coasters","cocktail-recipe-coasters","whiskey-bourbon-coasters"],"design_angles":"Mint julep recipe coaster. Horse silhouettes. 'Run for the Roses' typography. Derby hat motifs. Kentucky bourbon trail map.","color_palette":"Emerald green + bourbon amber + pink (rose)","pro_tip":"Mint julep recipe coaster is the iconic Derby coaster. Sell as 'Derby party kit' bundle with horse + julep + roses designs.","seo_keywords":["kentucky derby party","mint julep coaster","derby hat gift"],"list_by_date":"2026-03-04","peak_window_start":"2026-04-01","peak_window_end":"2026-04-17"},{"id":"administrative-professionals-day","name":"Administrative Professionals Day","event_date":"2026-04-22","category":"appreciation_day","region":"US","importance":"medium","lead_time_weeks":4,"summary":"Wednesday of the last full week of April. Office gift sub-niche.","recommended_niches":["office-work-humor-coasters"],"design_angles":"'Office MVP' / 'Best admin ever' typography. Coffee mug illustrations. Spreadsheet humor.","color_palette":"Navy + gold + cream","pro_tip":"Bosses buy this — corporate gift opportunity. Bulk order angle works (5-20 sets at once).","seo_keywords":["admin professional gift","office assistant gift","admin appreciation"],"list_by_date":"2026-03-25","peak_window_start":"2026-04-08","peak_window_end":"2026-04-24"},{"id":"list-by-mothers-day-us","name":"🚨 LIST BY: US Mother's Day (May 10)","event_date":"2026-04-25","category":"critical_deadline","region":"US","importance":"major","lead_time_weeks":0,"summary":"If you haven't listed US Mother's Day coasters by now, you've missed the peak SEO window. Listings made after this date will struggle to rank by May 10.","recommended_niches":["mom-life-coasters","anniversary-personalized-coasters","personalized-photo-car-coasters"],"design_angles":"'Mom of [kids' names]'. Wildflower bouquets. First Mother's Day premium. 'Bonus Mom' / 'Step Mom' underserved sub-niche.","color_palette":"Dusty rose + sage + cream + gold","pro_tip":"Last call. List remaining Mother's Day inventory NOW or you're chasing the spring tail. Use 'gift for mom from daughter' as primary keyword.","seo_keywords":["mothers day gift","personalized mom gift","first mothers day"],"list_by_date":"2026-04-25","peak_window_start":"2026-04-11","peak_window_end":"2026-04-27"},{"id":"may-day-uk","name":"Early May Bank Holiday (UK)","event_date":"2026-05-04","category":"uk_holiday","region":"UK","importance":"minor","lead_time_weeks":3,"summary":"Long weekend in UK — minor commercial day, run promo timing.","recommended_niches":[],"design_angles":null,"color_palette":null,"pro_tip":"UK shoppers off work — good for weekend promo sale.","seo_keywords":[],"list_by_date":"2026-04-13","peak_window_start":"2026-04-20","peak_window_end":"2026-05-06"},{"id":"teacher-appreciation-week","name":"Teacher Appreciation Week (May 4-8)","event_date":"2026-05-05","category":"appreciation_week","region":"US","importance":"medium","lead_time_weeks":5,"summary":"First full week of May. Tuesday (May 5) is National Teacher Day. Parents buy 1-2 personalized coasters per child's teacher.","recommended_niches":["teacher-appreciation-coasters"],"design_angles":"'Best teacher ever' + 'Mrs. [name]' personalization. Apple + book + pencil motifs. Subject-specific (math/English/science). 'Powered by caffeine and dry erase markers' humor.","color_palette":"Apple red + chalkboard black + cream + warm yellow","pro_tip":"Subject-specific coasters outperform generic. Personalized 'Mrs. Johnson' coasters = premium AOV. 'Preschool teacher' specifically searched.","seo_keywords":["teacher appreciation gift","teacher name coaster","best teacher gift"],"list_by_date":"2026-03-31","peak_window_start":"2026-04-21","peak_window_end":"2026-05-07"},{"id":"cinco-de-mayo","name":"Cinco de Mayo","event_date":"2026-05-05","category":"celebration","region":"US","importance":"minor","lead_time_weeks":4,"summary":"Margarita + tequila party theme. Limited coaster opportunity but bundles work.","recommended_niches":["cocktail-recipe-coasters"],"design_angles":"Margarita recipe + tequila cocktails. Avoid cultural stereotypes — keep designs to drink-themed only.","color_palette":"Lime green + terracotta + cream","pro_tip":"Drink-day timing only — not a major sales event. Use as add-on to cocktail recipe listings.","seo_keywords":["cinco de mayo party","margarita party"],"list_by_date":"2026-04-07","peak_window_start":"2026-04-21","peak_window_end":"2026-05-07"},{"id":"national-nurses-week","name":"National Nurses Week (May 6-12)","event_date":"2026-05-06","category":"appreciation_week","region":"US","importance":"medium","lead_time_weeks":5,"summary":"Begins May 6 (National Nurses Day), ends May 12 (International Nurses Day / Florence Nightingale's birthday). Nurse population is large — strong gift opportunity.","recommended_niches":["nurse-medical-coasters"],"design_angles":"Stethoscope motifs, 'Trust me I'm a nurse' humor, RN/BSN credentials, specialty-specific (ICU, ER, NICU, L&D, oncology). 'Saving lives one coffee at a time' humor.","color_palette":"Medical scrub teal + clean white + soft pink","pro_tip":"Specialty-specific (ICU vs ER vs NICU) converts better than generic 'nurse gift'. Spouses + grateful patients are key buyer segments.","seo_keywords":["nurses week gift","icu nurse gift","nurse appreciation"],"list_by_date":"2026-04-01","peak_window_start":"2026-04-22","peak_window_end":"2026-05-08"},{"id":"us-mothers-day","name":"Mother's Day (US)","event_date":"2026-05-10","category":"major_gift_holiday","region":"US","importance":"major","lead_time_weeks":8,"summary":"MAJOR coaster sales event. Adult children + spouses buying for moms. Personalized = high AOV. Peak buyer search window: Mar 15 - May 8.","recommended_niches":["mom-life-coasters","anniversary-personalized-coasters","personalized-photo-car-coasters","cottagecore-coasters"],"design_angles":"'Mom of [kids' names]' personalization. Wildflower bouquets. Heart + family motifs. Birth flowers + kids' birthdays. 'First Mother's Day' premium with baby photo.","color_palette":"Dusty rose + sage + cream + gold","pro_tip":"List by March 15 latest. 'First Mother's Day' photo coasters = highest AOV. 'Step Mom' / 'Bonus Mom' underserved and high-converting. Offer expedited shipping May 5-9.","seo_keywords":["mothers day gift","personalized mom coaster","first mothers day","step mom gift"],"list_by_date":"2026-03-15","peak_window_start":"2026-04-26","peak_window_end":"2026-05-12"},{"id":"graduation-season-peak","name":"College Graduation Peak (mid-May to early June)","event_date":"2026-05-15","category":"seasonal_kickoff","region":"US","importance":"medium","lead_time_weeks":6,"summary":"College + high school graduations cluster mid-May to mid-June. Parents/grandparents/friends buy commemorative gifts. Advanced degree grads (PhD, JD, MD) = 2-3x AOV.","recommended_niches":["graduation-coasters","dark-academia-coasters"],"design_angles":"'Class of 2026' typography (single year focal). Diploma roll motifs. School color palettes (no trademarks). Subject-specific (law, medical, engineering grads). 'Dr. [Name] DVM/PhD/MD' premium personalization.","color_palette":"Black + gold + school-specific (request from buyer)","pro_tip":"Already late if you haven't listed by mid-March. PhD/MD/JD/DVM graduation premium ($35-60) outperforms generic 'congrats grad'.","seo_keywords":["college graduation gift","class of 2026","phd graduation gift","law school grad"],"list_by_date":"2026-04-03","peak_window_start":"2026-05-01","peak_window_end":"2026-05-17"},{"id":"national-wine-day","name":"National Wine Day","event_date":"2026-05-25","category":"drink_day","region":"US","importance":"minor","lead_time_weeks":4,"summary":"Coincides with Memorial Day in 2026.","recommended_niches":["wine-lover-coasters"],"design_angles":"Wine varietal coasters. 'Wine + summer = perfection' typography.","color_palette":"Burgundy + summer rose + cream","pro_tip":"Bundle with summer drinking theme — Memorial Day kicks off summer entertaining season.","seo_keywords":["national wine day","wine coaster set","summer wine gift"],"list_by_date":"2026-04-27","peak_window_start":"2026-05-11","peak_window_end":"2026-05-27"},{"id":"memorial-day","name":"Memorial Day / Summer Kickoff","event_date":"2026-05-25","category":"us_holiday","region":"US","importance":"medium","lead_time_weeks":5,"summary":"Federal holiday + cultural start of summer entertaining season. Patriotic coasters + summer host-gift surge.","recommended_niches":["national-parks-coasters","fishing-coasters","cocktail-recipe-coasters","farmhouse-coasters"],"design_angles":"Subtle patriotic (stars, stripes — tasteful, not gaudy). Summer BBQ host gifts. Lake house housewarming.","color_palette":"Navy + cream + cranberry (modern patriotic)","pro_tip":"Avoid overdone patriotic kitsch. Sell summer entertaining sets (cocktail recipe + national park) for Memorial Day weekend hosts.","seo_keywords":["memorial day decor","summer host gift","patriotic coaster"],"list_by_date":"2026-04-20","peak_window_start":"2026-05-11","peak_window_end":"2026-05-27"},{"id":"wedding-peak-may","name":"Wedding Peak: May-June (US)","event_date":"2026-05-31","category":"wedding_season","region":"US","importance":"major","lead_time_weeks":12,"summary":"May-June are top wedding months in US (along with September-October). Wedding favor coasters ordered 8-12 weeks before ceremony.","recommended_niches":["wedding-favor-coasters","wedding-place-card-coasters","bachelorette-party-coasters"],"design_angles":"Names + date personalization. Rustic wood, slate, vinyl-record shapes. Place card coaster premium tier. Bachelorette city-specific (Nashville, Miami).","color_palette":"Ivory + dusty rose + sage + champagne","pro_tip":"Bachelorette weekends cluster 6-10 weeks before wedding date — list bachelorette coasters by early March for May-July wedding weekends.","seo_keywords":["wedding favor coasters","may wedding","june wedding"],"list_by_date":"2026-03-08","peak_window_start":"2026-05-17","peak_window_end":"2026-06-02"},{"id":"pride-month","name":"Pride Month","event_date":"2026-06-01","category":"awareness_month","region":"global","importance":"medium","lead_time_weeks":6,"summary":"June. Inclusive couple coasters + LGBTQ+ pride themes have strong gift market.","recommended_niches":["valentines-couple-coasters","anniversary-personalized-coasters"],"design_angles":"Rainbow palette tasteful (not full prism — pastel pride, subtle). 'His + His' / 'Hers + Hers' / 'Theirs + Theirs' inclusive couple sets. 'Love is love' typography.","color_palette":"Pastel pride rainbow + cream + gold","pro_tip":"Year-round 'His + His' / 'Hers + Hers' couple coaster listings benefit from Pride Month boost. List inclusive variants explicitly — don't hide in heteronormative defaults.","seo_keywords":["lgbtq gift","pride coaster","his and his","same sex couple gift"],"list_by_date":"2026-04-20","peak_window_start":"2026-05-18","peak_window_end":"2026-06-03"},{"id":"national-bourbon-day","name":"National Bourbon Day","event_date":"2026-06-14","category":"drink_day","region":"US","importance":"medium","lead_time_weeks":5,"summary":"Father's Day week timing — bourbon coasters double as Father's Day gifts. Strong cross-niche window.","recommended_niches":["whiskey-bourbon-coasters","father-day-coasters"],"design_angles":"Kentucky bourbon trail map. Distillery region illustrations (no trademarks). 'Pour Decisions' / 'Whiskey wisdom' typography. Bourbon barrel motifs.","color_palette":"Amber + walnut brown + cream + brass","pro_tip":"Bourbon Day immediately precedes Father's Day (Jun 21). Bundle as Father's Day gift kit — premium AOV.","seo_keywords":["national bourbon day","bourbon lover gift","whiskey dad gift"],"list_by_date":"2026-05-10","peak_window_start":"2026-05-31","peak_window_end":"2026-06-16"},{"id":"juneteenth","name":"Juneteenth National Independence Day","event_date":"2026-06-19","category":"us_holiday","region":"US","importance":"minor","lead_time_weeks":4,"summary":"Federal holiday commemorating end of slavery. Not a major themed gifting day — promo timing only.","recommended_niches":[],"design_angles":"Avoid commercializing the commemoration with themed product lines.","color_palette":null,"pro_tip":"Honor the day with sale/promo timing, not product themes.","seo_keywords":[],"list_by_date":"2026-05-22","peak_window_start":"2026-06-05","peak_window_end":"2026-06-21"},{"id":"father-day-us-uk","name":"Father's Day (US + UK)","event_date":"2026-06-21","category":"major_gift_holiday","region":"global","importance":"major","lead_time_weeks":8,"summary":"US AND UK Father's Day fall on the same date in 2026 (June 21). Spouses + kids buy for dads. Whiskey, golf, fishing, BBQ niches peak.","recommended_niches":["whiskey-bourbon-coasters","golf-coasters","fishing-coasters","father-day-coasters","beer-craft-coasters"],"design_angles":"'Best Dad' + custom 'Dad of [kids' names]'. Whiskey + golf + fishing crossover. 'First Father's Day' baby photo premium. 'Step Dad' / 'Bonus Dad' / 'Papa' / 'Grandpa' segmented.","color_palette":"Walnut brown + forest green + cream + brass","pro_tip":"List by April 26. Father's Day = peak window for whiskey/golf/fishing niches across the entire year. 'First Father's Day' photo coasters = highest AOV.","seo_keywords":["fathers day gift","best dad coaster","first fathers day","step dad gift"],"list_by_date":"2026-04-26","peak_window_start":"2026-06-07","peak_window_end":"2026-06-23"},{"id":"summer-solstice","name":"Summer Solstice / First Day of Summer","event_date":"2026-06-21","category":"seasonal_kickoff","region":"global","importance":"minor","lead_time_weeks":4,"summary":"Coastal / beach aesthetic peak begins. Lake house + beach house decor purchasing surge.","recommended_niches":["national-parks-coasters","travel-city-coasters","fishing-coasters"],"design_angles":"Coastal motifs (shells, waves, palm fronds), 'Lake life', sunset palettes, surf town aesthetics.","color_palette":"Sandy beige + ocean blue + sun-bleached white + soft coral","pro_tip":"Beach house / lake house housewarming gifts spike June-August. Specific city/lake destinations (e.g., 'Lake Tahoe coaster') outperform generic beach.","seo_keywords":["beach house decor","lake house coaster","coastal home gift"],"list_by_date":"2026-05-24","peak_window_start":"2026-06-07","peak_window_end":"2026-06-23"},{"id":"independence-day","name":"Independence Day","event_date":"2026-07-04","category":"us_holiday","region":"US","importance":"medium","lead_time_weeks":5,"summary":"Saturday in 2026 (observed Friday July 3). BBQ host gifts + summer entertaining. Subtle patriotic.","recommended_niches":["national-parks-coasters","cocktail-recipe-coasters","beer-craft-coasters","farmhouse-coasters"],"design_angles":"Modern patriotic (subtle navy + cream + cranberry rather than red-white-blue gaudy). BBQ host gift bundles. State outline motifs. Lake house / cabin scenes.","color_palette":"Modern patriotic: navy + cream + cranberry","pro_tip":"July 4 = HUGE host gift surge (BBQs, family gatherings). Sell as 'summer entertaining bundle'.","seo_keywords":["july 4th decor","bbq host gift","patriotic coaster modern"],"list_by_date":"2026-05-30","peak_window_start":"2026-06-20","peak_window_end":"2026-07-06"},{"id":"bachelorette-peak-summer","name":"Bachelorette Weekend Peak (July)","event_date":"2026-07-15","category":"wedding_season","region":"US","importance":"medium","lead_time_weeks":4,"summary":"Bachelorette weekends concentrated late June - August for fall weddings. Destination-specific (Nashville, Miami, Austin) sells hottest.","recommended_niches":["bachelorette-party-coasters"],"design_angles":"'Nashville Bach', 'Miami Bach', 'Last Sip as a Single Girl'. Disco ball + cowgirl hat (Nashville) or beach + palm (Miami). Custom bride name.","color_palette":"Pink + black + champagne OR coastal (Miami)","pro_tip":"Last-minute purchases (3-7 day production needed). Top destinations 2026: Nashville #1, Miami #2, Austin #3, Charleston, Scottsdale.","seo_keywords":["nashville bachelorette","miami bachelorette","bride tribe gift"],"list_by_date":"2026-06-17","peak_window_start":"2026-07-01","peak_window_end":"2026-07-17"},{"id":"back-to-school-window","name":"Back-to-School Aesthetic Window","event_date":"2026-07-25","category":"seasonal_kickoff","region":"US","importance":"medium","lead_time_weeks":4,"summary":"Y2K dorm decor + dark academia coasters peak July-September. Gen Z students furnishing apartments + dorms.","recommended_niches":["y2k-coasters","dark-academia-coasters","coquette-coasters","minimalist-line-art-coasters"],"design_angles":"Y2K hot pink + chrome + butterflies. Dark academia vintage book + Latin phrases. Coquette pink bow aesthetic. 'Dorm essentials' marketing angle.","color_palette":"Y2K: hot pink + chrome | Dark academia: burgundy + walnut + cream","pro_tip":"Y2K is EXPLODING per Pinterest 2026. Tag aggressively for 'dorm decor' (peak Aug). Coquette + Y2K cross-promotion captures Gen Z.","seo_keywords":["dorm room decor","y2k aesthetic","dark academia gift","back to school"],"list_by_date":"2026-06-27","peak_window_start":"2026-07-11","peak_window_end":"2026-07-27"},{"id":"halloween-list-by","name":"🚨 LIST BY: Halloween (Oct 31)","event_date":"2026-08-15","category":"critical_deadline","region":"global","importance":"major","lead_time_weeks":0,"summary":"Halloween listings need 6-10 weeks to rank. List by mid-August for SEO maturation by buyer-search start (mid-September).","recommended_niches":["halloween-coasters","tarot-witchy-coasters"],"design_angles":"Cute ghosts ('boo-tique'), vintage Halloween illustrations, witchy moon phases, pumpkin patches, skeletons (year-round decor sub-trend), 'witchy not bitchy'. PINK/PASTEL HALLOWEEN is the breakout aesthetic.","color_palette":"Classic: black + orange | Trendy: muted pink + purple + black","pro_tip":"Pink/pastel Halloween is UNDERSUPPLIED relative to demand. Skeletons as year-round decor is a sub-trend — tag for 'spooky season home decor'.","seo_keywords":["halloween coaster","spooky decor","pink halloween","witchy gift"],"list_by_date":"2026-08-15","peak_window_start":"2026-08-01","peak_window_end":"2026-08-17"},{"id":"national-dog-day","name":"National Dog Day","event_date":"2026-08-26","category":"awareness_day","region":"US","importance":"medium","lead_time_weeks":5,"summary":"Strong dog coaster sales day. Dog owners self-purchase + dog-mom gifting.","recommended_niches":["pet-memorial-dog-coasters"],"design_angles":"Custom dog portrait from photo. Breed-specific illustrations (Frenchie, Dachshund, Golden Retriever big sellers). 'Dog mom' / 'Dog dad' typography.","color_palette":"Warm browns + sage + cream","pro_tip":"Don't lead with memorial (save for Sep Pet Memorial Day). Focus on celebrating living dogs. Breed-specific outperforms generic.","seo_keywords":["national dog day","dog mom gift","dog portrait custom"],"list_by_date":"2026-07-22","peak_window_start":"2026-08-12","peak_window_end":"2026-08-28"},{"id":"uk-summer-bank-holiday","name":"UK Summer Bank Holiday","event_date":"2026-08-31","category":"uk_holiday","region":"UK","importance":"minor","lead_time_weeks":3,"summary":"Final UK summer long weekend — promo timing for UK shoppers.","recommended_niches":[],"design_angles":null,"color_palette":null,"pro_tip":"Run UK-targeted promo via Etsy ads geo-targeting.","seo_keywords":[],"list_by_date":"2026-08-10","peak_window_start":"2026-08-17","peak_window_end":"2026-09-02"},{"id":"list-by-christmas","name":"🚨 LIST BY: Christmas Products","event_date":"2026-09-01","category":"critical_deadline","region":"global","importance":"major","lead_time_weeks":0,"summary":"Christmas listings need 10-12 weeks to rank. List by early September latest. Late October listings will not rank in time.","recommended_niches":["christmas-personalized-coasters","whiskey-bourbon-coasters","wine-lover-coasters","office-work-humor-coasters"],"design_angles":"Family name + '2026' year focal. Modern Christmas palettes (pink + champagne OR plaid). Personalized 'The [Lastname] Family Christmas 2026'. Stocking-stuffer sizing.","color_palette":"Modern: pink + champagne + green | Classic: red + green + gold","pro_tip":"START NOW. By mid-October, late-listed Christmas coasters will struggle to rank. Etsy's algorithm needs 4-6 weeks; buyers start searching by late October.","seo_keywords":["christmas coaster 2026","personalized christmas family","christmas family name"],"list_by_date":"2026-09-01","peak_window_start":"2026-08-18","peak_window_end":"2026-09-03"},{"id":"labor-day","name":"Labor Day","event_date":"2026-09-07","category":"us_holiday","region":"US","importance":"minor","lead_time_weeks":3,"summary":"End-of-summer long weekend. BBQ host gift micro-spike. Marks the unofficial transition to fall.","recommended_niches":["cocktail-recipe-coasters","farmhouse-coasters"],"design_angles":"Late-summer entertaining themes. 'Last hurrah of summer' typography optional.","color_palette":"Late summer: sun-bleached cream + cranberry + denim","pro_tip":"Use Labor Day weekend as the natural promo pivot — switch shop banner from summer to fall aesthetics the Tuesday after.","seo_keywords":["labor day decor","summer end gift"],"list_by_date":"2026-08-17","peak_window_start":"2026-08-24","peak_window_end":"2026-09-09"},{"id":"pet-memorial-day","name":"National Pet Memorial Day","event_date":"2026-09-13","category":"awareness_day","region":"US","importance":"medium","lead_time_weeks":5,"summary":"2nd Sunday of September. Strong emotional gifting day — grief sympathy + memorial gifts for pet owners.","recommended_niches":["pet-memorial-dog-coasters","pet-memorial-cat-coasters"],"design_angles":"Pet photo + name + DOB-DOD dates. 'Rainbow Bridge' poem excerpts. 'Always in our hearts'. Slate + dark wood materials.","color_palette":"Slate gray + cream + soft sage","pro_tip":"Highest-emotion purchase in the calendar = highest AOV. Offer rush production. Include sympathy card in shipment.","seo_keywords":["pet memorial day","pet memorial gift","rainbow bridge"],"list_by_date":"2026-08-09","peak_window_start":"2026-08-30","peak_window_end":"2026-09-15"},{"id":"cottagecore-fall-window","name":"Cottagecore Fall Aesthetic Peak","event_date":"2026-09-15","category":"aesthetic_season","region":"global","importance":"medium","lead_time_weeks":4,"summary":"Cottagecore's biggest annual window. Mushrooms + autumn botanicals peak on Pinterest Sep-Nov.","recommended_niches":["cottagecore-coasters","plant-lover-coasters","dark-academia-coasters"],"design_angles":"Mushrooms (toadstool, amanita), pumpkins (cottage style, not Halloween), wheat sheaves, vintage botanical, dried flowers, candle + book composition. Burnt orange + cream + sage palette.","color_palette":"Burnt orange + sage + dusty cream + walnut brown","pro_tip":"Cottagecore fall window is the #1 sales season for the entire niche. Sublimation works beautifully for vintage botanical detail.","seo_keywords":["cottagecore fall","mushroom coaster","autumn botanical","fall decor"],"list_by_date":"2026-08-18","peak_window_start":"2026-09-01","peak_window_end":"2026-09-17"},{"id":"fall-equinox","name":"Fall Equinox / First Day of Autumn","event_date":"2026-09-22","category":"seasonal_kickoff","region":"global","importance":"minor","lead_time_weeks":3,"summary":"Marks the shift to fall aesthetics in shop photos + product styling.","recommended_niches":["cottagecore-coasters","dark-academia-coasters","farmhouse-coasters"],"design_angles":"Pumpkin + maple leaves + cinnamon + wool textures.","color_palette":"Burnt orange + walnut + cream + forest green","pro_tip":"Refresh shop banner + lifestyle photos for fall by Sep 22. Even unchanged products benefit from seasonal restyling.","seo_keywords":["autumn decor","fall home accent"],"list_by_date":"2026-09-01","peak_window_start":"2026-09-08","peak_window_end":"2026-09-24"},{"id":"national-coffee-day","name":"National Coffee Day","event_date":"2026-09-29","category":"drink_day","region":"global","importance":"medium","lead_time_weeks":4,"summary":"Coffee lover coasters peak — but coffee niche is saturated. Differentiate with specialty angle.","recommended_niches":["coffee-lover-coasters"],"design_angles":"Specialty drink names (cortado, flat white, cold brew, oat milk latte). Specific roastery regions (Ethiopian, Colombian, Guatemalan). Coffee bar setup aesthetic.","color_palette":"Coffee brown + cream + caramel + sage","pro_tip":"Avoid generic 'But First Coffee'. Specialty/regional differentiation wins. 'Cold brew' / 'oat milk' Gen Z angles are underserved.","seo_keywords":["coffee lover gift","specialty coffee coaster","barista gift"],"list_by_date":"2026-09-01","peak_window_start":"2026-09-15","peak_window_end":"2026-10-01"},{"id":"bourbon-heritage-month","name":"Bourbon Heritage Month (all September) → Crossover Whiskey Sales","event_date":"2026-09-30","category":"awareness_month","region":"US","importance":"medium","lead_time_weeks":6,"summary":"Bourbon Heritage Month is all of September. Sales continue into early October as gift season approaches.","recommended_niches":["whiskey-bourbon-coasters"],"design_angles":"Same as National Bourbon Day. Distillery trails. Kentucky outline. Barrel illustrations.","color_palette":"Amber + walnut + cream + brass","pro_tip":"Pair Bourbon Heritage + early Christmas listing for whiskey-dad gift bundle positioning.","seo_keywords":["bourbon heritage month","bourbon dad gift","whiskey lover"],"list_by_date":"2026-08-19","peak_window_start":"2026-09-16","peak_window_end":"2026-10-02"},{"id":"indigenous-peoples-day","name":"Indigenous Peoples' Day / Columbus Day","event_date":"2026-10-12","category":"us_holiday","region":"US","importance":"minor","lead_time_weeks":3,"summary":"Federal holiday — promo timing only.","recommended_niches":[],"design_angles":null,"color_palette":null,"pro_tip":"Avoid themed products. Use weekend for general fall promo.","seo_keywords":[],"list_by_date":"2026-09-21","peak_window_start":"2026-09-28","peak_window_end":"2026-10-14"},{"id":"vet-tech-week","name":"National Veterinary Technician Week (Oct 11-17)","event_date":"2026-10-13","category":"appreciation_week","region":"US","importance":"medium","lead_time_weeks":4,"summary":"3rd full week of October. HIGHLY UNDERSERVED niche — vet/vet tech gift market is significantly smaller in supply than demand.","recommended_niches":["veterinarian-coasters"],"design_angles":"Stethoscope + paw print combo. 'Vet life' typography. DVM/RVT/LVT credentials. Specific animal silhouettes (dog/cat/exotic). 'Veterinary medicine: where every patient bites' humor.","color_palette":"Vet scrub teal + paw print brown + cream","pro_tip":"One of the LEAST competitive professional gift niches. Pet owners ALSO gift their vets — broader buyer base than just vet families.","seo_keywords":["vet tech week","veterinarian gift","rvt gift","vet appreciation"],"list_by_date":"2026-09-15","peak_window_start":"2026-09-29","peak_window_end":"2026-10-15"},{"id":"bosss-day","name":"National Boss's Day","event_date":"2026-10-16","category":"appreciation_day","region":"US","importance":"minor","lead_time_weeks":4,"summary":"Office gift sub-niche.","recommended_niches":["office-work-humor-coasters"],"design_angles":"'World's okayest boss' humor. 'Boss [first name]' personalized. Office desk decor.","color_palette":"Navy + gold + cream","pro_tip":"Lower-priority single day. Bundle with general 'work humor' listings.","seo_keywords":["bosss day gift","best boss gift"],"list_by_date":"2026-09-18","peak_window_start":"2026-10-02","peak_window_end":"2026-10-18"},{"id":"sweetest-day","name":"Sweetest Day","event_date":"2026-10-17","category":"celebration","region":"US","importance":"minor","lead_time_weeks":4,"summary":"3rd Saturday in October. Romantic gift day primarily in Midwest US — secondary to Valentine's.","recommended_niches":["valentines-couple-coasters","anniversary-personalized-coasters"],"design_angles":"Reuse Valentine's couple coaster designs. 'Sweetest day' typography variant.","color_palette":"Same as Valentine's: red + pink + cream","pro_tip":"Repurpose Valentine's listings with 'Sweetest Day' tag for additional revenue from existing inventory.","seo_keywords":["sweetest day gift","couple coaster"],"list_by_date":"2026-09-19","peak_window_start":"2026-10-03","peak_window_end":"2026-10-19"},{"id":"national-cat-day","name":"National Cat Day","event_date":"2026-10-29","category":"awareness_day","region":"US","importance":"medium","lead_time_weeks":4,"summary":"Cat coaster niche is significantly less saturated than dog. Strong day for cat-specific designs.","recommended_niches":["pet-memorial-cat-coasters"],"design_angles":"Custom cat portrait. Breed-specific (Maine Coon, Tabby, Black Cat). Whisker + paw motifs. 'Cat mom' / 'Cat lady' typography.","color_palette":"Warm browns + cream + soft pink","pro_tip":"Cat niche is OPPORTUNITY GOLD — less competition than dog. Breed-specific (especially Black Cat - Halloween crossover, Maine Coon, Bengal) underserved.","seo_keywords":["national cat day","cat mom gift","cat portrait","cat lover"],"list_by_date":"2026-10-01","peak_window_start":"2026-10-15","peak_window_end":"2026-10-31"},{"id":"halloween","name":"Halloween","event_date":"2026-10-31","category":"major_gift_holiday","region":"global","importance":"major","lead_time_weeks":8,"summary":"Saturday in 2026 — peak party/host day. Halloween coaster niche is RISING. Pink/pastel Halloween + skeletons as year-round are top sub-trends.","recommended_niches":["halloween-coasters","tarot-witchy-coasters","pet-memorial-cat-coasters"],"design_angles":"Cute ghosts (boo-tique), vintage Halloween illustrations, witchy moon phases, pumpkin patches, skeletons, 'spooky season'. Black + pink palette = breakout trend.","color_palette":"Classic: black + orange | Trendy: pink + purple + black | Witchy: deep purple + gold + black","pro_tip":"If you haven't listed by now, you've missed peak window. Last-minute Halloween shoppers (mid-Oct) want fast shipping. Black cat coasters spike around Halloween.","seo_keywords":["halloween coaster","spooky season decor","halloween party"],"list_by_date":"2026-09-05","peak_window_start":"2026-10-17","peak_window_end":"2026-11-02"},{"id":"list-by-valentines-2027","name":"🚨 LIST BY: Valentine's Day 2027","event_date":"2026-11-01","category":"critical_deadline","region":"global","importance":"major","lead_time_weeks":0,"summary":"Valentine's Day 2027 (Feb 14, 2027) is 14 weeks out. List couple coasters by mid-November for Etsy ranking maturation in early January.","recommended_niches":["valentines-couple-coasters","personalized-photo-car-coasters","anniversary-personalized-coasters"],"design_angles":"'First Valentine's Together' baby/newborn-of-the-year couples. 'Est. 2026' for newly engaged. Coquette aesthetic continuation.","color_palette":"Red + pink + cream + gold | Coquette: pink + black bow","pro_tip":"Get Valentine's listings UP by November. Etsy needs 4-6 weeks to rank; buyers start searching mid-January.","seo_keywords":["valentines 2027","couple coaster","first valentines together"],"list_by_date":"2026-11-01","peak_window_start":"2026-10-18","peak_window_end":"2026-11-03"},{"id":"bonfire-night-uk","name":"Bonfire Night (Guy Fawkes Day) UK","event_date":"2026-11-05","category":"uk_holiday","region":"UK","importance":"minor","lead_time_weeks":4,"summary":"UK-specific cultural night. Minor commercial opportunity.","recommended_niches":[],"design_angles":"Skip themed listings — not a major gift day.","color_palette":null,"pro_tip":"Use as UK promo timing if running geo-targeted campaigns.","seo_keywords":[],"list_by_date":"2026-10-08","peak_window_start":"2026-10-22","peak_window_end":"2026-11-07"},{"id":"remembrance-sunday-uk","name":"Remembrance Sunday (UK)","event_date":"2026-11-08","category":"uk_holiday","region":"UK","importance":"minor","lead_time_weeks":4,"summary":"UK memorial day. Avoid commercialization.","recommended_niches":[],"design_angles":null,"color_palette":null,"pro_tip":"Pause promotional emails the morning of for UK list.","seo_keywords":[],"list_by_date":"2026-10-11","peak_window_start":"2026-10-25","peak_window_end":"2026-11-10"},{"id":"veterans-day","name":"Veterans Day","event_date":"2026-11-11","category":"us_holiday","region":"US","importance":"minor","lead_time_weeks":4,"summary":"Federal holiday honoring veterans. Veteran-themed coasters (tasteful military service tributes) have niche audience.","recommended_niches":[],"design_angles":"Subtle military service tributes only. Avoid trademarked branch logos. Generic 'Thank you for your service' personalization with name + service branch text.","color_palette":"Navy + cream + military green + brass","pro_tip":"Tag carefully — military service themed products require careful trademark/IP awareness around branch insignia.","seo_keywords":["veterans day gift","military service gift"],"list_by_date":"2026-10-14","peak_window_start":"2026-10-28","peak_window_end":"2026-11-13"},{"id":"thanksgiving","name":"Thanksgiving","event_date":"2026-11-26","category":"major_gift_holiday","region":"US","importance":"medium","lead_time_weeks":6,"summary":"Host gifts surge in week before Thanksgiving. Less of a personalized-gift holiday — more about cozy + farmhouse host coasters.","recommended_niches":["farmhouse-coasters","cottagecore-coasters","wine-lover-coasters","cocktail-recipe-coasters"],"design_angles":"'Gather' / 'Thankful' / 'Grateful' typography. Pumpkins + wheat + autumn leaves. Modern farmhouse plaid. Cocktail recipe coasters for holiday hosts.","color_palette":"Burnt orange + cream + sage + walnut + cranberry","pro_tip":"Last-minute host gift purchases drive 30% of Thanksgiving coaster sales. Tag 'thanksgiving host gift' and 'hostess gift'.","seo_keywords":["thanksgiving host gift","hostess gift","gather sign","fall decor"],"list_by_date":"2026-10-15","peak_window_start":"2026-11-12","peak_window_end":"2026-11-28"},{"id":"black-friday","name":"Black Friday","event_date":"2026-11-27","category":"shopping_event","region":"global","importance":"major","lead_time_weeks":4,"summary":"Biggest shopping day of the year. Etsy's Cyber Sales event typically Nov 24 - Dec 2.","recommended_niches":["christmas-personalized-coasters","valentines-couple-coasters","whiskey-bourbon-coasters","wine-lover-coasters"],"design_angles":"Use existing Christmas inventory. Bundle deals (set of 4 → set of 8 promo). 'Buy now, gift later' positioning.","color_palette":null,"pro_tip":"Opt into Etsy Cyber Sales 25%+ discount campaign by mid-October to be featured in Etsy promo emails. Bundle pricing tiers (4/8/12 sets).","seo_keywords":["black friday gift","christmas coaster sale"],"list_by_date":"2026-10-30","peak_window_start":"2026-11-13","peak_window_end":"2026-11-29"},{"id":"small-business-saturday","name":"Small Business Saturday","event_date":"2026-11-28","category":"shopping_event","region":"US","importance":"medium","lead_time_weeks":4,"summary":"Day after Black Friday. Etsy actively promotes #SmallBusinessSaturday.","recommended_niches":["christmas-personalized-coasters"],"design_angles":null,"color_palette":null,"pro_tip":"Run extra-strong promo Saturday. Lean into 'small business' / 'maker' story in shop announcement.","seo_keywords":["small business saturday gift","shop small"],"list_by_date":"2026-10-31","peak_window_start":"2026-11-14","peak_window_end":"2026-11-30"},{"id":"cyber-monday","name":"Cyber Monday","event_date":"2026-11-30","category":"shopping_event","region":"global","importance":"major","lead_time_weeks":4,"summary":"Last major shopping day before Christmas shipping cutoffs.","recommended_niches":["christmas-personalized-coasters","valentines-couple-coasters"],"design_angles":null,"color_palette":null,"pro_tip":"Run final 'last chance for guaranteed Christmas delivery' urgency promo. Calculate shipping cutoff dates and display prominently.","seo_keywords":["cyber monday gift","last chance christmas"],"list_by_date":"2026-11-02","peak_window_start":"2026-11-16","peak_window_end":"2026-12-02"},{"id":"hanukkah","name":"Hanukkah (Dec 4-12)","event_date":"2026-12-04","category":"religious_holiday","region":"global","importance":"medium","lead_time_weeks":8,"summary":"Hanukkah-themed coasters are highly underserved. 8 nights of gifting = repeat purchase opportunity.","recommended_niches":["minimalist-line-art-coasters"],"design_angles":"Menorah motifs, Star of David, dreidel illustrations, 'Happy Hanukkah' / 'Chag Sameach' typography. Blue + silver + white palette.","color_palette":"Royal blue + silver + white + gold","pro_tip":"Christmas dominates discussion but Hanukkah is a HIGHLY underserved gift niche. List Hanukkah coasters by mid-October for 2026 ranking. Sets of 8 (one per night) work conceptually.","seo_keywords":["hanukkah coaster","menorah decor","chag sameach"],"list_by_date":"2026-10-09","peak_window_start":"2026-11-20","peak_window_end":"2026-12-06"},{"id":"christmas-eve","name":"Christmas Eve","event_date":"2026-12-24","category":"major_gift_holiday","region":"global","importance":"medium","lead_time_weeks":8,"summary":"Last-minute Christmas + Christmas Eve box stocking stuffer demand.","recommended_niches":["christmas-personalized-coasters","office-work-humor-coasters"],"design_angles":"Christmas Eve box / stocking stuffer sizing (single coaster or small set). 'Night before Christmas' aesthetic.","color_palette":"Same as Christmas: red + green + gold OR pink + champagne","pro_tip":"Local pickup / digital download tags capture last-minute panic buyers. Digital coaster designs (PNG for sublimation) shine for Dec 23-24 purchases.","seo_keywords":["christmas eve box","stocking stuffer","last minute christmas gift"],"list_by_date":"2026-10-29","peak_window_start":"2026-12-10","peak_window_end":"2026-12-26"},{"id":"christmas-day","name":"Christmas Day","event_date":"2026-12-25","category":"major_gift_holiday","region":"global","importance":"major","lead_time_weeks":10,"summary":"THE BIGGEST sales event of the year. Peak buyer search window: Oct 25 - Dec 22. Etsy seasonality concentrates ~25% of annual GMV here.","recommended_niches":["christmas-personalized-coasters","whiskey-bourbon-coasters","wine-lover-coasters","office-work-humor-coasters","mom-life-coasters","father-day-coasters","pet-memorial-dog-coasters","pet-memorial-cat-coasters"],"design_angles":"Family name + '2026 Christmas' year focal. Personalized 'The [Lastname] Family Christmas 2026'. Modern Christmas palettes (pink + champagne is exploding trend). Stocking stuffer sizing. Office Secret Santa positioning.","color_palette":"Classic: red + green + gold | Modern: pink + champagne + sage | Cozy: cream + plaid + cranberry","pro_tip":"If your Christmas listings aren't ranking by mid-November you've LOST 2026. Focus on annual repeat purchases — families buy yearly. 'Christmas 2026' (specific year) creates urgency for collectors.","seo_keywords":["christmas gift 2026","family christmas coaster","personalized christmas","office secret santa","stocking stuffer"],"list_by_date":"2026-10-16","peak_window_start":"2026-12-11","peak_window_end":"2026-12-27"},{"id":"boxing-day-uk","name":"Boxing Day / UK Boxing Day Substitute","event_date":"2026-12-28","category":"uk_holiday","region":"UK","importance":"medium","lead_time_weeks":4,"summary":"UK shopping day — Boxing Day sales tradition. Etsy UK sees secondary spike.","recommended_niches":["christmas-personalized-coasters","anniversary-personalized-coasters"],"design_angles":"Use existing Christmas + New Year inventory. Bundle promos.","color_palette":null,"pro_tip":"UK Boxing Day shoppers buy heavily-discounted Christmas/New Year items. Schedule UK-targeted 30%+ discount.","seo_keywords":["boxing day sale","uk gift sale"],"list_by_date":"2026-11-30","peak_window_start":"2026-12-14","peak_window_end":"2026-12-30"},{"id":"new-years-eve","name":"New Year's Eve","event_date":"2026-12-31","category":"celebration","region":"global","importance":"medium","lead_time_weeks":6,"summary":"Champagne + party host gifts. Also National Champagne Day.","recommended_niches":["cocktail-recipe-coasters","wine-lover-coasters"],"design_angles":"Champagne flute illustrations. 'Cheers to 2027' typography. New Year's resolution humor. Disco ball motifs.","color_palette":"Black + champagne gold + silver","pro_tip":"Bundle 'NYE party kit' with cocktail recipe + champagne coasters. Limited window — last call by Dec 22.","seo_keywords":["new years eve coaster","champagne gift","nye party"],"list_by_date":"2026-11-19","peak_window_start":"2026-12-17","peak_window_end":"2027-01-02"}]}
+</script>
+
+  <script>
+    const BRAND = {
+      toolName: '365-Day Coaster Launch Calendar',
+      brandName: '[YOUR BRAND NAME]',
+      brandUrl: '[YOUR BRAND URL]',
+      bonusFor: 'Coaster Empire',
+      bonusForUrl: 'https://warriorplus.com/o2/buy/vxjjj3/tk6qdn/nvsp5f',
+      supportEmail: '[YOUR SUPPORT EMAIL]',
+      releaseDate: 'June 2026',
+      calendarYear: 2026,
+    };
+
+    const DATA_URL = 'https://raw.githubusercontent.com/vanloc19bk96/affiliate-bonuses-data/refs/heads/master/365-day-coster-launch-calendar-events.json';
+
+    const PROFIT_SCANNER_PATH = '../Coaster Niche Profit Scanner/index-standalone.html';
+
+    const CATEGORY_LABELS = {
+      major_gift_holiday: 'Major gift holiday',
+      us_holiday: 'US holiday',
+      uk_holiday: 'UK holiday',
+      shopping_event: 'Shopping event',
+      appreciation_week: 'Appreciation week',
+      appreciation_day: 'Appreciation day',
+      awareness_month: 'Awareness month',
+      awareness_day: 'Awareness day',
+      drink_day: 'Drink day',
+      celebration: 'Celebration',
+      religious_holiday: 'Religious holiday',
+      seasonal_kickoff: 'Seasonal kickoff',
+      aesthetic_season: 'Aesthetic season',
+      wedding_season: 'Wedding season',
+      event_lead: 'Event lead',
+      critical_deadline: 'Critical deadline',
+    };
+
+    const REGION_FLAGS = { global: '🌐', US: '🇺🇸', UK: '🇬🇧' };
+
+    const COLOR_WORD_MAP = {
+      'deep red': '#8B0000', red: '#C0392B', cranberry: '#9B2335', 'dusty pink': '#D4A5A5', pink: '#F4A7B9',
+      'hot pink': '#FF69B4', ivory: '#FFFFF0', gold: '#D4AF37', champagne: '#F7E7CE', sage: '#9CAF88',
+      cream: '#FFFDD0', 'butter cream': '#F0E68C', 'butter yellow': '#F5E6A3', black: '#1a1a1a',
+      navy: '#1B2A4A', emerald: '#50C878', green: '#2E7D32', orange: '#E67E22', burgundy: '#800020',
+      amber: '#FFBF00', walnut: '#5C4033', brass: '#B5A642', teal: '#008080', purple: '#6B3FA0',
+      lilac: '#C8A2C8', lavender: '#E6E6FA', white: '#FFFFFF', brown: '#8B4513', coral: '#FF7F50',
+      silver: '#C0C0C0', 'royal blue': '#4169E1', blue: '#3498DB', yellow: '#F1C40F', terracotta: '#E2725B',
+      lime: '#32CD32', cinnamon: '#D2691E', forest: '#228B22', denim: '#1560BD', charcoal: '#36454F',
+    };
+
+    const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    let calendarData = null;
+    let nichesDb = null;
+    let todayISO = '';
+    let calendarMonth = { year: 0, month: 0 };
+    let selectedEventId = null;
+    let viewMode = 'calendar';
+    let upcomingDays = 30;
+    let launchedMap = {};
+    let focusTrapHandler = null;
+    let searchDebounceTimer = null;
+
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => document.querySelectorAll(sel);
+
+    function getTodayISO() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function parseISO(iso) {
+      return new Date(iso + 'T00:00:00');
+    }
+
+    function daysBetween(fromISO, toISO) {
+      const ms = parseISO(toISO) - parseISO(fromISO);
+      return Math.ceil(ms / (1000 * 60 * 60 * 24));
+    }
+
+    function formatDateLong(iso) {
+      const d = parseISO(iso);
+      return d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }
+
+    function formatDateShort(iso) {
+      const d = parseISO(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function computeCountdown(targetISO, refISO) {
+      const diffDays = daysBetween(refISO, targetISO);
+      if (diffDays < 0) return { status: 'overdue', days: Math.abs(diffDays), label: `Overdue by ${Math.abs(diffDays)} days` };
+      if (diffDays === 0) return { status: 'today', days: 0, label: 'TODAY' };
+      if (diffDays <= 7) return { status: 'urgent', days: diffDays, label: `${diffDays} days left` };
+      if (diffDays <= 14) return { status: 'soon', days: diffDays, label: `${diffDays} days left` };
+      const weeks = Math.ceil(diffDays / 7);
+      return { status: 'planned', days: diffDays, label: `${weeks} weeks ahead` };
+    }
+
+    function urgencyClass(status) {
+      if (status === 'overdue' || status === 'urgent') return 'text-danger';
+      if (status === 'soon' || status === 'today') return 'text-warning';
+      return 'text-success';
+    }
+
+    function chipImportanceClass(event) {
+      if (event.category === 'critical_deadline') return 'chip-critical';
+      if (event.importance === 'major') return 'chip-major';
+      if (event.importance === 'medium') return 'chip-medium';
+      return 'chip-minor';
+    }
+
+    function humanizeNicheId(id) {
+      return id.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }
+
+    function getNicheById(id) {
+      if (!nichesDb?.niches) return null;
+      return nichesDb.niches.find((n) => n.id === id) || null;
+    }
+
+    function getNicheName(id) {
+      const niche = getNicheById(id);
+      return niche?.name || humanizeNicheId(id);
+    }
+
+    function getLaunchedStorageKey() {
+      return `coasterCalendar_launched_${BRAND.calendarYear}`;
+    }
+
+    function loadLaunched() {
+      try {
+        const raw = localStorage.getItem(getLaunchedStorageKey());
+        launchedMap = raw ? JSON.parse(raw) : {};
+      } catch {
+        launchedMap = {};
+      }
+    }
+
+    function saveLaunched() {
+      localStorage.setItem(getLaunchedStorageKey(), JSON.stringify(launchedMap));
+      updateLaunchedCounter();
+    }
+
+    function updateLaunchedCounter() {
+      const count = Object.values(launchedMap).filter(Boolean).length;
+      const el = $('#launched-counter');
+      if (count > 0) {
+        el.textContent = `✓ ${count} launched this year`;
+        el.classList.remove('hidden');
+      } else {
+        el.classList.add('hidden');
+      }
+    }
+
+    function getActiveRegions() {
+      return [...$$('#region-filters input:checked')].map((el) => el.dataset.region);
+    }
+
+    function getActiveImportance() {
+      return [...$$('#importance-filters input:checked')].map((el) => el.dataset.importance);
+    }
+
+    function getActiveCategories() {
+      return [...$$('#category-filters input:checked')].map((el) => el.dataset.category);
+    }
+
+    function getSearchQuery() {
+      return ($('#search-input').value || '').trim().toLowerCase();
+    }
+
+    function eventMatchesSearch(event, query) {
+      if (!query) return true;
+      const haystack = [
+        event.name, event.summary, event.design_angles, event.pro_tip, event.color_palette,
+        ...(event.recommended_niches || []), ...(event.seo_keywords || []),
+      ].filter(Boolean).join(' ').toLowerCase();
+      return haystack.includes(query);
+    }
+
+    function getFilteredEvents() {
+      const regions = getActiveRegions();
+      const importance = getActiveImportance();
+      const categories = getActiveCategories();
+      const query = getSearchQuery();
+
+      return calendarData.events.filter((e) => {
+        if (!regions.includes(e.region)) return false;
+        if (!importance.includes(e.importance)) return false;
+        if (!categories.includes(e.category)) return false;
+        if (!eventMatchesSearch(e, query)) return false;
+        return true;
+      });
+    }
+
+    function getEventsForDate(isoDate, events) {
+      return events.filter((e) => e.event_date === isoDate);
+    }
+
+    function sortByListBy(events) {
+      return [...events].sort((a, b) => {
+        if (a.category === 'critical_deadline' && b.category !== 'critical_deadline') return -1;
+        if (b.category === 'critical_deadline' && a.category !== 'critical_deadline') return 1;
+        return a.list_by_date.localeCompare(b.list_by_date);
+      });
+    }
+
+    function renderAlertBar() {
+      const bar = $('#alert-bar');
+      const allEvents = calendarData.events;
+      const urgent = allEvents.filter((e) => {
+        const d = daysBetween(todayISO, e.list_by_date);
+        return d >= 0 && d <= 14;
+      }).sort((a, b) => a.list_by_date.localeCompare(b.list_by_date)).slice(0, 3);
+
+      const missed = allEvents.filter((e) => {
+        const listPast = daysBetween(e.list_by_date, todayISO) > 0;
+        const eventFuture = daysBetween(todayISO, e.event_date) > 0;
+        const recentlyMissed = daysBetween(e.list_by_date, todayISO) <= 30;
+        return listPast && eventFuture && recentlyMissed && e.importance !== 'minor';
+      }).sort((a, b) => b.list_by_date.localeCompare(a.list_by_date)).slice(0, 2);
+
+      if (urgent.length > 0) {
+        bar.className = 'border-b bg-peach-light border-danger/20';
+        bar.innerHTML = `
+          <div class="max-w-[1400px] mx-auto px-4 py-4">
+            <p class="font-display font-semibold text-danger text-base mb-2">🚨 List THIS WEEK to capture upcoming sales</p>
+            <ul class="space-y-1.5">
+              ${urgent.map((e) => {
+                const cd = computeCountdown(e.list_by_date, todayISO);
+                const suffix = cd.status === 'overdue' ? ' (overdue!)' : ` (you have ${cd.label})`;
+                return `<li><button type="button" class="alert-event-link text-left text-taupe hover:text-peach font-medium" data-id="${e.id}">▸ ${escapeHtml(e.name.replace(/^🚨\s*/, ''))} — list by ${formatDateShort(e.list_by_date)}${suffix}</button></li>`;
+              }).join('')}
+            </ul>
+          </div>`;
+      } else if (missed.length > 0) {
+        bar.className = 'border-b bg-gray-100 border-gray-200';
+        bar.innerHTML = `
+          <div class="max-w-[1400px] mx-auto px-4 py-4">
+            <p class="font-display font-semibold text-slate text-base mb-2">⚠️ Missed list-by windows — focus on what's next</p>
+            <ul class="space-y-1.5">
+              ${missed.map((e) => `<li><button type="button" class="alert-event-link text-left text-slate hover:text-taupe" data-id="${e.id}">▸ ${escapeHtml(e.name.replace(/^🚨\s*/, ''))} window has passed — event ${formatDateShort(e.event_date)}</button></li>`).join('')}
+            </ul>
+          </div>`;
+      } else {
+        bar.className = 'border-b bg-success/10 border-success/20';
+        bar.innerHTML = `
+          <div class="max-w-[1400px] mx-auto px-4 py-3">
+            <p class="font-display font-medium text-success">✅ No critical deadlines this week. Look ahead to plan.</p>
+          </div>`;
+      }
+
+      $$('.alert-event-link').forEach((btn) => {
+        btn.addEventListener('click', () => openDetail(btn.dataset.id));
+      });
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function renderCalendarNav() {
+      const label = `${MONTH_NAMES[calendarMonth.month]} ${calendarMonth.year}`;
+      const isCurrentMonth = calendarMonth.year === parseISO(todayISO).getFullYear() && calendarMonth.month === parseISO(todayISO).getMonth();
+      let options = '';
+      for (let m = 0; m < 12; m++) {
+        options += `<option value="${m}" ${m === calendarMonth.month ? 'selected' : ''}>${MONTH_NAMES[m]}</option>`;
+      }
+      return `
+        <div class="flex flex-wrap items-center gap-3 mb-4">
+          <button type="button" id="cal-prev" class="p-2 rounded border border-[rgba(133,97,73,0.2)] hover:bg-peach-light" aria-label="Previous month">←</button>
+          <span class="font-display text-xl font-semibold text-taupe min-w-[180px]">${label}</span>
+          <button type="button" id="cal-next" class="p-2 rounded border border-[rgba(133,97,73,0.2)] hover:bg-peach-light" aria-label="Next month">→</button>
+          <select id="cal-jump" class="border border-[rgba(133,97,73,0.2)] rounded px-2 py-1 text-taupe bg-base" aria-label="Jump to month">${options}</select>
+          ${!isCurrentMonth ? '<button type="button" id="cal-today" class="text-sm text-peach hover:underline">Back to today</button>' : ''}
+        </div>`;
+    }
+
+    function renderCalendarGrid(events) {
+      const year = calendarMonth.year;
+      const month = calendarMonth.month;
+      const firstDay = new Date(year, month, 1);
+      const startPad = firstDay.getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const cells = [];
+
+      for (let i = 0; i < startPad; i++) cells.push({ empty: true });
+      for (let d = 1; d <= daysInMonth; d++) {
+        const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        cells.push({ day: d, iso, events: getEventsForDate(iso, events) });
+      }
+
+      const header = DAY_NAMES.map((d) => `<div class="text-center text-xs uppercase text-slate py-2 font-medium">${d.slice(0, 3)}</div>`).join('');
+
+      const grid = cells.map((cell) => {
+        if (cell.empty) return '<div class="min-h-[80px] bg-base/50 border border-[rgba(133,97,73,0.08)]"></div>';
+        const isPast = cell.iso < todayISO;
+        const isToday = cell.iso === todayISO;
+        const dayEvents = cell.events.slice(0, 3);
+        const more = cell.events.length > 3 ? `<span class="text-[10px] text-slate">+${cell.events.length - 3} more</span>` : '';
+        const chips = dayEvents.map((e) => {
+          const launched = launchedMap[e.id] ? 'opacity-60' : '';
+          return `<button type="button" class="event-chip ${chipImportanceClass(e)} block w-full text-left mb-0.5 ${launched}" data-id="${e.id}" title="${escapeHtml(e.name)}">${escapeHtml(e.name.length > 18 ? e.name.slice(0, 16) + '…' : e.name)}</button>`;
+        }).join('');
+        return `
+          <div class="min-h-[80px] border border-[rgba(133,97,73,0.12)] bg-white p-1 ${isPast ? 'day-past' : ''} ${isToday ? 'day-today' : ''}" data-date="${cell.iso}">
+            <div class="text-right mb-0.5"><span class="day-num font-display text-sm text-taupe">${cell.day}</span></div>
+            <div class="space-y-0.5">${chips}${more}</div>
+          </div>`;
+      }).join('');
+
+      const listRows = cells.filter((c) => !c.empty && c.events.length > 0).map((cell) => {
+        const isToday = cell.iso === todayISO;
+        return `
+          <div class="border border-[rgba(133,97,73,0.12)] bg-white rounded-md p-3 mb-2 ${cell.iso < todayISO ? 'day-past' : ''}">
+            <p class="font-display font-semibold text-taupe mb-2">${isToday ? '● ' : ''}${formatDateLong(cell.iso)}</p>
+            <div class="space-y-1">${cell.events.map((e) => `<button type="button" class="event-chip ${chipImportanceClass(e)} inline-block mr-1" data-id="${e.id}">${escapeHtml(e.name)}</button>`).join('')}</div>
+          </div>`;
+      }).join('');
+
+      return `
+        ${renderCalendarNav()}
+        <div class="calendar-grid gap-px bg-[rgba(133,97,73,0.08)] rounded-md overflow-hidden">${header}${grid}</div>
+        <div class="calendar-list mt-2">${listRows || '<p class="text-slate text-center py-8">No events this month with current filters.</p>'}</div>`;
+    }
+
+    function renderTimeline(events) {
+      const byMonth = {};
+      events.forEach((e) => {
+        const m = e.event_date.slice(0, 7);
+        if (!byMonth[m]) byMonth[m] = [];
+        byMonth[m].push(e);
+      });
+      const months = Object.keys(byMonth).sort();
+      if (!months.length) return '';
+
+      return months.map((m) => {
+        const [y, mo] = m.split('-');
+        const header = `${MONTH_NAMES[parseInt(mo, 10) - 1].toUpperCase()} ${y}`;
+        const cards = sortByListBy(byMonth[m]).sort((a, b) => a.event_date.localeCompare(b.event_date)).map((e) => renderEventCard(e)).join('');
+        return `<section class="mb-8"><h2 class="font-display text-lg font-semibold text-taupe mb-3 border-b border-[rgba(133,97,73,0.12)] pb-2">${header}</h2><div class="space-y-3">${cards}</div></section>`;
+      }).join('');
+    }
+
+    function getUpcomingGroup(listByISO) {
+      const d = daysBetween(todayISO, listByISO);
+      if (d < 0) return 'Overdue';
+      if (d <= 7) return 'This Week';
+      if (d <= 14) return 'Next Week';
+      if (d <= 28) return 'Weeks 3–4';
+      if (d <= 60) return 'Month 2';
+      return 'Month 3';
+    }
+
+    function renderUpcoming(events) {
+      const endISO = (() => {
+        const d = parseISO(todayISO);
+        d.setDate(d.getDate() + upcomingDays);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      })();
+
+      const filtered = events.filter((e) => {
+        const listInRange = e.list_by_date >= todayISO && e.list_by_date <= endISO;
+        const eventInRange = e.event_date >= todayISO && e.event_date <= endISO;
+        return listInRange || eventInRange;
+      });
+
+      const groups = { Overdue: [], 'This Week': [], 'Next Week': [], 'Weeks 3–4': [], 'Month 2': [], 'Month 3': [] };
+      sortByListBy(filtered).forEach((e) => {
+        const g = getUpcomingGroup(e.list_by_date);
+        if (groups[g]) groups[g].push(e);
+      });
+
+      const order = ['Overdue', 'This Week', 'Next Week', 'Weeks 3–4', 'Month 2', 'Month 3'];
+      return order.filter((g) => groups[g].length).map((g) => `
+        <section class="mb-6">
+          <h2 class="font-display text-base font-semibold text-taupe mb-3">${g}</h2>
+          <div class="space-y-2">${groups[g].map((e) => renderEventCard(e, true)).join('')}</div>
+        </section>`).join('');
+    }
+
+    function renderEventCard(event, showCountdown = false) {
+      const cd = computeCountdown(event.list_by_date, todayISO);
+      const launched = launchedMap[event.id];
+      return `
+        <article class="relative bg-white border border-[rgba(133,97,73,0.12)] rounded-md p-4 hover:shadow-md transition-shadow cursor-pointer event-card ${launched ? 'event-launched' : ''}" data-id="${event.id}" tabindex="0" role="button">
+          <div class="flex flex-wrap items-start gap-2">
+            <time datetime="${event.event_date}" class="text-xs bg-peach-light text-taupe px-2 py-0.5 rounded font-medium">${formatDateShort(event.event_date)}</time>
+            <span class="text-xs ${chipImportanceClass(event)} px-2 py-0.5 rounded">${event.importance}</span>
+          </div>
+          <h3 class="font-display font-semibold text-taupe mt-2">${escapeHtml(event.name)}</h3>
+          <p class="text-slate text-sm mt-1 line-clamp-2">${escapeHtml(event.summary || '')}</p>
+          ${showCountdown ? `<p class="font-display font-semibold mt-2 ${urgencyClass(cd.status)}">List ${cd.label}</p>` : ''}
+        </article>`;
+    }
+
+    function parseColorPalette(text) {
+      if (!text) return { swatches: [], text: '' };
+      const parts = text.split(/\s*(?:\+|,|\|)\s*/);
+      const swatches = [];
+      parts.forEach((part) => {
+        const lower = part.toLowerCase().trim();
+        for (const [word, hex] of Object.entries(COLOR_WORD_MAP)) {
+          if (lower.includes(word)) {
+            swatches.push({ name: part.trim(), hex });
+            break;
+          }
+        }
+      });
+      return { swatches, text };
+    }
+
+    function buildTimelineBar(event) {
+      const dates = [todayISO, event.list_by_date, event.event_date].sort();
+      const min = parseISO(dates[0]).getTime();
+      const max = parseISO(dates[dates.length - 1]).getTime();
+      const range = max - min || 1;
+      const pos = (iso) => `${((parseISO(iso).getTime() - min) / range) * 100}%`;
+      const cd = computeCountdown(event.list_by_date, todayISO);
+      return `
+        <div class="mt-4">
+          <div class="timeline-bar">
+            <div class="timeline-marker bg-taupe" style="left:${pos(todayISO)}" title="Today"></div>
+            <div class="timeline-marker bg-warning" style="left:${pos(event.list_by_date)}" title="List by"></div>
+            <div class="timeline-marker bg-peach" style="left:${pos(event.event_date)}" title="Event"></div>
+          </div>
+          <div class="flex justify-between text-[10px] text-slate mt-3">
+            <span>TODAY</span>
+            <span>List by ${formatDateShort(event.list_by_date)}</span>
+            <span>${event.name.replace(/^🚨\s*/, '').slice(0, 20)}</span>
+          </div>
+          <p class="font-display font-semibold text-taupe text-center mt-2">${cd.label}</p>
+        </div>`;
+    }
+
+    function buildEventBrief(event) {
+      const niches = (event.recommended_niches || []).map((id) => `- ${getNicheName(id)}`).join('\n');
+      const keywords = (event.seo_keywords || []).join(', ');
+      return `# ${event.name}
+
+📅 **Event date:** ${formatDateLong(event.event_date)}
+🚨 **List by:** ${formatDateLong(event.list_by_date)}
+🎯 **Peak buyer window:** ${formatDateShort(event.peak_window_start)} → ${formatDateShort(event.peak_window_end)}
+
+## Summary
+${event.summary || ''}
+
+## Recommended niches
+${niches || '—'}
+
+## Design angles
+${event.design_angles || '—'}
+
+## Color palette
+${event.color_palette || '—'}
+
+## Pro tip
+💡 ${event.pro_tip || '—'}
+
+## SEO keywords (use in titles + tags)
+${keywords || '—'}
+
+---
+*From ${BRAND.toolName} by ${BRAND.brandName}*`;
+    }
+
+    function renderDetailContent(event) {
+      const cd = computeCountdown(event.list_by_date, todayISO);
+      const weeksUntil = cd.status === 'overdue'
+        ? `Overdue by ${cd.days} days`
+        : `${Math.ceil(cd.days / 7)} weeks until list-by`;
+      const colors = parseColorPalette(event.color_palette);
+      const swatchHtml = colors.swatches.length
+        ? `<div class="flex flex-wrap gap-2 mt-2">${colors.swatches.map((s) => `<div class="text-center"><div class="swatch" style="background:${s.hex}" title="${escapeHtml(s.name)}"></div><span class="text-[10px] text-slate">${escapeHtml(s.name)}</span></div>`).join('')}</div>`
+        : '';
+      const nicheChips = (event.recommended_niches || []).map((id) => {
+        const niche = getNicheById(id);
+        const score = niche?.opportunity_score;
+        const scoreBadge = score ? `<span class="text-[10px] bg-success/20 text-success px-1 rounded ml-1">Opportunity: ${score}/10</span>` : '';
+        return `
+          <button type="button" class="niche-chip border border-[rgba(133,97,73,0.2)] rounded px-2 py-1 text-sm text-taupe hover:bg-peach-light" data-niche="${id}">
+            ${escapeHtml(getNicheName(id))}${scoreBadge}
+          </button>`;
+      }).join('');
+
+      const keywordChips = (event.seo_keywords || []).map((kw) =>
+        `<button type="button" class="copy-chip border border-[rgba(133,97,73,0.2)] rounded px-2 py-0.5 text-xs text-taupe hover:bg-peach-light" data-copy="${encodeURIComponent(kw)}">${escapeHtml(kw)} 📋</button>`
+      ).join(' ');
+
+      const isLaunched = launchedMap[event.id];
+
+      return `
+        <div class="space-y-5">
+          <div>
+            <h2 id="mobile-detail-title" class="font-display text-2xl font-semibold text-taupe">${escapeHtml(event.name)}</h2>
+            <div class="flex flex-wrap gap-2 mt-2">
+              <span class="text-xs px-2 py-0.5 rounded ${chipImportanceClass(event)}">${event.importance}</span>
+              <span class="text-xs bg-base border border-[rgba(133,97,73,0.12)] px-2 py-0.5 rounded">${REGION_FLAGS[event.region] || ''} ${event.region}</span>
+              <span class="text-xs bg-sage/50 px-2 py-0.5 rounded text-taupe">${CATEGORY_LABELS[event.category] || event.category}</span>
+            </div>
+            <time datetime="${event.event_date}" class="block font-display text-xl text-taupe mt-3">${formatDateLong(event.event_date)}</time>
+          </div>
+
+          <div class="bg-peach-light border border-peach/30 rounded-md p-4">
+            <p class="text-xs uppercase tracking-wider text-slate mb-1">📅 List by</p>
+            <time datetime="${event.list_by_date}" class="font-display text-2xl font-semibold text-taupe">${formatDateLong(event.list_by_date)}</time>
+            <p class="font-display font-semibold mt-1 ${urgencyClass(cd.status)}">${weeksUntil}</p>
+            <p class="text-sm text-slate mt-2">Peak buyer search: <time datetime="${event.peak_window_start}">${formatDateShort(event.peak_window_start)}</time> → <time datetime="${event.peak_window_end}">${formatDateShort(event.peak_window_end)}</time></p>
+            ${buildTimelineBar(event)}
+          </div>
+
+          <section>
+            <h3 class="text-xs uppercase tracking-wider text-slate font-medium mb-2">Summary</h3>
+            <p class="text-taupe-light leading-relaxed">${escapeHtml(event.summary || '—')}</p>
+          </section>
+
+          ${(event.recommended_niches || []).length ? `
+          <section>
+            <h3 class="text-xs uppercase tracking-wider text-slate font-medium mb-2">Recommended niches</h3>
+            <div class="flex flex-wrap gap-2">${nicheChips}</div>
+            <div id="niche-mini-card" class="hidden mt-3 p-3 bg-base rounded-md border border-[rgba(133,97,73,0.12)] text-sm"></div>
+          </section>` : ''}
+
+          ${event.design_angles ? `
+          <section>
+            <h3 class="text-xs uppercase tracking-wider text-slate font-medium mb-2">Design angles</h3>
+            <p class="text-taupe-light leading-relaxed">${escapeHtml(event.design_angles)}</p>
+            <button type="button" class="copy-design-brief mt-2 text-sm text-peach hover:underline" data-id="${event.id}">Copy design brief</button>
+          </section>` : ''}
+
+          ${event.color_palette ? `
+          <section>
+            <h3 class="text-xs uppercase tracking-wider text-slate font-medium mb-2">Color palette</h3>
+            <p class="text-taupe-light">${escapeHtml(event.color_palette)}</p>
+            ${swatchHtml}
+          </section>` : ''}
+
+          ${event.pro_tip ? `
+          <section class="bg-[#f2e8c8] border border-warning/30 rounded-md p-4">
+            <h3 class="font-display font-semibold text-taupe mb-1">💡 Pro tip</h3>
+            <p class="text-taupe-light leading-relaxed">${escapeHtml(event.pro_tip)}</p>
+          </section>` : ''}
+
+          ${(event.seo_keywords || []).length ? `
+          <section>
+            <h3 class="text-xs uppercase tracking-wider text-slate font-medium mb-2">SEO keywords</h3>
+            <p class="text-xs text-slate mb-2">Use these in titles + first few tags</p>
+            <div class="flex flex-wrap gap-1.5">${keywordChips}</div>
+            <button type="button" class="copy-all-keywords mt-2 text-sm bg-export hover:bg-export-hover text-white px-3 py-1.5 rounded" data-id="${event.id}">Copy all keywords</button>
+          </section>` : ''}
+
+          <div class="flex flex-wrap gap-2 pt-2 border-t border-[rgba(133,97,73,0.12)]">
+            <button type="button" class="toggle-launched flex-1 border border-[rgba(133,97,73,0.2)] py-2 rounded text-taupe hover:bg-peach-light" data-id="${event.id}">
+              ${isLaunched ? '✓ Launched — undo' : 'Mark as launched ✓'}
+            </button>
+            <button type="button" class="copy-full-brief flex-1 bg-export hover:bg-export-hover text-white py-2 rounded" data-id="${event.id}">Copy full event brief</button>
+          </div>
+        </div>`;
+    }
+
+    function openDetail(eventId) {
+      const event = calendarData.events.find((e) => e.id === eventId);
+      if (!event) return;
+      selectedEventId = eventId;
+      const html = renderDetailContent(event);
+
+      $('#detail-content').innerHTML = html;
+      $('#detail-content').classList.remove('hidden');
+      $('#detail-placeholder').classList.add('hidden');
+      $('#detail-panel').classList.remove('hidden');
+      $('#detail-panel').setAttribute('aria-hidden', 'false');
+
+      const mobile = $('#mobile-detail-overlay');
+      $('#mobile-detail-content').innerHTML = html;
+      mobile.classList.remove('hidden');
+      requestAnimationFrame(() => $('#mobile-detail-panel').classList.add('open'));
+      setupFocusTrap(mobile);
+      bindDetailEvents();
+    }
+
+    function closeMobileDetail() {
+      $('#mobile-detail-panel').classList.remove('open');
+      setTimeout(() => $('#mobile-detail-overlay').classList.add('hidden'), 250);
+      teardownFocusTrap();
+    }
+
+    function setupFocusTrap(container) {
+      const focusable = container.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      focusTrapHandler = (e) => {
+        if (e.key === 'Escape') { closeMobileDetail(); return; }
+        if (e.key !== 'Tab') return;
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      };
+      document.addEventListener('keydown', focusTrapHandler);
+      first.focus();
+    }
+
+    function teardownFocusTrap() {
+      if (focusTrapHandler) {
+        document.removeEventListener('keydown', focusTrapHandler);
+        focusTrapHandler = null;
+      }
+    }
+
+    function showToast(message) {
+      const toast = $('#toast');
+      toast.textContent = message;
+      toast.classList.remove('hidden');
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => toast.classList.add('hidden'), 2500);
+    }
+
+    async function copyText(text, message) {
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast(message);
+      } catch {
+        showToast('Copy failed — select and copy manually');
+      }
+    }
+
+    function bindDetailEvents() {
+      $$('.copy-chip').forEach((chip) => {
+        chip.addEventListener('click', () => copyText(decodeURIComponent(chip.dataset.copy), `Copied "${decodeURIComponent(chip.dataset.copy)}"`));
+      });
+
+      $$('.copy-all-keywords').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const event = calendarData.events.find((e) => e.id === btn.dataset.id);
+          if (event) copyText((event.seo_keywords || []).join(', '), 'Copied all keywords');
+        });
+      });
+
+      $$('.copy-design-brief').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const event = calendarData.events.find((e) => e.id === btn.dataset.id);
+          if (!event) return;
+          const md = `## Design angles\n${event.design_angles || ''}\n\n## Color palette\n${event.color_palette || ''}`;
+          copyText(md, 'Copied design brief');
+        });
+      });
+
+      $$('.copy-full-brief').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const event = calendarData.events.find((e) => e.id === btn.dataset.id);
+          if (event) copyText(buildEventBrief(event), 'Copied full event brief');
+        });
+      });
+
+      $$('.toggle-launched').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          launchedMap[id] = !launchedMap[id];
+          if (!launchedMap[id]) delete launchedMap[id];
+          saveLaunched();
+          openDetail(id);
+          renderMain();
+        });
+      });
+
+      $$('.niche-chip').forEach((chip) => {
+        chip.addEventListener('click', () => {
+          const niche = getNicheById(chip.dataset.niche);
+          const card = $('#niche-mini-card');
+          if (!niche) {
+            card.classList.add('hidden');
+            return;
+          }
+          card.classList.remove('hidden');
+          card.innerHTML = `
+            <p class="font-display font-semibold text-taupe">${escapeHtml(niche.name)}</p>
+            ${niche.opportunity_score ? `<p class="text-success text-sm mt-1">Opportunity: ${niche.opportunity_score}/10</p>` : ''}
+            ${niche.top_keywords?.length ? `<p class="mt-2"><strong>Keywords:</strong> ${escapeHtml(niche.top_keywords.slice(0, 5).join(', '))}</p>` : ''}
+            ${niche.design_angles ? `<p class="mt-1"><strong>Design:</strong> ${escapeHtml(niche.design_angles.slice(0, 120))}…</p>` : ''}
+            <a href="${PROFIT_SCANNER_PATH}#niche=${encodeURIComponent(niche.id)}" class="inline-block mt-2 text-peach hover:underline text-sm" target="_blank" rel="noopener">Open in Profit Scanner →</a>`;
+        });
+      });
+    }
+
+    function renderMain() {
+      const events = getFilteredEvents();
+      const content = $('#main-content');
+      const empty = $('#empty-state');
+      $('#results-count').textContent = `${events.length} event${events.length !== 1 ? 's' : ''}`;
+
+      if (!events.length) {
+        content.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+
+      if (viewMode === 'calendar') {
+        content.innerHTML = renderCalendarGrid(events);
+        bindCalendarEvents();
+      } else if (viewMode === 'timeline') {
+        content.innerHTML = renderTimeline(events);
+      } else {
+        content.innerHTML = renderUpcoming(events) || '<p class="text-slate text-center py-8">No upcoming events in this range.</p>';
+      }
+
+      $$('.event-card, .event-chip').forEach((el) => {
+        el.addEventListener('click', (e) => { e.stopPropagation(); openDetail(el.dataset.id); });
+        el.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(el.dataset.id); }
+        });
+      });
+
+      $('#upcoming-range').classList.toggle('hidden', viewMode !== 'upcoming');
+    }
+
+    function bindCalendarEvents() {
+      const prev = $('#cal-prev');
+      const next = $('#cal-next');
+      const jump = $('#cal-jump');
+      const todayBtn = $('#cal-today');
+
+      if (prev) prev.addEventListener('click', () => {
+        calendarMonth.month--;
+        if (calendarMonth.month < 0) { calendarMonth.month = 11; calendarMonth.year--; }
+        renderMain();
+      });
+      if (next) next.addEventListener('click', () => {
+        calendarMonth.month++;
+        if (calendarMonth.month > 11) { calendarMonth.month = 0; calendarMonth.year++; }
+        renderMain();
+      });
+      if (jump) jump.addEventListener('change', () => {
+        calendarMonth.month = parseInt(jump.value, 10);
+        renderMain();
+      });
+      if (todayBtn) todayBtn.addEventListener('click', () => {
+        const t = parseISO(todayISO);
+        calendarMonth = { year: t.getFullYear(), month: t.getMonth() };
+        renderMain();
+      });
+    }
+
+    function renderCategoryFilters() {
+      const counts = {};
+      calendarData.events.forEach((e) => { counts[e.category] = (counts[e.category] || 0) + 1; });
+      const container = $('#category-filters');
+      container.innerHTML = calendarData.meta.categories.map((cat) => `
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" data-category="${cat}" checked class="accent-peach">
+          <span class="flex-1">${CATEGORY_LABELS[cat] || cat}</span>
+          <span class="text-xs text-slate">${counts[cat] || 0}</span>
+        </label>`).join('');
+    }
+
+    function setViewMode(mode) {
+      viewMode = mode;
+      $$(`input[name="view-mode"]`).forEach((r) => { r.checked = r.value === mode; });
+      $$('.view-tab').forEach((t) => t.classList.toggle('active', t.dataset.view === mode));
+      renderMain();
+    }
+
+    function resetFilters() {
+      $$('#region-filters input[data-region="global"], #region-filters input[data-region="US"]').forEach((el) => { el.checked = true; });
+      $$('#region-filters input[data-region="UK"]').forEach((el) => { el.checked = false; });
+      $$('#importance-filters input[data-importance="major"], #importance-filters input[data-importance="medium"]').forEach((el) => { el.checked = true; });
+      $$('#importance-filters input[data-importance="minor"]').forEach((el) => { el.checked = false; });
+      $$('#category-filters input').forEach((el) => { el.checked = true; });
+      $('#search-input').value = '';
+      setViewMode('calendar');
+      renderMain();
+      renderAlertBar();
+    }
+
+    async function loadEventsData() {
+      const embedded = document.getElementById('embedded-events');
+      if (embedded?.textContent?.trim()) {
+        return JSON.parse(embedded.textContent);
+      }
+      const res = await fetch(DATA_URL);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if (!data?.events?.length) throw new Error('Invalid calendar data');
+      return data;
+    }
+
+    async function loadNichesData() {
+      const embedded = document.getElementById('embedded-niches');
+      if (embedded) return JSON.parse(embedded.textContent);
+      try {
+        const res = await fetch('./niches.json');
+        if (res.ok) return res.json();
+      } catch { /* graceful */ }
+      return null;
+    }
+
+    function bindGlobalEvents() {
+      $$('input[name="view-mode"]').forEach((r) => r.addEventListener('change', () => setViewMode(r.value)));
+      $$('.view-tab').forEach((t) => t.addEventListener('click', () => setViewMode(t.dataset.view)));
+      $$('.upcoming-range-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          upcomingDays = parseInt(btn.dataset.days, 10);
+          $$('.upcoming-range-btn').forEach((b) => b.classList.toggle('active', b === btn));
+          renderMain();
+        });
+      });
+
+      ['#region-filters', '#importance-filters', '#category-filters'].forEach((sel) => {
+        $(sel).addEventListener('change', () => { renderMain(); renderAlertBar(); });
+      });
+
+      $('#search-input').addEventListener('input', () => {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => { renderMain(); renderAlertBar(); }, 100);
+      });
+
+      $('#reset-filters').addEventListener('click', resetFilters);
+      $('#empty-reset').addEventListener('click', resetFilters);
+
+      $('#uk-only-preset').addEventListener('click', () => {
+        $$('#region-filters input').forEach((el) => { el.checked = el.dataset.region === 'UK'; });
+        renderMain();
+      });
+
+      $('#sales-only-preset').addEventListener('click', () => {
+        $$('#category-filters input').forEach((el) => {
+          el.checked = ['shopping_event', 'major_gift_holiday', 'critical_deadline'].includes(el.dataset.category);
+        });
+        renderMain();
+      });
+
+      $('#wedding-only-preset').addEventListener('click', () => {
+        $$('#category-filters input').forEach((el) => {
+          el.checked = ['wedding_season', 'event_lead'].includes(el.dataset.category);
+        });
+        renderMain();
+      });
+
+      $('#toggle-categories').addEventListener('click', () => {
+        const el = $('#category-filters');
+        const hidden = el.classList.toggle('hidden');
+        $('#toggle-categories').setAttribute('aria-expanded', !hidden);
+        $('#toggle-categories').textContent = hidden ? 'Expand' : 'Collapse';
+      });
+
+      $('#mobile-filter-toggle').addEventListener('click', () => {
+        const sidebar = $('#filters-sidebar');
+        const isOpen = !sidebar.classList.contains('hidden');
+        sidebar.classList.toggle('hidden', isOpen);
+        sidebar.classList.toggle('md:block', !isOpen);
+        $('#mobile-filter-toggle').setAttribute('aria-expanded', !isOpen);
+        $('#filter-toggle-icon').textContent = isOpen ? '▼' : '▲';
+      });
+
+      $('#mobile-backdrop').addEventListener('click', closeMobileDetail);
+      $('#retry-load-btn').addEventListener('click', init);
+    }
+
+    async function init() {
+      $('#loading-screen').classList.remove('hidden');
+      $('#error-screen').classList.add('hidden');
+      $('#app').classList.add('hidden');
+
+      try {
+        calendarData = await loadEventsData();
+        nichesDb = await loadNichesData();
+        todayISO = getTodayISO();
+        const t = parseISO(todayISO);
+        calendarMonth = { year: t.getFullYear(), month: t.getMonth() };
+
+        loadLaunched();
+        renderCategoryFilters();
+
+        const todayDisplay = parseISO(todayISO);
+        $('#today-display').textContent = `Today: ${todayDisplay.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`;
+        $('#tool-title').textContent = BRAND.toolName;
+        $('#footer-text').innerHTML = `<em>${BRAND.toolName}</em> — A bonus by <strong>${BRAND.brandName}</strong> for <a href="${BRAND.bonusForUrl}" class="text-peach hover:underline" target="_blank" rel="noopener">${BRAND.bonusFor}</a> buyers. All dates and lead-times researched ${BRAND.releaseDate}.`;
+
+        updateLaunchedCounter();
+        renderAlertBar();
+        bindGlobalEvents();
+        renderMain();
+
+        $('#loading-screen').classList.add('hidden');
+        $('#app').classList.remove('hidden');
+
+        if (window.innerWidth < 768) {
+          $('#filters-sidebar').classList.add('hidden');
+        }
+      } catch (err) {
+        console.error(err);
+        const detail = $('#error-detail');
+        if (detail && location.protocol === 'file:' && !document.getElementById('embedded-events')) {
+          detail.innerHTML = 'You opened <strong>index.html</strong> offline. Double-click <strong>index-standalone.html</strong> instead, or connect to the internet and use <strong>index.html</strong>.';
+        }
+        $('#loading-screen').classList.add('hidden');
+        $('#error-screen').classList.remove('hidden');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

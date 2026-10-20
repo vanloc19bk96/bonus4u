@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Number Code Breaker — KDP Book Generator</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="app-bar">
+  <div class="app-bar-title">
+    <span class="app-mark" aria-hidden="true"></span>
+    <div>
+      <h1>Number Code Breaker</h1>
+      <p>KDP paperback interior generator</p>
+    </div>
+  </div>
+</header>
+
+<div class="app-shell">
+
+  <!-- ============================ SIDEBAR ============================ -->
+  <aside class="sidebar" id="sidebar">
+
+    <section class="panel">
+      <h2 class="panel-title">Book Setup</h2>
+
+      <div class="field">
+        <label for="in-title">Book Title</label>
+        <input type="text" id="in-title" value="Number Code Breaker" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="in-subtitle">Subtitle <span class="opt">optional</span></label>
+        <input type="text" id="in-subtitle" placeholder="100 Logic Puzzles for Adults" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="in-author">Author / Publisher</label>
+        <input type="text" id="in-author" placeholder="Your name or imprint" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="in-trim">Page Size (Trim Size)</label>
+        <select id="in-trim"></select>
+        <p class="hint" id="hint-trim"></p>
+      </div>
+
+      <div class="switch-row">
+        <label class="switch">
+          <input type="checkbox" id="in-bleed">
+          <span>Bleed</span>
+        </label>
+        <span class="hint-inline" id="hint-bleed">Off — PDF page equals the trim size</span>
+      </div>
+
+      <div class="switch-row">
+        <label class="switch">
+          <input type="checkbox" id="in-page-numbers" checked>
+          <span>Show Page Numbers</span>
+        </label>
+        <span class="hint-inline">Puzzle and answer pages only</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">Puzzle Settings</h2>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="in-count">Number of Puzzles</label>
+          <input type="number" id="in-count" value="100" min="1" step="1">
+        </div>
+        <div class="field">
+          <label for="in-density">Puzzles Per Page</label>
+          <select id="in-density">
+            <option value="auto" selected>Auto</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="4">4</option>
+          </select>
+        </div>
+      </div>
+      <p class="hint" id="hint-density"></p>
+
+      <div class="field">
+        <label for="in-mode">Mode</label>
+        <select id="in-mode">
+          <option value="classic" selected>Classic</option>
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
+          <option value="custom">Custom</option>
+        </select>
+        <p class="hint" id="hint-mode"></p>
+      </div>
+
+      <div id="custom-settings" class="subpanel" hidden>
+        <div class="field-row">
+          <div class="field">
+            <label for="in-code-length">Code Length</label>
+            <input type="number" id="in-code-length" value="4" min="3" max="6" step="1">
+          </div>
+          <div class="field">
+            <label for="in-clues-min">Minimum Clue Rows</label>
+            <input type="number" id="in-clues-min" value="5" min="4" max="8" step="1">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="in-digit-min">Lowest Digit</label>
+            <input type="number" id="in-digit-min" value="1" min="0" max="9" step="1">
+          </div>
+          <div class="field">
+            <label for="in-digit-max">Highest Digit</label>
+            <input type="number" id="in-digit-max" value="7" min="0" max="9" step="1">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="in-clues-max">Maximum Clue Rows</label>
+            <input type="number" id="in-clues-max" value="7" min="4" max="8" step="1">
+          </div>
+          <div class="field switch-field">
+            <label class="switch">
+              <input type="checkbox" id="in-duplicates" checked>
+              <span>Allow Repeated Digits</span>
+            </label>
+          </div>
+        </div>
+        <p class="hint" id="hint-universe"></p>
+      </div>
+
+      <p class="hint">Every book is generated from a fresh random draw.</p>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">Front Matter</h2>
+
+      <div class="switch-row">
+        <label class="switch">
+          <input type="checkbox" id="in-copyright-on" checked>
+          <span>Include Copyright Page</span>
+        </label>
+      </div>
+      <div class="field" id="field-copyright">
+        <label for="in-copyright" class="sr-only">Copyright page text</label>
+        <textarea id="in-copyright" rows="7"></textarea>
+        <p class="hint">{YEAR} and {AUTHOR_OR_PUBLISHER} are filled in automatically. A line typed IN CAPITALS becomes a heading.</p>
+      </div>
+
+      <div class="switch-row">
+        <label class="switch">
+          <input type="checkbox" id="in-instructions-on" checked>
+          <span>Include Instruction Page</span>
+        </label>
+      </div>
+      <div class="field" id="field-instructions">
+        <label for="in-instructions" class="sr-only">Instruction page text</label>
+        <textarea id="in-instructions" rows="11"></textarea>
+        <p class="hint">The ● and ○ symbols print as real circles, so the page still works in black-and-white.</p>
+      </div>
+
+      <div class="switch-row">
+        <label class="switch">
+          <input type="checkbox" id="in-answers-on" checked>
+          <span>Include Answer Key</span>
+        </label>
+        <span class="hint-inline">Printed after the puzzles</span>
+      </div>
+    </section>
+
+    <section class="panel panel-actions">
+      <button type="button" id="btn-generate" class="btn btn-primary btn-block">Generate Book</button>
+      <button type="button" id="btn-cancel" class="btn btn-block" hidden>Cancel</button>
+      <button type="button" id="btn-download" class="btn btn-accent btn-block" disabled>Download PDF</button>
+      <p class="hint" id="hint-download">Generate a book to enable the PDF export.</p>
+    </section>
+
+  </aside>
+
+  <!-- ============================ PREVIEW ============================ -->
+  <main class="content">
+
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <button type="button" id="btn-zoom-out" class="icon-btn" aria-label="Zoom out">−</button>
+        <span class="zoom-value" id="zoom-value">70%</span>
+        <button type="button" id="btn-zoom-in" class="icon-btn" aria-label="Zoom in">+</button>
+        <button type="button" id="btn-zoom-fit" class="btn btn-quiet">Fit width</button>
+      </div>
+      <div class="toolbar-group">
+        <label class="switch switch-sm">
+          <input type="checkbox" id="in-guides" checked>
+          <span>Margin guides</span>
+        </label>
+      </div>
+      <div class="toolbar-group toolbar-right">
+        <span class="stat" id="stat-pages">— pages</span>
+        <span class="stat" id="stat-size">—</span>
+        <span class="badge" id="kdp-badge" data-status="idle">Not generated</span>
+      </div>
+    </div>
+
+    <div class="progress" id="progress" hidden>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <span class="progress-label" id="progress-label">Working…</span>
+    </div>
+
+    <div class="messages" id="messages"></div>
+
+    <div class="preview-scroll" id="preview-scroll">
+      <div class="preview" id="preview" style="--ppi: 67">
+        <div class="empty-state" id="empty-state">
+          <h2>No book generated yet</h2>
+          <p>Choose your trim size and puzzle settings on the left, then select <strong>Generate Book</strong>.
+             Every page you see here is the page that gets written to the PDF.</p>
+          <ul>
+            <li>Every puzzle is checked to have exactly one solution.</li>
+            <li>Odd and even pages mirror the gutter, exactly as KDP prints them.</li>
+            <li>Clues print as filled and outline circles, so the book works in black ink.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <footer class="content-footer">
+      <p>Built to Amazon KDP's published paperback formatting rules. This app does not submit anything to Amazon and
+         cannot approve a file on Amazon's behalf — always review the finished PDF in KDP's Print Previewer before
+         you publish.</p>
+    </footer>
+  </main>
+</div>
+
+<!-- Vendored dependencies: no network, no build step, no modules. -->
+<script src="vendor/jspdf.umd.min.js"></script>
+<script src="vendor/font-notosans.js"></script>
+
+<!-- Application, in dependency order. -->
+<script src="js/constants.js"></script>
+<script src="js/seeded-random.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/kdp-layout.js"></script>
+<script src="js/puzzle-engine.js"></script>
+<script src="js/puzzle-validator.js"></script>
+<script src="js/book-builder.js"></script>
+<script src="js/kdp-compliance.js"></script>
+<script src="js/preview-renderer.js"></script>
+<script src="js/pdf-export.js"></script>
+<script src="js/project-storage.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

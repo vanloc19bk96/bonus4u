@@ -1,0 +1,13 @@
+JIGSAW SUDOKU BOOK MAKER
+========================
+
+Double-click index.html. It opens in your web browser (Chrome, Edge, Firefox or Safari)
+and works without the internet. Nothing to install.
+
+1. Pick a Quick start preset (or set the grid size, puzzle type, number of puzzles and difficulty).
+2. Click Create puzzles and wait for the green "Ready for KDP" status.
+3. Click Download PDF and upload it to KDP as the paperback manuscript (no bleed, black & white).
+
+The same Seed (under Advanced) always gives the same puzzles.
+
+If you have any questions, feel free to let me know.

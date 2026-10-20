@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Parser tests — WYR Book Studio</title>
+<style>
+  body { font: 14px/1.6 system-ui, sans-serif; margin: 24px; max-width: 900px; }
+  h1 { font-size: 20px; }
+  .summary { padding: 12px 16px; border-radius: 10px; font-weight: 700; margin: 16px 0; }
+  .summary.pass { background: #e6f6ec; color: #17864a; }
+  .summary.fail { background: #fdeaea; color: #c0392b; }
+  ol { padding-left: 22px; }
+  li { margin-bottom: 4px; }
+  .PASS { color: #17864a; font-weight: 700; }
+  .FAIL { color: #c0392b; font-weight: 700; }
+  .why { color: #777; }
+  code { background: #f1f1f5; padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>Parser tests</h1>
+<p>Double-click this file to run it in a browser. No server needed.</p>
+<div id="summary" class="summary">Running…</div>
+<ol id="results"></ol>
+
+<script src="../js/namespace.js"></script>
+<script src="../js/config.js"></script>
+<script src="../js/parser.js"></script>
+<script>
+(function () {
+  var P = window.WYR.parser;
+  var results = [];
+
+  function test(name, fn) {
+    try {
+      fn();
+      results.push({ name: name, ok: true, why: '' });
+    } catch (e) {
+      results.push({ name: name, ok: false, why: e.message });
+    }
+  }
+  function assert(cond, msg) { if (!cond) throw new Error(msg || 'assert failed'); }
+  function eq(a, b, msg) {
+    if (a !== b) throw new Error((msg || 'mismatch') + ': ' + JSON.stringify(a) + ' ≠ ' + JSON.stringify(b));
+  }
+
+  function q(id, a, b) {
+    return '{"id":' + id + ',"cat":"Food","a":"' + a + '","b":"' + b +
+      '","why_hard":"Both are tough.","a_plus":"A is better.","b_plus":"B is better.","bonus":"Which one?"}';
+  }
+
+  /* 1 - a clean answer inside a ```json fence */
+  test('Answer wrapped in a ```json fence', function () {
+    var input = '```json\n{"batch":1,"total_batches":4,"questions":[' +
+      q(1, 'eat only pizza for a year', 'eat everything except pizza') + ']}\n```';
+    var r = P.parse(input, []);
+    assert(r.ok, r.error);
+    eq(r.questions.length, 1, 'question count');
+    eq(r.batch, 1, 'batch');
+    eq(r.totalBatches, 4, 'total_batches');
+  });
+
+  /* 2 — chatter before and after the JSON */
+  test('Chatter before and after the JSON', function () {
+    var input = 'Sure! Here are your questions for batch 1:\n\n' +
+      '{"questions":[' + q(1, 'be a giant for a day', 'be tiny for a week') + ']}' +
+      '\n\nLet me know if you want more!';
+    var r = P.parse(input, []);
+    assert(r.ok, r.error);
+    eq(r.questions.length, 1, 'question count');
+  });
+
+  /* 3 — trailing commas and a // comment */
+  test('Trailing commas and a comment', function () {
+    var input = '```json\n{\n "questions": [\n' + q(1, 'have wings', 'have gills') + ', // first one\n ],\n}\n```';
+    var r = P.parse(input, []);
+    assert(r.ok, r.error);
+    eq(r.questions.length, 1, 'question count');
+  });
+
+  /* 4 — the model ran out of tokens mid object */
+  test('Answer cut off mid object', function () {
+    var input = '```json\n{"batch":2,"questions":[' +
+      q(1, 'ride a dragon to school', 'ride a whale to the beach') + ',' +
+      q(2, 'sleep in a treehouse', 'sleep in a submarine') + ',' +
+      '{"id":3,"cat":"Food","a":"eat soup with a fork","b":"drink';
+    var r = P.parse(input, []);
+    assert(r.ok, r.error);
+    eq(r.questions.length, 2, 'kept 2 complete questions');
+    assert(r.truncated, 'should report the cut');
+    assert(r.notes.join(' ').indexOf('continue') >= 0, 'should suggest typing continue');
+  });
+
+  /* 5 — a bare array with no wrapper object */
+  test('Bare array with no wrapper', function () {
+    var input = '[' + q(1, 'be a famous chef', 'be a secret spy') + ']';
+    var r = P.parse(input, []);
+    assert(r.ok, r.error);
+    eq(r.questions.length, 1, 'question count');
+  });
+
+  /* 6 — long field names instead of the short schema */
+  test('Long field names (option_a / optionB)', function () {
+    var input = '{"questions":[{"number":7,"category":"School",' +
+      '"option_a":"Would you rather have no homework ever?",' +
+      '"optionB":"Have no exams ever.",' +
+      '"whyHard":"Each one trades away something else.","pro_a":"Free evenings.","proB":"Sleep well."}]}';
+    var r = P.parse(input, []);
+    assert(r.ok, r.error);
+    eq(r.questions.length, 1, 'question count');
+    eq(r.questions[0].a, 'have no homework ever', 'prefix, question mark and capital removed');
+    eq(r.questions[0].b, 'have no exams ever', 'trailing full stop removed');
+    eq(r.questions[0].cat, 'School', 'category');
+  });
+
+  /* 7 — near duplicates are dropped */
+  test('Near duplicates are dropped', function () {
+    var existing = [{ id: 1, a: 'be able to fly but only two feet off the ground', b: 'be invisible but only when nobody is looking' }];
+    var input = '{"questions":[' +
+      q(1, 'be able to fly but only two feet off the ground', 'be invisible but only when nobody is looking') + ',' +
+      q(2, 'own a talking parrot', 'own a singing goldfish') + ']}';
+    var r = P.parse(input, existing);
+    assert(r.ok, r.error);
+    eq(r.questions.length, 1, 'only the new one is kept');
+    eq(r.duplicates, 1, 'duplicate count');
+  });
+
+  /* 8 — smart quotes around the JSON syntax itself */
+  test('Curly quotes around the JSON syntax', function () {
+    var input = '{ “questions”: [ { “id”: 1, “cat”: “Food”, “a”: “eat cold pizza”, “b”: “drink warm juice” } ] }';
+    var r = P.parse(input, []);
+    assert(r.ok, r.error);
+    eq(r.questions.length, 1, 'question count');
+  });
+
+  /* 9 — rewrite batches replace instead of append */
+  test('Rewrite batches replace instead of append', function () {
+    var input = '{"replace":true,"questions":[' + q(5, 'walk on the ceiling', 'walk through walls') + ']}';
+    var r = P.parse(input, []);
+    assert(r.ok, r.error);
+    assert(r.replace, 'should detect replace mode');
+    eq(r.questions[0].sourceId, 5, 'keeps the original id');
+  });
+
+  /* 10 — emoji and other glyphs the font does not have */
+  test('Emoji and other missing glyphs are stripped', function () {
+    var input = '{"questions":[{"id":1,"cat":"Fun","a":"eat a whole cake 🎂 alone","b":"share a tiny cupcake 🧁"}]}';
+    var r = P.parse(input, []);
+    assert(r.ok, r.error);
+    assert(r.questions[0].a.indexOf('🎂') < 0, 'emoji must go');
+    assert(r.questions[0].a.indexOf('cake') >= 0, 'the words must stay');
+    assert(r.questions[0].warnings.length > 0, 'should warn about it');
+  });
+
+  /* 11 — Vietnamese diacritics survive intact */
+  test('Vietnamese diacritics survive intact', function () {
+    var input = '{"questions":[{"id":1,"cat":"Đồ ăn","a":"Được bay lượn khắp nơi?","b":"Tàng hình cả ngày."}]}';
+    var r = P.parse(input, []);
+    assert(r.ok, r.error);
+    eq(r.questions[0].a, 'được bay lượn khắp nơi', 'option A');
+    eq(r.questions[0].cat, 'Đồ ăn', 'accented category');
+  });
+
+  /* 12 — the title ideas from batch 1 */
+  test('Title ideas from batch 1', function () {
+    var input = '{"batch":1,"book":{"title_ideas":[{"title":"Would You Rather Book","subtitle":"200 Questions"}]},' +
+      '"questions":[' + q(1, 'be a pilot', 'be a captain') + ']}';
+    var r = P.parse(input, []);
+    assert(r.ok, r.error);
+    eq(r.titleIdeas.length, 1, 'idea count');
+    eq(r.titleIdeas[0].title, 'Would You Rather Book', 'book title');
+  });
+
+  /* 13 — junk input fails with a human message, not an exception */
+  test('Prose pasted by mistake', function () {
+    var r = P.parse('Sure! Here are some fun questions for you.', []);
+    assert(!r.ok, 'should fail');
+    assert(r.error.length > 10, 'the error should read like a sentence');
+  });
+
+  /* 14 — a paste that is empty */
+  test('Empty paste', function () {
+    var r = P.parse('   ', []);
+    assert(!r.ok, 'should fail');
+  });
+
+  /* 15 — the "Would you rather" prefix is stripped in every language */
+  test('Leading phrase stripped in every language', function () {
+    eq(P.cleanOption('Would you rather: be a lion', []), 'be a lion', 'English');
+    eq(P.cleanOption('Bạn sẽ chọn làm sư tử?', []), 'làm sư tử', 'Vietnamese');
+    eq(P.cleanOption('A) eat soup', []), 'eat soup', 'an A) label');
+  });
+
+  /* 16 — Jaccard similarity behaves */
+  test('Jaccard similarity helper', function () {
+    var a = { fly: 1, high: 1, in: 1, sky: 1 };
+    var b = { fly: 1, high: 1, in: 1, sky: 1 };
+    eq(P.jaccard(a, b), 1, 'identical');
+    eq(P.jaccard(a, { swim: 1, deep: 1 }), 0, 'nothing in common');
+  });
+
+  /* ---- report ---- */
+  var host = document.getElementById('results');
+  var failed = 0;
+  results.forEach(function (r) {
+    if (!r.ok) failed++;
+    var li = document.createElement('li');
+    li.innerHTML = '<span class="' + (r.ok ? 'PASS' : 'FAIL') + '">' + (r.ok ? 'PASS' : 'FAIL') +
+      '</span> ' + r.name + (r.ok ? '' : ' <span class="why">— ' + r.why + '</span>');
+    host.appendChild(li);
+  });
+
+  var box = document.getElementById('summary');
+  box.className = 'summary ' + (failed ? 'fail' : 'pass');
+  box.textContent = failed
+    ? failed + ' of ' + results.length + ' tests FAILED'
+    : 'All ' + results.length + ' tests PASSED ✓';
+})();
+</script>
+</body>
+</html>

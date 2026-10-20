@@ -1,0 +1,6 @@
+Double-click index.html to get started. No internet connection or installation needed.
+
+1. Set up your book in the left panel (every option already has a sensible default).
+2. Click Generate, check the pages in the preview, then click Download PDF.
+
+If you have any questions, feel free to let me know.

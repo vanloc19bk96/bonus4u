@@ -1,0 +1,176 @@
+<header class="app-header">
+  <h1>Cryptogram Prints</h1>
+  <div class="header-actions">
+    <button type="button" id="btnLoad">Load</button>
+    <button type="button" id="btnSave">Save</button>
+    <button type="button" id="btnAbout" title="About">ⓘ</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="settings" id="settings">
+    <section class="section">
+      <div class="section-label">Book</div>
+      <label for="title">Title</label>
+      <input id="title" type="text" />
+      <label for="subtitle">Subtitle</label>
+      <input id="subtitle" type="text" />
+      <div class="row">
+        <div>
+          <label for="volume">Volume</label>
+          <input id="volume" type="text" />
+        </div>
+        <div>
+          <label for="year">Year</label>
+          <input id="year" type="number" />
+        </div>
+      </div>
+      <label for="author">Author / imprint</label>
+      <input id="author" type="text" />
+      <label for="publisher">Publisher</label>
+      <input id="publisher" type="text" />
+      <label for="isbn">ISBN (optional)</label>
+      <input id="isbn" type="text" />
+    </section>
+
+    <section class="section">
+      <div class="section-label">Format</div>
+      <p class="hint">Trim size fixed at <strong>8.5 × 11 in</strong> (US Letter).</p>
+      <label for="paper">Paper</label>
+      <select id="paper">
+        <option value="white">Black ink / white</option>
+        <option value="cream">Black ink / cream</option>
+        <option value="groundwood">Black ink / groundwood</option>
+      </select>
+      <label class="check"><input id="bleed" type="checkbox" /> Bleed (full-bleed frame)</label>
+      <div class="row">
+        <div>
+          <label for="puzzleCount">Puzzles</label>
+          <input id="puzzleCount" type="number" min="1" max="500" />
+        </div>
+        <div>
+          <label>Per page</label>
+          <div class="radio-row">
+            <label><input type="radio" name="perPage" value="1" /> 1</label>
+            <label><input type="radio" name="perPage" value="2" /> 2</label>
+            <label><input type="radio" name="perPage" value="3" /> 3</label>
+            <label><input type="radio" name="perPage" value="4" checked /> 4</label>
+          </div>
+        </div>
+      </div>
+      <label class="check"><input id="largePrint" type="checkbox" /> Large print (1/page, 22 pt min)</label>
+      <p class="hint" id="perPageHint"></p>
+      <p class="hint" id="pageLimitHint"></p>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Puzzles</div>
+      <label>Difficulty mix (%)</label>
+      <div class="row-4">
+        <div><label for="mixEasy">Easy</label><input id="mixEasy" type="number" min="0" max="100" /></div>
+        <div><label for="mixMed">Med</label><input id="mixMed" type="number" min="0" max="100" /></div>
+        <div><label for="mixHard">Hard</label><input id="mixHard" type="number" min="0" max="100" /></div>
+        <div><label for="mixExpert">Expert</label><input id="mixExpert" type="number" min="0" max="100" /></div>
+      </div>
+      <label>Order</label>
+      <div class="radio-row">
+        <label><input type="radio" name="order" value="progressive" /> Progressive</label>
+        <label><input type="radio" name="order" value="shuffled" /> Shuffled</label>
+      </div>
+      <label>Source</label>
+      <div class="radio-row">
+        <label><input type="radio" name="source" value="builtin" /> Built-in</label>
+        <label><input type="radio" name="source" value="paste" /> Paste</label>
+        <label><input type="radio" name="source" value="import" /> Import</label>
+      </div>
+      <div class="notice">Quotes you import are your responsibility. The built-in bank is public domain.</div>
+      <div id="pasteWrap" hidden>
+        <label for="pasteBox">One quote per line (optional: text | author)</label>
+        <textarea id="pasteBox" placeholder="The only thing we have to fear is fear itself. | Franklin D. Roosevelt"></textarea>
+        <p class="hint" id="pasteStatus"></p>
+      </div>
+      <div id="importWrap" hidden>
+        <label for="importFile">CSV / TXT file</label>
+        <input id="importFile" type="file" accept=".csv,.txt,text/plain,text/csv" />
+        <p class="hint">
+          <strong>TXT:</strong> one quote per line. Optional author: <code>quote text | Author</code><br />
+          <strong>CSV:</strong> columns <code>text,author,source,theme</code> (header row optional). Only <code>text</code> is required; wrap fields in quotes if they contain commas.<br />
+          Each quote needs ≥20 characters, ≥10 different letters, and a word of ≥4 letters.
+        </p>
+        <p class="hint" id="importStatus"></p>
+      </div>
+      <label class="check"><input id="freshKey" type="checkbox" /> Fresh key per puzzle</label>
+      <label class="check"><input id="allowReciprocal" type="checkbox" /> Allow reciprocal pairs</label>
+      <label class="check"><input id="numericVariant" type="checkbox" /> Numeric substitution (all)</label>
+      <label class="check"><input id="stripPunct" type="checkbox" /> Strip punctuation (Expert toggle)</label>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Layout</div>
+      <p class="hint">Gutter auto-computes from live page count. Outer defaults 0.5 in.</p>
+      <details class="advanced">
+        <summary>Advanced margins</summary>
+        <label for="gutterPad">Gutter pad above KDP min (in)</label>
+        <input id="gutterPad" type="number" step="0.025" min="0" max="0.5" />
+        <label for="outerMargin">Outer / top / bottom (in)</label>
+        <input id="outerMargin" type="number" step="0.025" min="0.25" max="1.25" />
+        <p class="field-error" id="outerError"></p>
+        <label for="cellSizeMax">Max cell size (pt)</label>
+        <input id="cellSizeMax" type="number" min="14" max="28" />
+        <label class="check"><input id="showPageNumbers" type="checkbox" /> Page numbers</label>
+      </details>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Sections</div>
+      <label class="check"><input id="howToSolve" type="checkbox" /> How to solve</label>
+      <label class="check"><input id="worksheet" type="checkbox" /> Cipher worksheet</label>
+      <label for="solutionsPerPage">Solutions / page</label>
+      <input id="solutionsPerPage" type="number" min="2" max="40" value="20" />
+    </section>
+
+    <section class="section">
+      <div class="section-label">Export</div>
+      <button type="button" id="btnGenerate">Generate book</button>
+      <div class="export-row stale" id="exportRow">
+        <button type="button" class="export-btn" id="btnPdf" disabled>PDF vector</button>
+        <button type="button" class="export-btn" id="btnPdfFlat" disabled>PDF flattened</button>
+        <button type="button" class="export-btn" id="btnPngZip" disabled>PNG zip</button>
+        <button type="button" class="export-btn" id="btnJpgZip" disabled>JPG zip</button>
+        <button type="button" class="export-btn" id="btnCsv" disabled>CSV</button>
+        <button type="button" class="export-btn" id="btnQc" disabled>QC sheet</button>
+      </div>
+      <button type="button" id="btnExportPage" disabled style="margin-top:8px">Export visible page PNG</button>
+    </section>
+  </aside>
+
+  <main class="preview-pane">
+    <div class="preview-toolbar">
+      <div class="preview-toggles">
+        <label class="check"><input id="showMargins" type="checkbox" /> Show margins</label>
+        <label class="check"><input id="showSafe" type="checkbox" /> Show trim / safe</label>
+      </div>
+    </div>
+    <div class="preview-scroll" id="previewScroll" tabindex="0">
+      <div class="preview-empty" id="previewEmpty">No pages yet — click Generate book.</div>
+    </div>
+  </main>
+</div>
+
+<div class="progress-wrap" id="progressWrap">
+  <div id="progressLabel">Working…</div>
+  <div class="progress-bar"><span id="progressBar"></span></div>
+  <button type="button" id="btnCancel">Cancel</button>
+</div>
+
+<div class="modal-backdrop" id="aboutModal">
+  <div class="modal">
+    <h2>About · Attributions</h2>
+    <p>Cryptogram Prints v1.0 — offline KDP interior generator. Chrome/Edge primary; Firefox and Safari 16+ supported. Double-click the HTML with Wi‑Fi off; no network calls.</p>
+    <p><strong>Quotes:</strong> Built-in bank is public-domain / traditional material. Imported quotes are your responsibility.</p>
+    <p>KDP trim/margin tables verified against topic GVBQ3CMEQW3W2VL6 (2026-07-30).</p>
+    <button type="button" id="btnCloseAbout">Close</button>
+  </div>
+</div>
+
+<input id="presetFile" type="file" accept="application/json,.json" hidden />

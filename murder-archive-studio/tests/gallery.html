@@ -1,0 +1,62 @@
+<!doctype html>
+<!-- Developer page: every cover design side by side. Serve the app folder over http and open tests/gallery.html?type=hotel&trim=6x9&full=1 -->
+<html><head><meta charset="utf-8"><title>Cover gallery</title>
+<style>
+  body { margin: 0; background: #888; font: 12px sans-serif; }
+  #g { display: grid; grid-template-columns: repeat(var(--cols, 8), 1fr); gap: 6px; padding: 6px; }
+  figure { margin: 0; background: #fff; }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption { padding: 2px 4px; }
+</style></head><body><div id="g"></div>
+<script src="../js/fonts.js"></script>
+<script src="../js/core/util.js"></script>
+<script src="../js/core/text.js"></script>
+<script src="../js/core/names.js"></script>
+<script src="../js/core/metrics.js"></script>
+<script src="../js/core/themes.js"></script>
+<script src="../js/core/register.js"></script>
+<script src="../js/core/fields.js"></script>
+<script src="../js/core/clues.js"></script>
+<script src="../js/core/kdp.js"></script>
+<script src="../js/core/reader.js"></script>
+<script src="../js/core/prompts.js"></script>
+<script src="../js/core/story.js"></script>
+<script src="../js/core/types.js"></script>
+<script src="../js/data/archives.js"></script>
+<script src="../js/core/book.js"></script>
+<script src="../js/core/extras.js"></script>
+<script src="../js/core/layout.js"></script>
+<script src="../js/core/checklist.js"></script>
+<script src="../js/core/cover.js"></script>
+<script src="../js/core/cover-art.js"></script>
+<script src="../js/core/cover-designs.js"></script>
+<script src="../js/render/svg.js"></script>
+<script src="../js/data/sample.js"></script>
+<script src="../js/data/sample-manifest.js"></script>
+<script src="../js/ui/dom.js"></script>
+<script>
+window.show = function (o) {
+  o = o || {};
+  var q = new URLSearchParams(location.search);
+  var type = o.type || q.get('type') || 'hotel', trim = o.trim || q.get('trim') || '6x9', full = o.full || q.get('full');
+  var ids = o.ids || (q.get('ids') ? q.get('ids').split(',') : LK.coverDesigns.ids);
+  document.getElementById('g').style.setProperty('--cols', o.cols || q.get('cols') || (full ? 3 : 8));
+  var p = LK.book.newProject(type);
+  p.seed = o.seed || 'gallery-' + type; p.setup.trim = trim;
+  p.setup.author = o.author || 'Ada Nightingale';
+  p.setup.title = o.title || q.get('title') || 'The Killer Is Still On Board';
+  LK.book.upgrade(p);
+  var cs = LK.book.getCase(p), book = LK.layout.layoutBook(p, cs);
+  var g = document.getElementById('g'); g.innerHTML = '';
+  ids.forEach(function (id) {
+    p.setup.cover.style = id;
+    var cv = LK.cover.layout(p, cs, book), gd = cv.guides;
+    var crop = full ? null : { x: gd.spineX1, y: 0, w: cv.W - gd.spineX1, h: cv.H };
+    var f = document.createElement('figure');
+    f.innerHTML = LK.svg.renderCover(cv, { crop: crop }) + '<figcaption>' + id + ' ' + LK.cover.audit(cv).join(' ') + '</figcaption>';
+    g.appendChild(f);
+  });
+  return ids.length;
+};
+LK.dom.registerFonts().then(function () { window.show(); });
+</script></body></html>
