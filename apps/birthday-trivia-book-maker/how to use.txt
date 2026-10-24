@@ -39,6 +39,7 @@ Download the cover again whenever the page count changes (the spine width follow
 The app shuffles the answer choices so A, B, C and D are each right about as often.
 Read the questions once before you publish: AI facts are usually right, but not always.
 
+The app does not keep your work in the browser: closing or reloading the tab clears it.
 Click "Save project file" to keep your work; open it later with "Open project file".
 
 If you have any questions, feel free to let me know.

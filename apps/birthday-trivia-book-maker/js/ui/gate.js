@@ -11,7 +11,8 @@
   var SALT = 'btb-gate-v1:5ba436fca7d884cb5bb70385d0ca0330';
   var ROUNDS = 20000;
   var KEY_HASHES = [
-    '041d90992de56ae72f79a820f4fca7a1f33f3db81134c095d8e83cfabeae52fd'
+    '041d90992de56ae72f79a820f4fca7a1f33f3db81134c095d8e83cfabeae52fd',
+    'b5d7c9861a973768f490917e67be08ba8405614527b2f448a3bc94159f61b46a'
   ];
   var STORE = 'btb.accessKey';
 

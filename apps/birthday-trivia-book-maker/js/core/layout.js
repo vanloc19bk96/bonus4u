@@ -282,9 +282,9 @@
       'First edition'
     ];
     var lines = [];
-    paras.forEach(function (p, i) { if (i) lines.push(''); Array.prototype.push.apply(lines, wrap(p, size, 'serif', pg.w)); });
+    paras.forEach(function (p, i) { if (i) lines.push(''); Array.prototype.push.apply(lines, wrap(p, size, 'serif', pg.w * 0.85)); });
     var y = pg.cb - lines.length * lead;
-    lines.forEach(function (l) { y += lead; if (l) pg.text(l, pg.x0, y - lead * 0.3, size, 'serif'); });
+    lines.forEach(function (l) { y += lead; if (l) pg.text(l, pg.cx, y - lead * 0.3, size, 'serif', { align: 'center' }); });
   }
 
   // Reserves the contents pages; they are drawn once every page number is known.
@@ -446,13 +446,30 @@
     if (p.plan.answers !== 'back' && (c.qs.length || L.draft)) answers(L, c, true);
   }
 
+  // "Score: ____ out of 20" on baseline y, starting at x (or centred on x).
+  function scoreLine(L, pg, x, y, total, center) {
+    var S = L.S, out = 'out of ' + total;
+    var lw = wid('Score:', S.b, 'sansBold'), gap = S.b * 0.5, rule = S.b * 4;
+    if (center) x -= (lw + gap + rule + gap + wid(out, S.b, 'serif')) / 2;
+    pg.text('Score:', x, y, S.b, 'sansBold');
+    var x0 = x + lw + gap, x1 = x0 + rule;
+    pg.line(x0, y + 2, x1, y + 2, 0.9);
+    pg.text(out, x1 + gap, y, S.b, 'serif');
+  }
+
   // The answers of one chapter: on their own page after the chapter, or in the answer key.
+  // On its own page the score sits under the heading, so it never spills onto a page by itself.
   function answers(L, c, ownPage) {
-    var S = L.S, per = L.project.plan.perChapter;
+    var S = L.S, per = L.project.plan.perChapter, scores = L.project.extras.scores;
+    var total = Math.max(per, c.qs.length), scoreH = S.lead * 2.6;
     if (ownPage) {
       var pg = L.page('answers', 'Answers: ' + c.ch.title, 'Answers · ' + c.ch.title);
       pg.items.length = 0; L.y = pg.y0;
       L.heading('Answers', c.ch.title);
+      if (scores) {
+        scoreLine(L, pg, pg.cx, L.y, total, true);
+        L.y += S.b * 0.9;
+      }
     } else {
       L.need(S.h2 * 2.4 + S.lead * 3);
       L.y += S.b * 0.8 + S.h2;
@@ -469,7 +486,8 @@
       var aLines = wrap(q.o[q.a], S.b, 'serif', pg0.w - ind - labW);
       var fLines = q.f ? wrap(q.f, S.fact, 'serif', pg0.w - ind - labW) : [];
       var h = aLines.length * S.lead + fLines.length * S.fact * 1.35 + S.b * 0.55;
-      L.need(h);
+      // in the answer key the score stays with the last answer
+      L.need(h + (scores && !ownPage && i === c.qs.length - 1 ? scoreH : 0));
       var pg = L.pg, y = L.y + S.b * 0.55;
       aLines.forEach(function (l, k) {
         y += S.lead;
@@ -483,13 +501,10 @@
       L.y = y;
     });
     if (!c.qs.length && L.draft) L.placeholder('Answers go here', 'They fill in with the questions.', S.b * 5);
-    if (L.project.extras.scores) {
-      L.need(S.lead * 2.6);
+    if (scores && !ownPage) {
+      L.need(scoreH);
       L.y += S.lead * 1.6;
-      var pg2 = L.pg, lab = 'Score:', lw2 = pg2.text(lab, pg2.x0, L.y, S.b, 'sansBold');
-      var x0 = pg2.x0 + lw2 + S.b * 0.5, x1 = x0 + S.b * 4;
-      pg2.line(x0, L.y + 2, x1, L.y + 2, 0.9);
-      pg2.text('out of ' + Math.max(per, c.qs.length), x1 + S.b * 0.5, L.y, S.b, 'serif');
+      scoreLine(L, L.pg, L.pg.x0, L.y, total);
       L.y += S.lead;
     }
   }

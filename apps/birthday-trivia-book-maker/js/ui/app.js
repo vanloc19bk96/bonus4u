@@ -1,32 +1,22 @@
 /*
  * The app: a header switch between the book pages (four steps) and the cover, each with its own
- * sidebar and preview. The project is saved in the browser after every change and can be saved
- * to a file. Each step body is rebuilt only when its structure changes, so typing never loses focus.
+ * sidebar and preview. Nothing is kept in the browser: the work lives in the open tab until it is
+ * saved to a project file. Each step body is rebuilt only when its structure changes, so typing never loses focus.
  */
 (function (root) {
   'use strict';
   var CX = root.CX, U = CX.util, P = CX.plan, dom = CX.dom, h = dom.h;
-  var STORE = 'btb.project';
+  var OLD_STORE = 'btb.project';   // earlier versions saved the project here
   var CHATGPT = 'https://chatgpt.com/';
 
   var state = { p: null, mode: 'book', open: 1, sel: null, result: null, printPages: 0, busy: false };
   var live = [];          // small updaters for the open step (derived text that follows typing)
   var thumbs = {};        // cover template thumbnails (SVG) by words, size, page count and template
 
-  // ---------- saving ----------
-  function load() {
-    try { var s = root.localStorage.getItem(STORE); if (s) return P.normalize(JSON.parse(s)); } catch (e) { /* fall through */ }
-    return P.newProject();
-  }
-  var save = dom.debounce(function () {
-    try { root.localStorage.setItem(STORE, JSON.stringify(state.p)); } catch (e) { /* private window: the project file still works */ }
-  }, 300);
-
   var refresh = dom.debounce(renderPreview, 180);
 
   // rebuild: rebuild the open step's body (after a choice that changes what it shows)
   function changed(rebuild) {
-    save();
     live.forEach(function (f) { f(); });
     renderHeads();
     if (rebuild) renderBody();
@@ -630,7 +620,7 @@
       }
       state.p = P.normalize(data);
       state.sel = null; state.result = null;
-      save(); openStep(firstOpenStep()); renderPreview();
+      openStep(firstOpenStep()); renderPreview();
       dom.toast('Project opened.');
     };
     fr.readAsText(file);
@@ -641,7 +631,7 @@
     if (!ok) return;
     state.p = P.newProject();
     state.sel = null; state.result = null;
-    save(); openStep(1); renderPreview();
+    openStep(1); renderPreview();
   }
 
   function firstOpenStep() {
@@ -652,7 +642,8 @@
 
   // ---------- start ----------
   function start() {
-    state.p = load();
+    try { root.localStorage.removeItem(OLD_STORE); } catch (e) { /* private window */ }
+    state.p = P.newProject();
     state.open = firstOpenStep();
     CX.preview.init();
     renderSteps();
@@ -665,7 +656,8 @@
     document.getElementById('btnImport').addEventListener('click', function () { fi.value = ''; fi.click(); });
     fi.addEventListener('change', function () { if (fi.files[0]) importProject(fi.files[0]); });
     document.getElementById('btnStartOver').addEventListener('click', startOver);
-    root.addEventListener('beforeunload', function () { save.flush(); });
+    // the work is lost with the tab, so ask before leaving once there is some
+    root.addEventListener('beforeunload', function (e) { if (hasWork(state.p)) { e.preventDefault(); e.returnValue = ''; } });
     document.getElementById('loading').hidden = true;
     document.getElementById('app').setAttribute('aria-busy', 'false');
   }
