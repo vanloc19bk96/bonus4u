@@ -1,0 +1,44 @@
+BIRTHDAY TRIVIA BOOK MAKER
+==========================
+
+Double-click index.html. It opens in your web browser (Chrome, Edge, Firefox or Safari)
+and works without the internet. Nothing to install. ChatGPT in step 3 is the only part
+that needs the internet, and you open that yourself.
+
+The first time it opens, type the access key that came with your purchase and click
+"Open the app". It is remembered on that computer, so you only type it once.
+
+1. The birthday: pick the age (50th, 60th ... 100th or any age), the year of the birthday
+   and the country they grew up in. Type your pen name. Leave the title empty to use the
+   suggestion, or click one of the title ideas.
+2. Chapters and pages: choose chapters by topic (music, movies, sports, prices ...) or by
+   decade, how many questions each chapter has, where the answers go, the extra pages
+   (the year you were born, Memory Lane, score card, birthday wishes), the page size and
+   the text size (large print is best for older readers).
+3. Write the questions with ChatGPT:
+     - click "Copy prompt",
+     - click "Open ChatGPT", paste (Ctrl+V) and press Enter,
+     - when it has finished, click "Copy code" on its reply,
+     - paste it into the box and click "Add to book".
+   Do the same for every prompt ("Prompt 2 of 6" ...). Green numbers are done.
+   The last prompt writes the welcome letter, the fun facts and the back cover text.
+   If a chapter is still short, copy its prompt again: it only asks for the missing questions.
+   Claude, Gemini or Copilot work the same way.
+4. Check and download: when every item is green, click "Download book PDF".
+
+COVER: click "Book cover" at the top of the left panel (the panel and the preview switch to
+the cover). Pick one of the 50 templates (filter them by group: Bold & bright, Retro,
+Elegant, Party, Memory lane). Each starts in its own colors; pick other colors if you like.
+Check the words on the cover, then click
+"Download cover PDF". Click "Book pages" to go back to the inside of the book.
+
+Upload to KDP: paperback, black & white interior, no bleed, the same trim size you picked.
+The book PDF is the manuscript; the cover PDF is "a cover you already have".
+Download the cover again whenever the page count changes (the spine width follows it).
+
+The app shuffles the answer choices so A, B, C and D are each right about as often.
+Read the questions once before you publish: AI facts are usually right, but not always.
+
+Click "Save project file" to keep your work; open it later with "Open project file".
+
+If you have any questions, feel free to let me know.

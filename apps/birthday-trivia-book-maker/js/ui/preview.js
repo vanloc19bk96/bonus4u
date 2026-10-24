@@ -1,0 +1,260 @@
+/* Book preview: two-page spreads drawn as SVG, true to scale, rendered lazily as they scroll into view; or the cover. */
+(function (root) {
+  'use strict';
+  var CX = root.CX;
+  var h = CX.dom.h;
+
+  var els = {};
+  var spreads = [];      // [{ left: pageIndex|null, right: pageIndex|null, el, dirty }]
+  var pages = [];
+  var signature = '';
+  var ratio = 1.5;       // page height / width
+  var widthPt = 432;
+  var zoom = 1;          // multiplier on top of "fit"
+  var fitPx = 360;
+  var observer = null;
+  var visible = {};
+  var current = 0;
+  var opts = { margins: false, answer: false };
+  var lastCover = null;    // the cover on screen, while the cover view is open
+
+  function init() {
+    els.wrap = document.getElementById('spreads');
+    els.nav = document.getElementById('navSelect');
+    els.ind = document.getElementById('pageIndicator');
+    els.zoom = document.getElementById('btnZoomFit');
+    document.getElementById('btnPrev').addEventListener('click', function () { step(-1); });
+    document.getElementById('btnNext').addEventListener('click', function () { step(1); });
+    document.getElementById('btnZoomIn').addEventListener('click', function () { setZoom(zoom * 1.2); });
+    document.getElementById('btnZoomOut').addEventListener('click', function () { setZoom(zoom / 1.2); });
+    els.zoom.addEventListener('click', function () { setZoom(1); });
+    var tm = document.getElementById('tglMargins'), tk = document.getElementById('tglAnswer');
+    tm.addEventListener('change', function () { opts.margins = tm.checked; if (lastCover) showCover(lastCover); else markAllDirty(); });
+    if (tk) tk.addEventListener('change', function () {
+      opts.answer = tk.checked; markAllDirty();
+      // jump to the first line-up only when no line-up is in view
+      if (tk.checked && !visibleAnswer()) { var pg = pages.filter(function (p) { return p.meta.answerBox; })[0]; if (pg) goTo(pg.num); }
+    });
+    els.nav.addEventListener('change', function () { goTo(parseInt(els.nav.value, 10)); });
+    els.wrap.addEventListener('scroll', onScroll, { passive: true });
+    els.wrap.addEventListener('keydown', function (e) {
+      if (e.target !== els.wrap) return;
+      if (e.key === 'PageDown' || e.key === 'ArrowRight') { e.preventDefault(); step(1); }
+      else if (e.key === 'PageUp' || e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
+      else if (e.key === '+' || e.key === '=') { e.preventDefault(); setZoom(zoom * 1.2); }
+      else if (e.key === '-') { e.preventDefault(); setZoom(zoom / 1.2); }
+      else if (e.key === 'Home') { e.preventDefault(); goTo(1); }
+      else if (e.key === 'End') { e.preventDefault(); goTo(pages.length); }
+    });
+    root.addEventListener('resize', CX.dom.debounce(function () { computeFit(); applySize(); }, 120));
+    if ('IntersectionObserver' in root) {
+      observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          var i = +en.target.getAttribute('data-i');
+          visible[i] = en.isIntersecting;
+          if (en.isIntersecting) renderSpread(i);
+        });
+      }, { root: els.wrap, rootMargin: '800px 0px' });
+    }
+    computeFit();
+  }
+
+  function computeFit() {
+    var w = els.wrap.clientWidth - 48, hgt = els.wrap.clientHeight - 56;
+    var byW = (w - 20) / 2, byH = hgt / ratio;
+    fitPx = Math.max(180, Math.floor(Math.min(byW, byH)));
+  }
+
+  function applySize() {
+    var px = Math.round(fitPx * zoom);
+    els.wrap.style.setProperty('--pw', px + 'px');
+    els.wrap.style.setProperty('--ratio', ratio);
+    // 100% means true print size: 72 pt = 1 in = 96 CSS px
+    var pct = Math.round(px / (widthPt / 72 * 96) * 100);
+    els.zoom.textContent = pct + '%';
+    els.zoom.title = 'Fit to window (now ' + pct + '% of print size)';
+  }
+
+  function setZoom(z) {
+    var keep = current;
+    zoom = Math.max(0.4, Math.min(4, z));
+    applySize();
+    scrollToSpread(keep);
+  }
+
+  function buildSpreads(n) {
+    spreads = [];
+    spreads.push({ left: null, right: 0 });
+    for (var i = 1; i < n; i += 2) spreads.push({ left: i, right: i + 1 < n ? i + 1 : null });
+    els.wrap.innerHTML = '';
+    visible = {};
+    if (observer) observer.disconnect();
+    spreads.forEach(function (sp, si) {
+      var inner = h('div', { class: 'spread-inner' });
+      var el = h('div', { class: 'spread', 'data-i': si }, inner);
+      sp.el = el; sp.dirty = true;
+      [sp.left, sp.right].forEach(function (pi, side) {
+        var pe = h('div', { class: 'page ' + (side === 0 ? 'left' : 'right') + (pi == null ? ' blank' : '') });
+        inner.appendChild(pe);
+        if (side === 0) sp.leftEl = pe; else sp.rightEl = pe;
+      });
+      els.wrap.appendChild(el);
+      if (observer) observer.observe(el);
+    });
+  }
+
+  function markAllDirty() {
+    spreads.forEach(function (sp, i) { sp.dirty = true; if (visible[i] || !observer) renderSpread(i); });
+  }
+
+  function renderSpread(i) {
+    var sp = spreads[i];
+    if (!sp || !sp.dirty) return;
+    sp.dirty = false;
+    [[sp.left, sp.leftEl], [sp.right, sp.rightEl]].forEach(function (pair) {
+      if (pair[0] == null) return;
+      var page = pages[pair[0]];
+      pair[1].innerHTML = CX.svg.render(page, opts);
+      pair[1].setAttribute('data-page', page.num);
+    });
+  }
+
+  function navOptions(book) {
+    var o = book.front.map(function (f) { return { v: f.page, t: f.title }; });
+    book.sections.forEach(function (s) { o.push({ v: s.page, t: (s.sub ? ' – ' : '') + s.title + '  (p. ' + s.page + ')' }); });
+    return o;
+  }
+
+  /*
+   * book: the layout result; key: changes when a different project is shown (resets the scroll).
+   */
+  function update(book, key) {
+    lastCover = null;
+    els.wrap.parentNode.classList.remove('is-cover');
+    pages = book.pages;
+    widthPt = book.W;
+    ratio = book.H / book.W;
+    var sig = key + '|' + pages.length + '|' + ratio;
+    els.wrap.parentNode.classList.remove('is-empty');
+    if (sig !== signature) {
+      var resetScroll = signature.split('|')[0] !== key;
+      signature = sig;
+      computeFit();
+      buildSpreads(pages.length);
+      applySize();
+      if (resetScroll) { current = 0; els.wrap.scrollTop = 0; }
+      else scrollToSpread(Math.min(current, spreads.length - 1));
+    }
+    els.nav.innerHTML = '';
+    navOptions(book).forEach(function (o) { els.nav.appendChild(h('option', { value: o.v }, o.t)); });
+    markAllDirty();
+    updateIndicator();
+  }
+
+  function visibleAnswer() {
+    var sp = spreads[current];
+    return !!sp && [sp.left, sp.right].some(function (i) { return i != null && pages[i].meta.answerBox; });
+  }
+
+  function spreadOfPage(num) { return num <= 1 ? 0 : Math.floor(num / 2); }
+
+  function scrollToSpread(si) {
+    var sp = spreads[si];
+    if (!sp) return;
+    current = si;
+    els.wrap.scrollTop = sp.el.offsetTop - 16;
+    renderSpread(si);
+    updateIndicator();
+  }
+
+  function goTo(num) {
+    var si = spreadOfPage(num);
+    scrollToSpread(si);
+    var sp = spreads[si];
+    if (!sp) return;
+    var el = (sp.left != null && pages[sp.left].num === num) ? sp.leftEl : sp.rightEl;
+    if (el) { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+  }
+
+  function step(dir) { scrollToSpread(Math.max(0, Math.min(spreads.length - 1, current + dir))); }
+
+  function onScroll() {
+    var top = els.wrap.scrollTop + 40;
+    var best = 0;
+    for (var i = 0; i < spreads.length; i++) { if (spreads[i].el.offsetTop <= top) best = i; else break; }
+    if (best !== current) { current = best; updateIndicator(); }
+  }
+
+  function updateIndicator() {
+    var sp = spreads[current];
+    if (!sp) return;
+    var nums = [sp.left, sp.right].filter(function (x) { return x != null; }).map(function (x) { return pages[x].num; });
+    els.ind.textContent = (nums.length > 1 ? 'Pages ' + nums.join('–') : 'Page ' + nums[0]) + ' of ' + pages.length;
+    var val = null;
+    Array.prototype.forEach.call(els.nav.options, function (o) { if (+o.value <= nums[nums.length - 1]) val = o.value; });
+    if (val != null && document.activeElement !== els.nav) els.nav.value = val;
+  }
+
+  /*
+   * The full-wrap cover, back to front, in place of the pages.
+   */
+  function showCover(cv) {
+    lastCover = cv;
+    signature = 'cover';
+    pages = []; spreads = []; visible = {}; current = 0;
+    if (observer) observer.disconnect();
+    var viewer = els.wrap.parentNode;
+    viewer.classList.remove('is-empty');
+    viewer.classList.add('is-cover');
+    els.wrap.innerHTML = '';
+    var art = h('div', { class: 'cover-art' });
+    art.innerHTML = CX.svg.renderCover(cv, { guides: opts.margins });
+    var g = cv.guides, W = cv.W;
+    var legend = h('div', { class: 'cover-legend' }, [
+      h('span', { style: 'width:' + (g.spineX0 / W * 100) + '%' }, 'Back cover'),
+      h('span', { class: 'spine', style: 'width:' + ((g.spineX1 - g.spineX0) / W * 100) + '%', title: 'Spine' }, (g.spineX1 - g.spineX0) / W > 0.045 ? 'Spine' : ''),
+      h('span', { style: 'width:' + ((W - g.spineX1) / W * 100) + '%' }, 'Front cover')
+    ]);
+    // as wide as the window allows while the whole sheet stays in view
+    els.wrap.appendChild(h('div', { class: 'cover-view', style: 'max-width:min(1280px, calc((100vh - 210px) * ' + (cv.W / cv.H).toFixed(4) + '))' }, [legend, art,
+      h('p', { class: 'cover-note' }, opts.margins
+        ? 'Blue lines: trim edges and spine folds. Dashed boxes: the safe area for text. The box on the back is kept clear for the KDP barcode.'
+        : 'Tick “Show margins” to see the trim, the spine folds, the safe area and the barcode box.')]));
+    els.wrap.scrollTop = 0;
+    els.nav.innerHTML = '';
+    els.ind.textContent = 'Full cover ' + (cv.W / 72).toFixed(2) + ' × ' + (cv.H / 72).toFixed(2) + ' in';
+  }
+
+  /*
+   * Before the user has any puzzles: a placeholder that sends them to step 1.
+   */
+  function showEmpty(onStart) {
+    lastCover = null;
+    signature = 'empty';
+    pages = []; spreads = []; visible = {}; current = 0;
+    if (observer) observer.disconnect();
+    var viewer = els.wrap.parentNode;
+    viewer.classList.remove('is-cover');
+    viewer.classList.add('is-empty');
+    els.wrap.innerHTML = '';
+    var go = h('button', { type: 'button', class: 'btn btn-primary' }, 'Set up your first book');
+    go.addEventListener('click', onStart);
+    els.wrap.appendChild(h('div', { class: 'empty-state' }, [
+      h('p', { class: 'eyebrow' }, 'No puzzles yet'),
+      h('h2', null, 'Create your puzzles to see the book here'),
+      h('p', null, 'Set up your book in step 1, then add puzzles with AI in step 2. Your pages and cover appear here as you go.'),
+      h('div', { class: 'empty-actions' }, [go]),
+      h('ul', { class: 'feature-grid' }, [
+        h('li', null, [h('strong', null, 'The AI writes the topics'), 'Little mysteries, everyday things and plain facts about them.']),
+        h('li', null, [h('strong', null, 'The app builds the puzzles'), 'It writes every letter clue and proves each case has one answer.']),
+        h('li', null, [h('strong', null, 'Any AI chat works'), 'ChatGPT, Claude, Gemini or another: copy the prompt, paste the reply.']),
+        h('li', null, [h('strong', null, 'Print-ready for KDP'), 'Interior and cover PDFs sized to your trim, with safe margins.'])
+      ])
+    ]));
+    els.wrap.scrollTop = 0;
+    els.nav.innerHTML = '';
+    els.ind.textContent = '';
+  }
+
+  CX.preview = { init: init, update: update, goTo: goTo, showCover: showCover, showEmpty: showEmpty };
+})(window);
