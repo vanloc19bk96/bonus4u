@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crossword Advent Calendar Maker</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<noscript><p class="noscript">This app needs JavaScript. Please allow scripts for this page and reload it.</p></noscript>
+<div class="app" id="app" aria-busy="true">
+  <aside class="sidebar" aria-label="Book steps">
+    <header class="brand">
+      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><rect x="6" y="9" width="28" height="25" rx="3" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M6 16h28M13 6v6M27 6v6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><rect x="11" y="20" width="6" height="6" fill="currentColor"/><rect x="17" y="20" width="6" height="6" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="23" y="20" width="6" height="6" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="17" y="26" width="6" height="6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+      <div>
+        <h1>Crossword Advent Calendar Maker</h1>
+        <p class="brand-sub">Christmas countdown crossword books for Amazon KDP</p>
+      </div>
+    </header>
+    <div class="mode-switch" role="group" aria-label="What you are working on">
+      <button type="button" id="btnViewBook" aria-pressed="true" title="The inside of the book: words, grids, pages and the book PDF"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5zM12 6.5v13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Book pages</span></button>
+      <button type="button" id="btnViewCover" aria-pressed="false" title="The paperback cover: front, spine and back, and the cover PDF"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 3.5v17M11 8h5M11 11h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Book cover</span></button>
+    </div>
+    <ol class="steps" id="steps"></ol>
+    <footer class="project-bar">
+      <button type="button" class="btn-quiet" id="btnExport" title="Saves everything to a file you can open later or on another computer">Save project file</button>
+      <button type="button" class="btn-quiet" id="btnImport">Open project file</button>
+      <button type="button" class="btn-quiet danger-text" id="btnStartOver">Start over</button>
+      <input type="file" id="fileImport" accept=".json,application/json" hidden>
+    </footer>
+  </aside>
+
+  <main class="viewer" aria-label="Book preview">
+    <div class="toolbar" role="toolbar" aria-label="Preview controls">
+      <label class="nav-label pages-only"><span class="sr-only">Jump to</span>
+        <select id="navSelect" aria-label="Jump to a part of the book"></select>
+      </label>
+      <div class="tool-group pages-only">
+        <button type="button" class="icon-btn" id="btnPrev" aria-label="Previous pages" title="Previous pages (Page Up)">&#8249;</button>
+        <span class="page-indicator" id="pageIndicator" aria-live="polite"></span>
+        <button type="button" class="icon-btn" id="btnNext" aria-label="Next pages" title="Next pages (Page Down)">&#8250;</button>
+      </div>
+      <div class="tool-group">
+        <button type="button" class="icon-btn" id="btnZoomOut" aria-label="Zoom out" title="Zoom out (-)">&minus;</button>
+        <button type="button" class="zoom-value" id="btnZoomFit" title="Fit to window">100%</button>
+        <button type="button" class="icon-btn" id="btnZoomIn" aria-label="Zoom in" title="Zoom in (+)">+</button>
+      </div>
+      <div class="tool-group toggles">
+        <label class="toggle" title="Shows the KDP safe area and the inside (gutter) margin, or the cover's trim, spine and barcode box"><input type="checkbox" id="tglMargins"> <span>Show margins</span></label>
+      </div>
+      <div class="tool-end">
+        <span class="busy" id="busy" hidden>Building grids&hellip;</span>
+        <button type="button" class="btn btn-primary btn-download" id="btnDownload"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="btnDownloadLabel">Download book PDF</span></button>
+      </div>
+    </div>
+    <div class="spreads" id="spreads" tabindex="0" aria-label="Book pages, two-page spreads"></div>
+  </main>
+</div>
+
+<div class="modal-backdrop" id="modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <h2 id="modalTitle"></h2>
+    <div id="modalBody"></div>
+    <div class="modal-actions" id="modalActions"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="loading" id="loading">Lighting the first candle&hellip;</div>
+
+<script src="js/vendor/jspdf.umd.min.js"></script>
+<script src="js/fonts.js"></script>
+<script src="js/core/util.js"></script>
+<script src="js/core/text.js"></script>
+<script src="js/core/metrics.js"></script>
+<script src="js/core/kdp.js"></script>
+<script src="js/core/plan.js"></script>
+<script src="js/core/engine.js"></script>
+<script src="js/core/puzzles.js"></script>
+<script src="js/core/prompts.js"></script>
+<script src="js/core/reader.js"></script>
+<script src="js/core/content.js"></script>
+<script src="js/core/layout.js"></script>
+<script src="js/core/cover.js"></script>
+<script src="js/core/cover-fronts.js"></script>
+<script src="js/core/checklist.js"></script>
+<script src="js/render/svg.js"></script>
+<script src="js/render/pdf.js"></script>
+<script src="js/ui/dom.js"></script>
+<script src="js/ui/preview.js"></script>
+<script src="js/ui/app.js"></script>
+</body>
+</html>

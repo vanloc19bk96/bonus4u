@@ -1,0 +1,51 @@
+CROSSWORD ADVENT CALENDAR MAKER
+===============================
+
+Double-click index.html. It opens in your web browser (Chrome, Edge, Firefox or Safari)
+and works without the internet. Nothing to install. ChatGPT in step 3 is the only part
+that needs the internet, and you open that yourself.
+
+The book: one crossword a day from December 1, each on its own two-page spread (the grid
+on the left page, the clues on the right). One square in every grid has a thick border:
+its letter goes on the letter strip at the front, and on the last day the strip spells a
+hidden sentence. Week pages with Advent candles, a memory question a day and all the
+solutions at the back, like the bestselling crossword advent calendars on Amazon.
+
+1. The book: who will solve it, the theme of the words, the countdown (24 days Dec 1-24, 25 days Dec 1-25, 12 days Dec 13-24, or any other length from 7 to 24 days that ends on Christmas Eve)
+   and, if you like, the Twelve Days bonus (12 more grids from December 26 to January 6).
+   Type the hidden sentence or click an idea: it must have exactly one letter per day
+   (the counter turns green). Set it BEFORE you copy the prompts, because each day's words
+   are asked to include that day's letter. Type your pen name.
+2. Puzzles and pages: the grid size (13 x 13 is the bestseller's), the easy start (answers
+   printed in the first grids), the story line and memory question, the page size and the
+   text size (large print suits older solvers).
+3. Write the words with ChatGPT:
+     - click "Copy prompt",
+     - click "Open ChatGPT", paste (Ctrl+V) and press Enter,
+     - when it has finished, click "Copy code" on its reply,
+     - paste it into the box and click "Add to book".
+   Do the same for every prompt ("Prompt 2 of 7" ...). Green ticks are done.
+   ChatGPT only writes the words, clues and little texts: the app builds every grid itself
+   and checks it (every answer crosses another, no stray words hide in the grid).
+   If a day's grid comes out small, copy its prompt again: it asks for a few more words.
+   Click "View" next to a day to see its grid, remove a word you don't like, or click
+   "New grid" for a different layout of the same words.
+   The last prompt writes the week pages, the Christmas Eve note and the back cover text.
+   Claude, Gemini or Copilot work the same way.
+4. Check and download: when every item is green, click "Download book PDF".
+
+COVER: click "Book cover" at the top of the left panel (the panel and the preview switch to
+the cover). Pick one of the 30 templates (Cozy, Classic, Festive). Each starts in its own
+colors; pick other colors if you like. Check the words on the cover, then click
+"Download cover PDF". Click "Book pages" to go back to the inside of the book.
+
+Upload to KDP: paperback, black & white interior, no bleed, the same trim size you picked.
+The book PDF is the manuscript; the cover PDF is "a cover you already have".
+Download the cover again whenever the page count changes (the spine width follows it).
+
+Solve two or three grids yourself before you publish: AI clues are usually right, but not always.
+
+The app does not keep your work in the browser: closing or reloading the tab clears it.
+Click "Save project file" to keep your work; open it later with "Open project file".
+
+If you have any questions, feel free to let me know.

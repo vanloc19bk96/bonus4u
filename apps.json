@@ -57,6 +57,11 @@
       "description": "“Cross it out if…” elimination puzzle books, with puzzle packs from any AI chat."
     },
     {
+      "slug": "crossword-advent-calendar",
+      "title": "Crossword Advent Calendar Maker",
+      "description": "Christmas countdown crossword books with a hidden sentence, with words from any AI chat."
+    },
+    {
       "slug": "cryptogram",
       "title": "Cryptogram Prints",
       "entry": "cryptogram-prints.html",
