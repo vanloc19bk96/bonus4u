@@ -207,6 +207,29 @@ function checkPage(pg) {
     ok(/WEEK 1:/.test(ex) && /WEEK 5:/.test(ex) && /CHRISTMAS EVE:/.test(ex) && /BACK COVER:/.test(ex));
   });
 
+  await test('prompts: the chosen theme drives the day themes, the word mix and the examples', () => {
+    const p = CX.plan.newProject();
+    p.plan.theme = 'kids'; p.plan.audience = 'kids';
+    let t = CX.prompts.text(p, CX.prompts.list(p)[0]);
+    ok(/Santa’s sleigh on Christmas Eve/.test(t) && /SLEIGH \|/.test(t) && /a child aged 8 to 12 knows/.test(t), t);
+    ok(!/dark evenings|winter and December words|EMBERS/.test(t), 'no cozy-at-home leftovers');
+    p.plan.theme = 'custom'; p.plan.customTheme = 'Christmas by the sea: lighthouses, boats and harbours';
+    t = CX.prompts.text(p, CX.prompts.list(p)[0]);
+    ok(/The theme: Christmas by the sea: lighthouses, boats and harbours\. Everything must suit children aged 8 to 12\./.test(t) && !/dark evenings|LAMP \|/.test(t), t);
+  });
+
+  await test('young kids: short words, more head-start answers, a full book that passes the checklist', () => {
+    const p = CX.plan.newProject();
+    p.plan.audience = 'young'; Object.assign(p.plan, CX.plan.audience('young').defaults);
+    eq(p.plan.size, 11);
+    const t = CX.prompts.text(p, CX.prompts.list(p)[0]);
+    ok(/3 to 7 letters/.test(t) && /half short \(3 or 4 letters\) and half longer \(5 to 7\)/.test(t) && /a child aged 6 to 8 can read and spell/.test(t), t);
+    eq(CX.plan.days(p).map((d) => CX.plan.givens(p, d)).join(''), '333333333333222222222222');
+    const book = fullProject((q) => { q.plan.audience = 'young'; Object.assign(q.plan, CX.plan.audience('young').defaults); });
+    const items = CX.checklist.run(book, CX.layout.layoutBook(book, {}));
+    ok(CX.checklist.ready(items), JSON.stringify(items.filter((i) => !i.ok)));
+  });
+
   await test('content: days by number, repeats dropped, replies without day lines fill the prompt’s days', () => {
     const p = CX.plan.newProject();
     const pr = CX.prompts.list(p)[0];

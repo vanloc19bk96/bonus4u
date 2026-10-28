@@ -74,7 +74,7 @@
     var p = state.p, pl = p.plan, b = p.book;
     var out = [h('p', { class: 'lead' }, 'Who is the book for, how long is the countdown and what does the letter strip spell?')];
     out.push(h('div', { class: 'field' }, [h('div', { class: 'field-label' }, 'Who will solve it?'), h('div', { class: 'cards' }, P.AUDIENCES.map(function (a) {
-      return radio('aud', a.label, null, pl.audience === a.id, function () { pl.audience = a.id; changed(true); });
+      return radio('aud', a.label, null, pl.audience === a.id, function () { pl.audience = a.id; Object.assign(pl, a.defaults); changed(true); });
     }))]));
     var custom = h('textarea', { class: 'textarea short', id: 'fCustom', rows: 2, maxlength: 300, placeholder: 'For example: a Christmas by the sea, with lighthouses, boats and seaside villages' });
     custom.value = pl.customTheme;
@@ -144,7 +144,7 @@
       return radio('size', g.label, g.hint, pl.size === g.n, function () { pl.size = g.n; changed(true); });
     }))]));
     out.push(h('div', { class: 'field' }, [h('div', { class: 'field-label' }, 'Each day'), h('div', { class: 'stack' }, [
-      check('Easy start', pl.days >= 20 ? 'Three answers printed in each grid on days 1 to 6, two on days 7 to 12, then none' : 'A few answers printed in the first grids, fewer as the days go on', pl.headStart, function (v) { pl.headStart = v; changed(); }),
+      check('Easy start', P.audience(pl.audience).more ? 'Three answers printed in each grid in the first half, two after that' : pl.days >= 20 ? 'Three answers printed in each grid on days 1 to 6, two on days 7 to 12, then none' : 'A few answers printed in the first grids, fewer as the days go on', pl.headStart, function (v) { pl.headStart = v; changed(); }),
       check('A story line', 'One warm sentence that sets the scene for the day', pl.story, function (v) { pl.story = v; changed(); }),
       check('A memory question', 'A friendly question under the clues, with lines to write on', pl.memory, function (v) { pl.memory = v; changed(true); })
     ])]));

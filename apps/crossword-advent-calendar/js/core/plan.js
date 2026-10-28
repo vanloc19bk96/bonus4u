@@ -9,22 +9,41 @@
   'use strict';
   var CX = root.CX = root.CX || {};
 
-  // guide tells the AI what the words and clues are about; level is the word difficulty.
+  // guide tells the AI what the words and clues are about; arc is how the days move through it,
+  // focus what most words must be about and sample the example lines in the reply format.
   var THEMES = [
-    { id: 'cozy', title: 'Cozy Christmas at home', sub: 'Candles, baking, cards, snow and family', guide: 'a cozy Christmas at home: candles and lamps, the fireplace, baking, cards, wrapping, snow and winter weather, visitors and family traditions' },
-    { id: 'vintage', title: 'The Christmases you grew up with', sub: 'Remember-when holidays, 1950s to 1970s', guide: 'old-fashioned Christmases of the 1950s to 1970s: tinsel, paper chains, the catalog wish book, carol singers, the Christmas pageant, holiday baking and the toys and treats of the time (everyday words only, no brand names)' },
-    { id: 'carols', title: 'Carols, movies and stories', sub: 'Classic holiday songs, films and tales', guide: 'classic Christmas stories, carols and holiday films: the characters, places and things in them (no song lyrics and no quotes, single plain words only)' },
-    { id: 'faith', title: 'The first Christmas', sub: 'Advent, the Nativity and church traditions', guide: 'the Christian Advent and the Nativity: Bethlehem, the shepherds, the star, the wise men, angels, church services, candles, hymns and giving' },
-    { id: 'winter', title: 'Winter wonderland', sub: 'Snow, frost, birds and winter walks', guide: 'winter outdoors: snow, ice, frost, sledding, skating, winter birds and animals, evergreen trees, mittens and scarves, and warm drinks after a walk' },
-    { id: 'kids', title: 'For kids', sub: 'Easy words: Santa, elves, toys and snowmen', guide: 'a child’s Christmas: Santa, reindeer, elves, toys, snowmen, cookies, presents, stockings and the Christmas tree (easy, well-known words only)', easy: true },
+    { id: 'cozy', title: 'Cozy Christmas at home', sub: 'Candles, baking, cards, snow and family', guide: 'a cozy Christmas at home: candles and lamps, the fireplace, baking, cards, wrapping, snow and winter weather, visitors and family traditions',
+      arc: 'the first days are the first dark evenings and getting the house ready, the middle days baking, cards, shopping and visits, the last days wrapping, carols and Christmas Eve',
+      focus: 'Christmas at home and the cozy side of winter', sample: ['Boots in the Hall', 'LAMP | It lights the corner of a room', 'EMBERS | Glowing bits left in the grate'] },
+    { id: 'vintage', title: 'The Christmases you grew up with', sub: 'Remember-when holidays, 1950s to 1970s', guide: 'old-fashioned Christmases of the 1950s to 1970s: tinsel, paper chains, the catalog wish book, carol singers, the Christmas pageant, holiday baking and the toys and treats of the time (everyday words only, no brand names)',
+      arc: 'the first days are bringing the old decorations down from the attic and leafing through the wish book, the middle days paper chains, baking, the school pageant and carol singers, the last days wrapping, midnight church and Christmas Eve',
+      focus: 'old-fashioned Christmases of the 1950s to 1970s', sample: ['The Wish Book', 'TINSEL | Shiny strands hung on the tree', 'PAGEANT | School play about the first Christmas'] },
+    { id: 'carols', title: 'Carols, movies and stories', sub: 'Classic holiday songs, films and tales', guide: 'classic Christmas stories, carols and holiday films: the characters, places and things in them (no song lyrics and no quotes, single plain words only)',
+      arc: 'each day visits one classic carol, story or holiday film, moving from the old tales and carols to the films families watch on Christmas Eve',
+      focus: 'Christmas carols, stories and films', sample: ['A Christmas Carol', 'SCROOGE | Miser visited by three spirits', 'GHOST | Spirit who visits at night'] },
+    { id: 'faith', title: 'The first Christmas', sub: 'Advent, the Nativity and church traditions', guide: 'the Christian Advent and the Nativity: Bethlehem, the shepherds, the star, the wise men, angels, church services, candles, hymns and giving',
+      arc: 'the days follow the Advent story: the waiting and the prophets, Mary and Joseph, the journey to Bethlehem, the shepherds and the angels, the stable on Christmas Eve',
+      focus: 'Advent and the Nativity', sample: ['The Long Road', 'DONKEY | Animal Mary rode to Bethlehem', 'MANGER | Feeding trough used as a crib'] },
+    { id: 'winter', title: 'Winter wonderland', sub: 'Snow, frost, birds and winter walks', guide: 'winter outdoors: snow, ice, frost, sledding, skating, winter birds and animals, evergreen trees, mittens and scarves, and warm drinks after a walk',
+      arc: 'the first days are the first frosts and the first snow, the middle days sledding, skating, winter birds and woodland walks, the last days the longest night and a snowy Christmas Eve',
+      focus: 'winter outdoors', sample: ['First Frost', 'ICICLE | Frozen spike hanging from a roof', 'ROBIN | Red-breasted winter bird'] },
+    { id: 'kids', title: 'For kids', sub: 'Easy words: Santa, elves, toys and snowmen', guide: 'a child’s Christmas: Santa, reindeer, elves, toys, snowmen, cookies, presents, stockings and the Christmas tree (easy, well-known words only)', easy: true,
+      arc: 'the first days are writing to Santa and decorating the tree, the middle days the elves in the toy workshop, cookies, snowmen and snowball fights, the last days the reindeer, stockings, presents and Santa’s sleigh on Christmas Eve',
+      focus: 'Christmas as a child sees it: Santa, reindeer, elves, toys, snowmen, cookies, presents, stockings and the tree', sample: ['Santa’s Workshop', 'ELF | Santa’s little helper', 'SLEIGH | Santa rides it across the sky'] },
     { id: 'custom', title: 'My own theme', sub: 'Type it in the box below', guide: '' }
   ];
 
+  // words is an extra rule for the answers, easy keeps them short (maxLen letters at most), blurb is
+  // the back-cover tone, more gives extra head-start answers and defaults are set when it is picked.
   var AUDIENCES = [
-    { id: 'seniors', label: 'Adults & seniors', who: 'adults and seniors who enjoy a gentle daily crossword', clue: 'friendly, everyday English' },
-    { id: 'women', label: 'Women', who: 'women who like a calm, cozy puzzle with their morning coffee', clue: 'friendly, everyday English' },
-    { id: 'family', label: 'The whole family', who: 'families solving together, from teenagers to grandparents', clue: 'simple, everyday English' },
-    { id: 'kids', label: 'Kids (8 to 12)', who: 'children aged 8 to 12', clue: 'very simple words a child knows' }
+    { id: 'seniors', label: 'Adults & seniors', who: 'adults and seniors who enjoy a gentle daily crossword', clue: 'friendly, everyday English', blurb: 'cozy and inviting' },
+    { id: 'women', label: 'Women', who: 'women who like a calm, cozy puzzle with their morning coffee', clue: 'friendly, everyday English', blurb: 'cozy and inviting' },
+    { id: 'family', label: 'The whole family', who: 'families solving together, from teenagers to grandparents', clue: 'simple, everyday English', blurb: 'warm and inviting',
+      words: 'words everyone in the family knows, from a teenager to a grandparent' },
+    { id: 'young', label: 'Young kids (6 to 8)', who: 'children aged 6 to 8 who are just starting to read on their own', clue: 'very short, simple words a young reader knows', easy: true, maxLen: 7, more: true,
+      words: 'very easy words a child aged 6 to 8 can read and spell', blurb: 'fun and inviting, written for the parents and grandparents who buy it', defaults: { size: 11, lines: 2 } },
+    { id: 'kids', label: 'Kids (8 to 12)', who: 'children aged 8 to 12', clue: 'very simple words a child knows', easy: true,
+      words: 'easy, well-known words that a child aged 8 to 12 knows and can spell', blurb: 'fun and inviting, written for the parents and grandparents who buy it' }
   ];
 
   // Sentences for the hidden letter strip; the app keeps those with as many letters as days.
@@ -113,9 +132,11 @@
   }
 
   // How many answers are printed in a day's grid: 3 in the first week, 2 in the second, then none.
+  // Young solvers get three answers in the first half and two after that.
   function givens(project, day) {
     if (!project.plan.headStart) return 0;
     var n = day.set === 'bonus' ? 12 : project.plan.days, part = day.no / n;
+    if (audience(project.plan.audience).more) return part <= 0.5 ? 3 : 2;
     if (n >= 20) return day.no <= 6 ? 3 : day.no <= 12 ? 2 : 0;
     return part <= 0.25 ? 3 : part <= 0.5 ? 2 : 0;
   }
@@ -141,7 +162,7 @@
 
   function titleIdeas(project) {
     var a = audience(project.plan.audience), n = project.plan.days, t = project.plan.theme;
-    var who = a.id === 'kids' ? 'Kids' : a.id === 'women' ? 'Women' : a.id === 'family' ? 'the Whole Family' : 'Adults and Seniors';
+    var who = a.id === 'kids' || a.id === 'young' ? 'Kids' : a.id === 'women' ? 'Women' : a.id === 'family' ? 'the Whole Family' : 'Adults and Seniors';
     var ideas = ['Crossword Advent Calendar for ' + who, 'The Christmas Crossword Advent Calendar', 'Cozy Crossword Advent Calendar'];
     if (t === 'vintage') ideas.unshift('Remember When? Crossword Advent Calendar');
     if (t === 'faith') ideas.unshift('The Nativity Crossword Advent Calendar');

@@ -63,9 +63,18 @@
 
   function label(day) { return (day.set === 'bonus' ? 'BONUS DAY ' : 'DAY ') + day.no; }
 
+  // The chosen theme, or the user's own one, as { guide, arc, focus, sample }.
+  function topic(project) {
+    var pl = project.plan, t = P.theme(pl.theme);
+    if (t.id !== 'custom') return t;
+    var own = pl.customTheme.trim();
+    if (!own) return P.theme('cozy');
+    return { guide: own, arc: 'each day takes a different part of the book’s theme, in an order that builds up to Christmas Eve',
+      focus: 'the book’s theme', sample: ['A Short Title', 'WORD | A short clue for it', 'ANOTHER | Another short clue'] };
+  }
+
   function about(project) {
-    var pl = project.plan, t = P.theme(pl.theme), a = P.audience(pl.audience);
-    var guide = t.id === 'custom' ? (pl.customTheme.trim() || 'a cozy Christmas at home') : t.guide;
+    var pl = project.plan, a = P.audience(pl.audience), guide = topic(project).guide;
     return 'You are writing a Christmas crossword advent calendar book: one crossword a day, from ' + P.dateOf(project, 1) + ' to December ' + P.lastDate(project) +
       (pl.bonus ? ', plus a bonus of twelve more from December 26 to January 6' : '') + '. The puzzles are for ' + a.who + '. The theme of the book: ' + guide + '.';
   }
@@ -80,10 +89,10 @@
   }
 
   function daysPrompt(project, p) {
-    var pl = project.plan, g = P.grid(pl.size), a = P.audience(pl.audience), easy = a.id === 'kids' || P.theme(pl.theme).easy;
+    var pl = project.plan, g = P.grid(pl.size), a = P.audience(pl.audience), tp = topic(project), easy = a.easy || tp.easy;
     var todo = p.days.filter(function (d) { return !dayDone(project, d); });
     if (!todo.length) todo = p.days;
-    var maxLen = Math.min(g.n, easy ? 9 : g.n);
+    var maxLen = Math.min(g.n, a.maxLen || (easy ? 9 : g.n));
     var L = [about(project), ''];
     L.push('Write the words and clues for ' + (todo.length > 1 ? 'these days' : 'this day') + ':');
     todo.forEach(function (day) {
@@ -95,13 +104,14 @@
       L.push('- ' + label(day) + ' (' + day.date + '): ' + parts.join(', ') + '.');
     });
     L.push('');
-    L.push('Each day has its own small theme that follows the countdown: the first days are the first dark evenings and getting the house ready, the middle days baking, cards, shopping and visits, the last days wrapping, carols and Christmas Eve' +
-      (pl.bonus ? '; the bonus days are the quiet days after Christmas up to Twelfth Night' : '') + '. Give each day a short, warm title of 2 to 4 words that names its theme (for example "Boots in the Hall").');
+    L.push('Each day has its own small theme, taken from the book’s theme and following the countdown: ' + tp.arc +
+      (pl.bonus ? '; the bonus days are the quiet days after Christmas up to Twelfth Night' : '') + '. Give each day a short, ' + (easy ? 'fun' : 'warm') + ' title of 2 to 4 words that names its theme (for example "' + tp.sample[0] + '").');
     L.push('');
     L.push('Rules for the words:');
     L.push('- One English word each, 3 to ' + maxLen + ' letters: no spaces, hyphens, apostrophes, numbers or abbreviations.');
-    L.push('- Mix the lengths: about a third short (3 to 5 letters), a third medium (6 or 7) and a third long (8 or more).');
-    L.push('- Two or three words a day are clearly Christmas words; the rest are ordinary winter and December words that fit the day’s theme.');
+    L.push(maxLen <= 7 ? '- Mix the lengths: about half short (3 or 4 letters) and half longer (5 to ' + maxLen + ').' : '- Mix the lengths: about a third short (3 to 5 letters), a third medium (6 or 7) and a third long (8 or more).');
+    L.push('- Every word belongs to the book’s theme and the day’s theme. At least two thirds of them are clearly about ' + tp.focus + '; the rest are everyday words that still fit the day. No filler words that have nothing to do with the theme.');
+    if (a.words || easy) L.push('- Only ' + (a.words || 'easy, well-known words that everyone knows') + '.');
     L.push('- No brand names, no famous people, no song lyrics, no foreign words, nothing sad or scary.');
     L.push('- Never use the same word twice, on the same day or on two days.');
     L.push('Rules for the clues:');
@@ -116,6 +126,8 @@
     var other = usedElsewhere(project, todo);
     if (old.length || other.length) L.push('- These words are already in the book; do not use them again: ' + old.concat(other).join(', ') + '.');
     L.push('');
+    L.push('Most important: stay on the book’s theme in every title, word and clue. The theme: ' + tp.guide.replace(/[.\s]+$/, '') + '. Everything must suit ' + a.who + '.');
+    L.push('');
     L.push('Reply with one code block in exactly this format, one line per word:');
     L.push('');
     var ex = todo[0];
@@ -123,8 +135,8 @@
     if (pl.story) L.push('STORY: The scene-setting sentence.');
     if (pl.memory) L.push('QUESTION: The memory question?');
     L.push('WORDS:');
-    L.push('LAMP | It lights the corner of a room');
-    L.push('EMBERS | Glowing bits left in the grate');
+    L.push(tp.sample[1]);
+    L.push(tp.sample[2]);
     if (todo.length > 1) { L.push(''); L.push('Start each day with its own ' + (ex.set === 'bonus' ? 'BONUS DAY' : 'DAY') + ' line, in order.'); }
     return L.join('\n');
   }
@@ -137,7 +149,7 @@
         (w.set === 'bonus' ? 'the bonus puzzles from December 26 to January 6' : P.dateSpan(project, w.from, w.to)) + '): what the season brings in these days and a gentle nudge to keep going.');
     });
     L.push('- CHRISTMAS EVE: a short, happy note for the last page (' + (P.lastDate(project) === 25 ? 'Christmas Day' : 'Christmas Eve') + '), 2 short paragraphs (about 90 words), congratulating the solver on finishing the countdown and wishing them a merry Christmas.');
-    L.push('- BACK COVER: a back-cover description of the book, about 70 words, cozy and inviting. Do not mention a number of clues.');
+    L.push('- BACK COVER: a back-cover description of the book, about 70 words, ' + P.audience(pl.audience).blurb + '. Do not mention a number of clues.');
     L.push('');
     L.push('Plain, friendly words for ' + P.audience(pl.audience).who + '. No song lyrics.');
     L.push('');
