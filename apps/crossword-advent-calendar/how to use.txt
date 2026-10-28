@@ -27,7 +27,9 @@ solutions at the back, like the bestselling crossword advent calendars on Amazon
    Do the same for every prompt ("Prompt 2 of 7" ...). Green ticks are done.
    ChatGPT only writes the words, clues and little texts: the app builds every grid itself
    and checks it (every answer crosses another, no stray words hide in the grid).
-   If a day's grid comes out small, copy its prompt again: it asks for a few more words.
+   ChatGPT is asked for more words than a grid holds (18 for 9x9, 24 for 11x11, 30 for 13x13,
+   36 for 15x15); the app keeps the ones that cross best, so a puzzle has about 10, 15, 18
+   or 22 answers. If a day's grid comes out small, copy its prompt again: it asks for a few more words.
    Click "View" next to a day to see its grid, remove a word you don't like, or click
    "New grid" for a different layout of the same words.
    The last prompt writes the week pages, the Christmas Eve note and the back cover text.

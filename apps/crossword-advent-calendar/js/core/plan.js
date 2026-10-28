@@ -41,7 +41,7 @@
     { id: 'family', label: 'The whole family', who: 'families solving together, from teenagers to grandparents', clue: 'simple, everyday English', blurb: 'warm and inviting',
       words: 'words everyone in the family knows, from a teenager to a grandparent' },
     { id: 'young', label: 'Young kids (6 to 8)', who: 'children aged 6 to 8 who are just starting to read on their own', clue: 'very short, simple words a young reader knows', easy: true, maxLen: 7, more: true,
-      words: 'very easy words a child aged 6 to 8 can read and spell', blurb: 'fun and inviting, written for the parents and grandparents who buy it', defaults: { size: 11, lines: 2 } },
+      words: 'very easy words a child aged 6 to 8 can read and spell', blurb: 'fun and inviting, written for the parents and grandparents who buy it', defaults: { size: 9, lines: 2 } },
     { id: 'kids', label: 'Kids (8 to 12)', who: 'children aged 8 to 12', clue: 'very simple words a child knows', easy: true,
       words: 'easy, well-known words that a child aged 8 to 12 knows and can spell', blurb: 'fun and inviting, written for the parents and grandparents who buy it' }
   ];
@@ -63,7 +63,9 @@
   // The countdowns on the cards; any other length from MIN_DAYS to 24 is a custom one.
   var PRESET_DAYS = [24, 25, 12], MIN_DAYS = 7;
 
+  // ask is how many words the prompt asks for: more than the grid holds, so the app can pick the best fit.
   var GRID_SIZES = [
+    { n: 9, label: '9 × 9', hint: 'Young kids, about 10 answers', target: 10, min: 8, ask: 18 },
     { n: 11, label: '11 × 11', hint: 'Quick, about 14 answers', target: 15, min: 11, ask: 24 },
     { n: 13, label: '13 × 13', hint: 'Bestseller size, about 17 answers', target: 18, min: 14, ask: 30 },
     { n: 15, label: '15 × 15', hint: 'Long sitting, about 20 answers', target: 22, min: 17, ask: 36 }
@@ -73,7 +75,7 @@
 
   function theme(id) { return THEMES.filter(function (t) { return t.id === id; })[0] || THEMES[0]; }
   function audience(id) { return AUDIENCES.filter(function (a) { return a.id === id; })[0] || AUDIENCES[0]; }
-  function grid(n) { return GRID_SIZES.filter(function (g) { return g.n === +n; })[0] || GRID_SIZES[1]; }
+  function grid(n) { return GRID_SIZES.filter(function (g) { return g.n === +n; })[0] || grid(13); }
 
   function letters(s) { return String(s || '').toUpperCase().replace(/[^A-Z]/g, ''); }
 

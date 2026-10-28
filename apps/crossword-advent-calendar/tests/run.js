@@ -221,7 +221,7 @@ function checkPage(pg) {
   await test('young kids: short words, more head-start answers, a full book that passes the checklist', () => {
     const p = CX.plan.newProject();
     p.plan.audience = 'young'; Object.assign(p.plan, CX.plan.audience('young').defaults);
-    eq(p.plan.size, 11);
+    eq(p.plan.size, 9);
     const t = CX.prompts.text(p, CX.prompts.list(p)[0]);
     ok(/3 to 7 letters/.test(t) && /half short \(3 or 4 letters\) and half longer \(5 to 7\)/.test(t) && /a child aged 6 to 8 can read and spell/.test(t), t);
     eq(CX.plan.days(p).map((d) => CX.plan.givens(p, d)).join(''), '333333333333222222222222');
@@ -255,7 +255,7 @@ function checkPage(pg) {
   // ---------- layout ----------
   await test('layout: every trim x text size x grid size inside the KDP margins', () => {
     const counts = [];
-    CX.kdp.TRIMS.forEach((t) => Object.keys(CX.layout.PRINT).forEach((pr) => [11, 13, 15].forEach((size) => {
+    CX.kdp.TRIMS.forEach((t) => Object.keys(CX.layout.PRINT).forEach((pr) => [9, 11, 13, 15].forEach((size) => {
       if (size !== 13 && pr === 'regular') return;
       const p = fullProject((p) => { p.book.trim = t.id; p.book.print = pr; p.plan.size = size; });
       const book = CX.layout.layoutBook(p, {});

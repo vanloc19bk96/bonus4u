@@ -140,7 +140,7 @@
   function body2() {
     var p = state.p, pl = p.plan, b = p.book;
     var out = [h('p', { class: 'lead' }, 'How big the grids are and what each day’s spread holds: the grid on the left page, the clues on the right.')];
-    out.push(h('div', { class: 'field' }, [h('div', { class: 'field-label' }, 'Grid size'), h('div', { class: 'cards three' }, P.GRID_SIZES.map(function (g) {
+    out.push(h('div', { class: 'field' }, [h('div', { class: 'field-label' }, 'Grid size'), h('div', { class: 'cards' }, P.GRID_SIZES.map(function (g) {
       return radio('size', g.label, g.hint, pl.size === g.n, function () { pl.size = g.n; changed(true); });
     }))]));
     out.push(h('div', { class: 'field' }, [h('div', { class: 'field-label' }, 'Each day'), h('div', { class: 'stack' }, [
@@ -203,6 +203,8 @@
           h('span', { class: 'n' }, st.state === 'ok' ? '✓ ' + st.pz.grid.entries.length + ' answers' : st.words + ' / ' + st.ask + ' words')]));
       });
       panel.appendChild(ul);
+      var gs = P.grid(p.plan.size);
+      panel.appendChild(h('p', { class: 'pn-note' }, 'ChatGPT is asked for ' + gs.ask + ' words a day, more than a ' + gs.label + ' grid holds: the app keeps the ones that cross best, so each puzzle has about ' + gs.target + ' answers.'));
       if (cur.done) panel.appendChild(h('p', { class: 'hint' }, 'These days are done. To replace words, open a day under "Your days" and remove some; the prompt then asks only for what is missing.'));
     } else {
       panel.appendChild(h('p', { class: 'pn-note' }, 'A welcome for each week page (' + P.weeks(p).length + '), the Christmas Eve note and the back cover text. Without them the book prints ready-made texts.'));
