@@ -302,21 +302,47 @@
     this.y += h;
   };
 
-  // A row of numbered letter boxes (12 to a row), filled with letters when given.
-  Layout.prototype.strip = function (n, letters) {
-    var S = this.S, pg = this.pg, per = Math.min(12, n), gap = Math.max(2, S.b * 0.18);
-    var bw = Math.min(S.b * 2.3, (pg.w - gap * (per - 1)) / per), bh = bw * 1.1;
-    var rows = Math.ceil(n / per), rowW = per * bw + (per - 1) * gap, x0 = pg.cx - rowW / 2;
-    this.need(rows * (bh + gap * 2) + S.b);
-    var y = this.y + S.b * 0.4;
-    var ns = Math.max(7, bw * 0.26);
-    for (var i = 0; i < n; i++) {
-      var r = Math.floor(i / per), c = i % per, x = x0 + c * (bw + gap), yy = y + r * (bh + gap * 2);
-      pg.rbox(x, yy, bw, bh, Math.min(3, bw * 0.12), 0.9);
-      pg.text(String(i + 1), x + bw * 0.1, yy + ns * 1.05, ns, 'sans');
-      if (letters) pg.text(letters[i], x + bw / 2, yy + bh * 0.78, bw * 0.55, 'sansBold', { align: 'center' });
-    }
-    this.y = y + rows * (bh + gap * 2) - gap;
+  /*
+   * The numbered letter boxes, filled with letters when given. words (the length of each word of
+   * the sentence) leaves a space between the words and keeps every word on one row; without it
+   * the boxes run 12 to a row.
+   */
+  Layout.prototype.strip = function (n, letters, words) {
+    var S = this.S, pg = this.pg, gap = Math.max(2, S.b * 0.18), SP = 0.7;
+    var rows = [];
+    if (words) {
+      // as many words to a row as fit with boxes no smaller than minW
+      var minW = Math.max(20, S.b * 1.75), room = pg.w, row = null;
+      words.forEach(function (len) {
+        var add = len * (minW + gap) + (row && row.length ? SP * minW : 0);
+        if (row && row.length && row.w + add > room + 0.01) row = null;
+        if (!row) { row = []; row.w = 0; rows.push(row); add = len * (minW + gap); }
+        row.push(len); row.w += add;
+      });
+    } else for (var k = n; k > 0; k -= 12) rows.push([Math.min(12, k)]);
+    // one box size for every row: the widest row sets it
+    var bw = S.b * 2.3;
+    rows.forEach(function (r) {
+      var cells = r.reduce(function (a, b) { return a + b; }, 0), spaces = r.length - 1;
+      bw = Math.min(bw, (pg.w - gap * (cells - 1 - spaces)) / (cells + spaces * SP));
+    });
+    var bh = bw * 1.1, ns = Math.max(7, bw * 0.26);
+    this.need(rows.length * (bh + gap * 2) + S.b);
+    var y = this.y + S.b * 0.4, i = 0;
+    rows.forEach(function (r, ri) {
+      var cells = r.reduce(function (a, b) { return a + b; }, 0), spaces = r.length - 1;
+      var x = pg.cx - (cells * bw + (cells - 1 - spaces) * gap + spaces * SP * bw) / 2, yy = y + ri * (bh + gap * 2);
+      r.forEach(function (len, wi) {
+        if (wi) x += SP * bw - gap;
+        for (var c = 0; c < len; c++, i++) {
+          pg.rbox(x, yy, bw, bh, Math.min(3, bw * 0.12), 0.9);
+          pg.text(String(i + 1), x + bw * 0.1, yy + ns * 1.05, ns, 'sans');
+          if (letters) pg.text(letters[i], x + bw / 2, yy + bh * 0.78, bw * 0.55, 'sansBold', { align: 'center' });
+          x += bw + gap;
+        }
+      });
+    });
+    this.y = y + rows.length * (bh + gap * 2) - gap;
   };
 
   // ---------- the grid ----------
@@ -448,15 +474,21 @@
       lines.forEach(function (l) { ry += S.lead * 0.95; pg.text(l, rx + S.b, ry - S.lead * 0.25, S.b * 0.95, 'serif'); });
     });
     L.y += h;
-    // the stars
-    L.label('How hard is today?');
-    var ss = S.b * 0.9;
-    L.need(S.lead * 2.6);
-    pg = L.pg;
-    var sx = pg.x0;
-    [1, 2, 3].forEach(function (n) { sx += stars(pg, sx, L.y + S.lead, n, ss) + S.b * 0.4; });
-    L.y += S.lead;
-    L.para('One star is a gentle day, two a full sitting, three a long evening.', 'serif', S.b, S.lead);
+    // the stars: how much help the day's grid prints
+    if (P.stars(p, P.days(p)[0])) {
+      L.label('The stars by the date: how much help');
+      var ss = S.b * 0.9, cap1 = Math.max(7.5, S.small * 1.1);
+      L.need(S.lead + cap1 * 1.8);
+      pg = L.pg;
+      var used = [1, 2, 3].filter(function (n) { return P.days(p).some(function (d) { return P.stars(p, d) === n; }); });
+      var says = { 1: 'Three answers given', 2: 'Two answers given', 3: 'No answers given' };
+      used.forEach(function (n, k) {
+        var sx = pg.x0 + k * pg.w / 3;
+        stars(pg, sx, L.y + S.lead, n, ss);
+        pg.text(says[n], sx, L.y + S.lead + cap1 * 1.5, cap1, 'sans');
+      });
+      L.y += S.lead + cap1 * 1.8;
+    }
   }
 
   // The list of days with check boxes (the bestseller's "The Twenty-Four Days").
@@ -505,7 +537,7 @@
     L.page('strip', 'The Letter Strip', 'The letter strip');
     L.pg.items.length = 0; L.y = L.pg.y0;
     L.heading('Advent crosswords', 'The Letter Strip', 'One letter a day, in the box with the same number.', 'left');
-    L.strip(n);
+    L.strip(n, null, P.sentenceWords(p, 'main'));
     L.y += S.b * 0.6;
     L.para('On December ' + P.lastDate(p) + ' the strip reads as one sentence.', 'sans', S.small * 1.2, S.lead * 0.9);
     L.label('Why the strip is empty');
@@ -549,7 +581,7 @@
     function left(level) {
       var pg = L.page('gate', wk.title, wk.set === 'bonus' ? 'The twelve days' : 'Advent crosswords');
       pg.items.length = 0; L.y = pg.y0;
-      var st = P.stars(p, ds[0]), runs = [];
+      var runs = [];
       ds.forEach(function (d) { var g = P.givens(p, d), last = runs[runs.length - 1]; if (last && last.g === g) last.to = d.no; else runs.push({ g: g, from: d.no, to: d.no }); });
       var many = ['no answers', 'one answer', 'two answers', 'three answers'];
       var sub = runs.length === 1 ? (runs[0].g ? cap(many[runs[0].g]) + ' a day are printed for you.' : 'Every square is yours to fill.')
@@ -565,7 +597,6 @@
         var span = r.from === r.to ? 'on day ' + NUMW[r.from] : (r.from === wk.from && r.to === wk.to ? 'every day this ' + unit : 'on days ' + NUMW[r.from] + ' to ' + NUMW[r.to]);
         notes.push(r.g ? cap(many[r.g]) + (r.g > 1 ? ' are' : ' is') + ' printed for you ' + span + '.' : 'No answers are printed ' + span + ': the grids are all yours.');
       });
-      notes.push(['', 'One star means a gentle grid.', 'Two stars mean a full sitting.', 'Three stars mean a long evening.'][st] + (P.stars(p, ds[ds.length - 1]) !== st ? ' The stars go up during these days.' : ''));
       notes.push('The letter strip fills boxes ' + wk.from + (wk.to !== wk.from ? ' to ' + wk.to : '') + (wk.set === 'bonus' ? ' of the bonus strip.' : ' this ' + unit + '.'));
       L.bullets(notes);
       if (level < 2) L.label('The days of this ' + unit);
@@ -586,7 +617,7 @@
         L.y += rowH;
       }
       L.label(wk.set === 'bonus' ? 'The Twelve Days strip' : 'The strip so far');
-      L.strip(total);
+      L.strip(total, null, P.sentenceWords(p, wk.set));
       L.y += S.b * 0.4;
       var rest = total - done;
       var msg = wk.set === 'bonus' ? 'One letter a day from December 26. On January 6 the strip reads as one sentence.'
@@ -642,7 +673,7 @@
     var lh = tl.size * 1.08, blockH = tl.lines.length * lh + S.small * 1.7, ty = top + Math.max(0, (bs - blockH) / 2);
     tl.lines.forEach(function (l, i) { pg.text(l, tx, ty + (i + 0.85) * lh, tl.size, 'serifBold', { ink: d.title.trim() ? 1 : 0.5 }); });
     var dy = ty + tl.lines.length * lh + S.small * 1.35, dw = pg.text(day.date + '  ', tx, dy, Math.max(7.5, S.small * 1.05), 'sans', { ls: 1 });
-    stars(pg, tx + dw, dy + 0.5, P.stars(p, day), Math.max(7.5, S.small * 1.05));
+    if (P.stars(p, day)) stars(pg, tx + dw, dy + 0.5, P.stars(p, day), Math.max(7.5, S.small * 1.05));
     return top + bs + S.b * 1.2;
   }
 
@@ -837,7 +868,7 @@
       var ok = P.sentenceOk(p, s.set);
       if (!ok && !L.draft) return;
       if (p.plan.bonus) L.label(s.label);
-      L.strip(s.n, ok ? P.sentenceOf(p, s.set) : null);
+      L.strip(s.n, ok ? P.sentenceOf(p, s.set) : null, P.sentenceWords(p, s.set));
       var text = ok ? (s.set === 'bonus' ? p.plan.bonusSentence : p.plan.sentence).trim().replace(/\s+/g, ' ') : 'The sentence has the wrong number of letters (step 1).';
       L.y += S.b * 0.6;
       L.need(S.h2 * 1.6);

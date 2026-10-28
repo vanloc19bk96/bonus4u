@@ -144,7 +144,8 @@
       return radio('size', g.label, g.hint, pl.size === g.n, function () { pl.size = g.n; changed(true); });
     }))]));
     out.push(h('div', { class: 'field' }, [h('div', { class: 'field-label' }, 'Each day'), h('div', { class: 'stack' }, [
-      check('Easy start', P.audience(pl.audience).more ? 'Three answers printed in each grid in the first half, two after that' : pl.days >= 20 ? 'Three answers printed in each grid on days 1 to 6, two on days 7 to 12, then none' : 'A few answers printed in the first grids, fewer as the days go on', pl.headStart, function (v) { pl.headStart = v; changed(); }),
+      check('Easy start', P.audience(pl.audience).more ? 'Three answers printed in each grid in the first half, two after that' : pl.days >= 20 ? 'Three answers printed in each grid on days 1 to 6, two on days 7 to 12, then none' : 'A few answers printed in the first grids, fewer as the days go on', pl.headStart, function (v) { pl.headStart = v; changed(true); }),
+      pl.headStart ? check('Difficulty stars', 'One to three stars by the date: one star when three answers are printed, three when none are', pl.stars, function (v) { pl.stars = v; changed(); }) : null,
       check('A story line', 'One warm sentence that sets the scene for the day', pl.story, function (v) { pl.story = v; changed(); }),
       check('A memory question', 'A friendly question under the clues, with lines to write on', pl.memory, function (v) { pl.memory = v; changed(true); })
     ])]));

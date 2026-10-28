@@ -17,7 +17,8 @@ solutions at the back, like the bestselling crossword advent calendars on Amazon
    (the counter turns green). Set it BEFORE you copy the prompts, because each day's words
    are asked to include that day's letter. Type your pen name.
 2. Puzzles and pages: the grid size (13 x 13 is the bestseller's), the easy start (answers
-   printed in the first grids), the story line and memory question, the page size and the
+   printed in the first grids), difficulty stars (off unless you tick them: one star means
+   three answers are printed, three stars none), the story line and memory question, the page size and the
    text size (large print suits older solvers).
 3. Write the words with ChatGPT:
      - click "Copy prompt",

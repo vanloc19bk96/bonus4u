@@ -12,7 +12,7 @@
   var WORDS_PER_PROMPT = 120;
   var TOP_UP = 8;           // words asked for when a day has its words but the grid comes out small
 
-  function perPrompt(project) { return Math.max(2, Math.floor(WORDS_PER_PROMPT / P.grid(project.plan.size).ask)); }
+  function perPrompt(project) { return Math.min(P.audience(project.plan.audience).days || 99, Math.max(2, Math.floor(WORDS_PER_PROMPT / P.grid(project.plan.size).ask))); }
 
   // What a day still needs: { words, title, story, question } (numbers / booleans).
   function needs(project, day) {
@@ -116,9 +116,10 @@
     L.push('- Never use the same word twice, on the same day or on two days.');
     L.push('Rules for the clues:');
     L.push('- ' + a.clue.charAt(0).toUpperCase() + a.clue.slice(1) + ': a plain definition the solver can work out. No puns, no cryptic tricks, no fill-in-the-blank song lines.');
-    L.push('- Under 8 words. A clue never contains its answer or a word made from it. Do not write the letter count.');
+    L.push('- Under 8 words. A clue never contains its answer, a word made from it or another answer of the same day. Do not write the letter count.');
+    if (a.clueHow) L.push('- ' + a.clueHow);
     var extra = [];
-    if (todo.some(function (d) { return needs(project, d).story; })) extra.push('STORY: one warm sentence (under 25 words) that sets the scene for the day');
+    if (todo.some(function (d) { return needs(project, d).story; })) extra.push(easy ? 'STORY: one happy sentence (under 15 words, in words a child can read) that sets the scene for the day' : 'STORY: one warm sentence (under 25 words) that sets the scene for the day');
     if (todo.some(function (d) { return needs(project, d).question; })) extra.push('QUESTION: one friendly question that invites the solver to share a memory or a thought about the day’s theme');
     if (extra.length) { L.push('For every day also write:'); extra.forEach(function (e) { L.push('- ' + e + '.'); }); }
     var old = [];

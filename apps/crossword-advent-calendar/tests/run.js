@@ -130,6 +130,8 @@ function checkPage(pg) {
   await test('puzzles: head start answers, the thick square and the stars', () => {
     const p = fullProject();
     const days = CX.plan.days(p);
+    eq(CX.plan.stars(p, days[0]), 0, 'no stars unless they are switched on');
+    p.plan.stars = true;
     [[0, 3, 1], [6, 2, 2], [12, 0, 3], [23, 0, 3]].forEach(([i, given, stars]) => {
       const pz = CX.puzzles.get(p, days[i]);
       eq(pz.grid.given.length, given, 'day ' + (i + 1) + ' givens');
@@ -224,6 +226,8 @@ function checkPage(pg) {
     eq(p.plan.size, 9);
     const t = CX.prompts.text(p, CX.prompts.list(p)[0]);
     ok(/3 to 7 letters/.test(t) && /half short \(3 or 4 letters\) and half longer \(5 to 7\)/.test(t) && /a child aged 6 to 8 can read and spell/.test(t), t);
+    ok(/explains a word to a 6-year-old/.test(t) && /under 15 words/.test(t), 'clues and story written for a young reader');
+    eq(CX.prompts.list(p)[0].days.length, 3, 'three days to a prompt, so the clues stay good');
     eq(CX.plan.days(p).map((d) => CX.plan.givens(p, d)).join(''), '333333333333222222222222');
     const book = fullProject((q) => { q.plan.audience = 'young'; Object.assign(q.plan, CX.plan.audience('young').defaults); });
     const items = CX.checklist.run(book, CX.layout.layoutBook(book, {}));
@@ -297,6 +301,17 @@ function checkPage(pg) {
     ok(how.indexOf('(page ' + book.refs.strip + ')') !== -1, 'how-to points at the strip');
     const sent = book.pages.find((pg) => pg.kind === 'sentence').items.filter((it) => it.t === 'text').map((it) => it.str).join(' ');
     ok(sent.indexOf('HAVE A HOLLY JOLLY CHRISTMAS') !== -1, 'the sentence is revealed at the back');
+    // the strip leaves a space between the words and never splits a word over two rows
+    const boxes = book.pages.find((pg) => pg.kind === 'sentence').items.filter((it) => it.t === 'text' && it.font === 'sansBold' && /^[A-Z]$/.test(it.str));
+    eq(boxes.map((it) => it.str).join(''), 'HAVEAHOLLYJOLLYCHRISTMAS', 'one box per letter');
+    let at = 0, step = 0;
+    'HAVE A HOLLY JOLLY CHRISTMAS'.split(' ').forEach((w, wi) => {
+      const ws = boxes.slice(at, at + w.length);
+      ok(ws.every((it) => it.y === ws[0].y), w + ' sits on one row');
+      if (w.length > 1) step = ws[1].x - ws[0].x;
+      if (wi && boxes[at - 1].y === ws[0].y) ok(ws[0].x - boxes[at - 1].x > step * 1.25, 'a space before ' + w);
+      at += w.length;
+    });
     // every clue of a day is on its clue page
     const pz = CX.puzzles.get(p, CX.plan.days(p)[4]);
     const texts = clues.items.filter((it) => it.t === 'text').map((it) => it.str).join(' ');

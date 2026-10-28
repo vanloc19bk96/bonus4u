@@ -33,16 +33,20 @@
     { id: 'custom', title: 'My own theme', sub: 'Type it in the box below', guide: '' }
   ];
 
-  // words is an extra rule for the answers, easy keeps them short (maxLen letters at most), blurb is
-  // the back-cover tone, more gives extra head-start answers and defaults are set when it is picked.
+  // words is an extra rule for the answers, easy keeps them short (maxLen letters at most), clueHow
+  // shows the AI what a good clue looks like, days caps the days one prompt asks for (fewer clues
+  // at once, better clues), blurb is the back-cover tone, more gives extra head-start answers and
+  // defaults are set when it is picked.
   var AUDIENCES = [
     { id: 'seniors', label: 'Adults & seniors', who: 'adults and seniors who enjoy a gentle daily crossword', clue: 'friendly, everyday English', blurb: 'cozy and inviting' },
     { id: 'women', label: 'Women', who: 'women who like a calm, cozy puzzle with their morning coffee', clue: 'friendly, everyday English', blurb: 'cozy and inviting' },
     { id: 'family', label: 'The whole family', who: 'families solving together, from teenagers to grandparents', clue: 'simple, everyday English', blurb: 'warm and inviting',
       words: 'words everyone in the family knows, from a teenager to a grandparent' },
     { id: 'young', label: 'Young kids (6 to 8)', who: 'children aged 6 to 8 who are just starting to read on their own', clue: 'very short, simple words a young reader knows', easy: true, maxLen: 7, more: true,
+      clueHow: 'Write every clue the way a parent explains a word to a 6-year-old: what it looks like, what it does, what sound it makes or where you find it. Only short, common words a child reads alone. Good: "Santa’s helper who makes toys" (ELF), "It rings: jingle, jingle!" (BELL), "Cold and white, it falls in winter" (SNOW). Bad: "Diminutive festive artisan", "Festive metallic chimer". Every clue fits only its own answer: "A sweet treat you eat" could be many things, "Red and white sweet shaped like a hook" is one. Never a clue with two meanings or a trick. Before you reply, read every clue as a 6-year-old would and rewrite any clue with a hard word in it.', days: 3,
       words: 'very easy words a child aged 6 to 8 can read and spell', blurb: 'fun and inviting, written for the parents and grandparents who buy it', defaults: { size: 9, lines: 2 } },
     { id: 'kids', label: 'Kids (8 to 12)', who: 'children aged 8 to 12', clue: 'very simple words a child knows', easy: true,
+      clueHow: 'Write every clue the way you would explain the word to a child: what it looks like, what it does or where you find it, in common words. Good: "Santa’s helper who makes toys" (ELF). Bad: "Diminutive festive artisan".',
       words: 'easy, well-known words that a child aged 8 to 12 knows and can spell', blurb: 'fun and inviting, written for the parents and grandparents who buy it' }
   ];
 
@@ -143,16 +147,21 @@
     return part <= 0.25 ? 3 : part <= 0.5 ? 2 : 0;
   }
 
-  // One to three stars.
+  // One to three stars: how little help the grid prints (three answers one star, none three).
+  // 0 when the book has no stars; they only mean something with the easy start.
   function stars(project, day) {
+    if (!project.plan.stars || !project.plan.headStart) return 0;
     var g = givens(project, day);
-    if (project.plan.headStart) return g === 3 ? 1 : g === 2 ? 2 : 3;
-    var n = day.set === 'bonus' ? 12 : project.plan.days;
-    return day.no <= n / 3 ? 1 : day.no <= n * 2 / 3 ? 2 : 3;
+    return g === 3 ? 1 : g === 2 ? 2 : 3;
   }
 
   // The hidden letter of a day ('' when the sentence is not the right length).
   function sentenceOf(project, set) { return letters(set === 'bonus' ? project.plan.bonusSentence : project.plan.sentence); }
+  // The length of each word of the sentence, so the strip can leave a gap between the words.
+  function sentenceWords(project, set) {
+    if (!sentenceOk(project, set)) return null;
+    return String(set === 'bonus' ? project.plan.bonusSentence : project.plan.sentence).split(/[\s\-–—]+/).map(function (w) { return letters(w).length; }).filter(Boolean);
+  }
   function sentenceOk(project, set) {
     var n = set === 'bonus' ? 12 : project.plan.days;
     return sentenceOf(project, set).length === n;
@@ -189,7 +198,7 @@
       plan: {
         days: 24, bonus: false, theme: 'cozy', customTheme: '', audience: 'seniors',
         sentence: 'Have a holly jolly Christmas', bonusSentence: 'Twelfth Night',
-        size: 13, headStart: true, memory: true, story: true, lines: 4
+        size: 13, headStart: true, stars: false, memory: true, story: true, lines: 4
       },
       days: {},              // day id -> { title, story, question, words: [{ w, c }], v (grid variant) }
       ai: { weeks: [], eve: [], blurb: '' },
@@ -212,7 +221,7 @@
     pl.days = validDays(pl.days) || 24;
     pl.size = grid(pl.size).n;
     pl.lines = CX.util.clamp(Math.round(+pl.lines) || 0, 0, 6);
-    ['bonus', 'headStart', 'memory', 'story'].forEach(function (k) { pl[k] = !!pl[k]; });
+    ['bonus', 'headStart', 'stars', 'memory', 'story'].forEach(function (k) { pl[k] = !!pl[k]; });
     ['sentence', 'bonusSentence', 'customTheme'].forEach(function (k) { if (typeof pl[k] !== 'string') pl[k] = d.plan[k]; });
     out.days = {};
     if (p.days && typeof p.days === 'object') {
@@ -234,7 +243,7 @@
     THEMES: THEMES, AUDIENCES: AUDIENCES, SENTENCES: SENTENCES, NEW_YEAR: NEW_YEAR, GRID_SIZES: GRID_SIZES, MONTHS: MONTHS, PRESET_DAYS: PRESET_DAYS, MIN_DAYS: MIN_DAYS,
     theme: theme, audience: audience, grid: grid, letters: letters, sentencesFor: sentencesFor, validDays: validDays,
     firstDate: firstDate, lastDate: lastDate, dateOf: dateOf, dateSpan: dateSpan,
-    days: days, weeks: weeks, givens: givens, stars: stars, sentenceOf: sentenceOf, sentenceOk: sentenceOk, letterOf: letterOf,
+    days: days, weeks: weeks, givens: givens, stars: stars, sentenceOf: sentenceOf, sentenceWords: sentenceWords, sentenceOk: sentenceOk, letterOf: letterOf,
     titleIdeas: titleIdeas, subtitleIdea: subtitleIdea, bookTitle: bookTitle, bookSubtitle: bookSubtitle,
     newProject: newProject, normalize: normalize, day: day, emptyDay: emptyDay
   };
