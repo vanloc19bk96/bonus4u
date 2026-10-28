@@ -19,7 +19,7 @@ function load(rel) {
 // The same scripts, in the same order, as index.html (without the user interface).
 const CORE = ['js/vendor/jspdf.umd.min.js', 'js/fonts.js', 'js/core/util.js', 'js/core/text.js', 'js/core/metrics.js', 'js/core/kdp.js',
   'js/core/plan.js', 'js/core/engine.js', 'js/core/puzzles.js', 'js/core/prompts.js', 'js/core/reader.js', 'js/core/content.js', 'js/core/layout.js',
-  'js/core/cover.js', 'js/core/cover-fronts.js', 'js/core/checklist.js', 'js/render/svg.js', 'js/render/pdf.js'];
+  'js/core/cover.js', 'js/core/cover-fronts.js', 'js/core/checklist.js', 'js/render/svg.js', 'js/render/pdf.js', 'js/render/pptx.js'];
 
 function loadAll() { CORE.forEach(f => { if (fs.existsSync(path.join(ROOT, f))) load(f); }); return global.CX; }
 

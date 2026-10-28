@@ -408,6 +408,34 @@ function checkPage(pg) {
     console.log('     ' + out);
   });
 
+  await test('pptx: the Canva copy has every page, each line as text, and opens as a valid package', async () => {
+    const zlib = require('zlib');
+    function unzip(b) {
+      const buf = Buffer.from(b), out = {};
+      for (let o = 0; buf.readUInt32LE(o) === 0x04034b50;) {
+        const method = buf.readUInt16LE(o + 8), size = buf.readUInt32LE(o + 18), n = buf.readUInt16LE(o + 26), x = buf.readUInt16LE(o + 28);
+        const data = buf.slice(o + 30 + n + x, o + 30 + n + x + size);
+        out[buf.toString('utf8', o + 30, o + 30 + n)] = (method === 8 ? zlib.inflateRawSync(data) : data).toString('utf8');
+        o += 30 + n + x + size;
+      }
+      return out;
+    }
+    const p = fullProject();
+    const book = CX.layout.layoutBook(p, {});
+    const files = unzip(await CX.pptx.build(book));
+    const slides = Object.keys(files).filter((f) => /^ppt\/slides\/slide\d+\.xml$/.test(f));
+    eq(slides.length, book.pages.length, 'one slide per page');
+    ok(/<p:sldSz cx="\d+" cy="\d+"\/>/.test(files['ppt/presentation.xml']), 'slide size');
+    eq(+/cx="(\d+)"/.exec(files['ppt/presentation.xml'].split('sldSz')[1])[1], Math.round(book.W * 12700), 'slide width is the trim width');
+    Object.keys(files).forEach((f) => ok(!/[<&](?![a-zA-Z/?!#]|amp;|lt;|gt;|quot;)/.test(files[f]), 'bad XML in ' + f));
+    const words = book.pages[9].items.filter((it) => it.t === 'text').map((it) => it.str);
+    const s10 = files['ppt/slides/slide10.xml'];
+    words.forEach((w) => ok(s10.includes(w.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')), 'missing text on slide 10: ' + w));
+    ok(/<a:prstGeom prst="rect">/.test(s10), 'shapes kept');
+    const cfiles = unzip(await CX.pptx.buildCover(CX.cover.build(p, book.pages.length)));
+    ok(cfiles['ppt/slides/slide1.xml'] && !cfiles['ppt/slides/slide2.xml'], 'cover is one slide');
+  });
+
   console.log('\n' + passed + ' passed, ' + failed + ' failed');
   process.exit(failed ? 1 : 0);
 })();

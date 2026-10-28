@@ -134,6 +134,7 @@
     if (!o.angle) { if (o.align === 'center') x -= w / 2; else if (o.align === 'right') x -= w; }
     var it = { t: 'text', x: r2(x), y: r2(y), str: s, font: font, size: r2(size), color: color };
     if (o.ls) it.ls = r2(o.ls);
+    if (!o.angle && (o.align === 'center' || o.align === 'right')) it.align = o.align; // kept for the editable (.pptx) copy
     if (o.angle) it.angle = o.angle;
     this.items.push(it);
     return w;

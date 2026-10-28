@@ -459,6 +459,7 @@
     out.push(h('p', { class: 'hint' }, 'Download the cover again whenever the page count changes: the spine width follows it.'));
     out.push(h('div', { class: 'actions' }, [
       h('button', { type: 'button', class: 'btn btn-primary', onclick: downloadCover }, 'Download cover PDF'),
+      h('button', { type: 'button', class: 'btn', onclick: function () { downloadCanva('cover'); } }, 'Cover for Canva (.pptx)'),
       h('button', { type: 'button', class: 'btn', onclick: function () { openStep(4); } }, 'Back to the book pages')
     ]));
     return out;
@@ -489,6 +490,15 @@
         h('li', null, 'Manuscript: the book PDF. Cover: "Upload a cover you already have", the cover PDF.'),
         h('li', null, 'KDP asks whether AI helped make the book. The words and clues were written with an AI chat, so answer yes for the text.'),
         h('li', null, 'Solve two or three grids yourself before you publish: AI clues are usually right, but not always.')
+      ]),
+      h('h3', { class: 'sub-head' }, 'Edit in Canva'),
+      h('div', { class: 'actions first' }, [
+        h('button', { type: 'button', class: 'btn', onclick: function () { downloadCanva('book'); } }, 'Book for Canva (.pptx)')
+      ]),
+      h('ul', { class: 'safety' }, [
+        h('li', null, 'Canva turns an uploaded PDF into its own text boxes and often jumbles them. Upload this .pptx instead: every page comes in at the trim size with each line of text editable and the grids as shapes.'),
+        h('li', null, 'The book uses the fonts Source Serif 4 and Source Sans 3. If Canva says a font is missing, pick it (or a close one) in the font list.'),
+        h('li', null, 'From Canva, download as "PDF Print" for KDP. The PDF from this app stays the safest file to upload.')
       ])
     ];
   }
@@ -637,6 +647,25 @@
     } catch (e) {
       dom.toast('The cover PDF could not be made: ' + e.message);
     } finally { state.busy = false; }
+  }
+
+  // An editable copy of the same pages for Canva (a .pptx, which Canva imports box by box).
+  async function downloadCanva(kind) {
+    if (state.busy) return;
+    var p = state.p, book = CX.layout.layoutBook(p, {}), PPTX = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    if (kind === 'cover' && book.pages.length < CX.kdp.MIN_PAGES) { dom.toast('Add the days first: the cover needs the final page count (at least ' + CX.kdp.MIN_PAGES + ' pages).'); return; }
+    state.busy = true;
+    try {
+      if (kind === 'cover') {
+        dom.download(await CX.pptx.buildCover(CX.cover.build(p, book.pages.length)), slug() + '-cover-canva.pptx', PPTX);
+        dom.toast('Cover saved for Canva. In Canva: Create a design > Import file.');
+      } else {
+        dom.download(await CX.pptx.build(book, progress), slug() + '-interior-canva.pptx', PPTX);
+        dom.toast('Book saved for Canva: ' + book.pages.length + ' pages. In Canva: Create a design > Import file.');
+      }
+    } catch (e) {
+      dom.toast('The Canva file could not be made: ' + e.message);
+    } finally { state.busy = false; progress(null); }
   }
 
   // ---------- project file ----------
