@@ -240,12 +240,67 @@ function checkPage(pg) {
     let rep = CX.content.addReply(p, CX.reader.readDays(S.CLEAN), pr.days);
     eq(rep.added.map((r) => [r.day.id, r.n]), [['d1', 24], ['d2', 4]]);
     rep = CX.content.addReply(p, CX.reader.readDays(S.CLEAN), pr.days);
-    eq(rep.repeats, 28);
+    eq([rep.same, rep.repeats, rep.added.length], [28, 0, 0], 'the same reply again changes nothing');
+    rep = CX.content.addReply(p, CX.reader.readDays('DAY 3: Other\nWORDS:\nLAMP | A light'), pr.days);
+    eq(rep.repeats, 1, 'a word from another day is left out');
     rep = CX.content.addReply(p, CX.reader.readDays('WORDS:\nSPRUCE | Evergreen tree\nTINSEL | Shiny strands for the tree'), pr.days);
     eq(rep.added[0].day.id, 'd2', 'first open day of the prompt (day 1 already has a good grid)');
     p.plan.bonus = true;
     rep = CX.content.addReply(p, CX.reader.readDays('DAY 1: Quiet\nWORDS:\nTEAPOT | Pot for brewing'), CX.prompts.list(p).filter((x) => x.set === 'bonus')[0].days);
     eq(rep.added[0].day.id, 'b1', 'a bonus prompt’s DAY 1 is bonus day 1');
+  });
+
+  await test('content: a corrected reply updates clues, replaces a rewritten day, keeps the title', () => {
+    const p = CX.plan.newProject();
+    const pr = CX.prompts.list(p)[0];
+    CX.content.addReply(p, CX.reader.readDays(S.CLEAN), pr.days);
+    const d1 = p.days.d1, words = d1.words.map((x) => x.w);
+    // a few corrected lines: clues change, nothing to ask
+    let fix = CX.reader.readDays('DAY 1: The First Evening\nWORDS:\nLAMP | A light on a little table\nSPARK | A tiny flash from the fire');
+    eq(CX.content.rewrites(p, fix, pr.days).length, 0, 'a few lines are not a rewrite');
+    let rep = CX.content.addReply(p, fix, pr.days);
+    eq([rep.updated, rep.added.length], [2, 0]);
+    eq(d1.words.find((x) => x.w === 'LAMP').c, 'A light on a little table');
+    eq(d1.words.map((x) => x.w), words, 'same words, same order, so the grid stays');
+    // the whole day again, two words swapped and a new title
+    const lines = S.CLEAN.split('\n').slice(3, 31).join('\n').replace('The First Evening', 'A New Name').replace('SETTEE | Long soft seat in the parlor', 'COCOA | Hot chocolate drink');
+    const full = CX.reader.readDays(lines);
+    const rw = CX.content.rewrites(p, full, pr.days);
+    eq(rw.map((r) => [r.day.id, r.got, r.have]), [['d1', 24, 24]]);
+    rep = CX.content.addReply(p, full, pr.days, rw.map((r) => r.day.id));
+    eq(rep.replaced.map((d) => d.id), ['d1']);
+    ok(d1.words.some((x) => x.w === 'COCOA') && !d1.words.some((x) => x.w === 'SETTEE'), 'old word gone, new word in');
+    eq(d1.title, 'The First Evening', 'the title stays (pictures may be made for it)');
+    // added, not replaced: words stay
+    rep = CX.content.addReply(p, CX.reader.readDays('DAY 1:\nWORDS:\nSETTEE | Long soft seat'), pr.days);
+    eq(rep.added.map((r) => r.n), [1]);
+    // write the day again: words go, title stays, the prompt asks for all of them
+    CX.content.clearDays(p, [CX.plan.days(p)[0]]);
+    eq(p.days.d1.words.length, 0);
+    ok(/DAY 1 \(December 1\): its title is "The First Evening", exactly 30 words/.test(CX.prompts.text(p, CX.prompts.list(p)[0])), 'asks for the whole day again');
+  });
+
+  await test('prompts: the crossword craft, the check prompt and words reused by young kids', () => {
+    const p = CX.plan.newProject();
+    let t = CX.prompts.text(p, CX.prompts.list(p)[0]);
+    ok(/answer-first test/.test(t) && /GLOVE and MITTEN/.test(t) && /Under 8 words/.test(t) && /Before you reply, read every clue as a solver would/.test(t), t);
+    p.plan.audience = 'young'; p.plan.theme = 'kids'; Object.assign(p.plan, CX.plan.audience('young').defaults);
+    const pr = CX.prompts.list(p)[0];
+    t = CX.prompts.text(p, pr);
+    ok(/second-grade readers \(ages 6 to 8\)/.test(t) && /up to 12 simple words/.test(t) && /WREATH or GNOME/.test(t) && /easy everyday words from home/.test(t) && /an easy word always beats a hard one/.test(t), t);
+    ok(/A good easy word may come back on another day/.test(t) && /read every clue as a 6-year-old would/.test(t), 'reuse and the final check');
+    CX.content.addReply(p, CX.reader.readDays('DAY 1: Dear Santa\nWORDS:\nSNOW | Cold and white, it falls in winter\nHAT | You wear it on your head'), pr.days);
+    let rep = CX.content.addReply(p, CX.reader.readDays('DAY 2: Tree Time\nWORDS:\nSNOW | It falls from the sky in winter\nSTAR | It shines on top of the tree'), pr.days);
+    eq([rep.repeats, rep.added[0].n], [0, 2], 'young kids may meet a good word again on another day');
+    t = CX.prompts.text(p, CX.prompts.list(p)[0]);
+    ok(/do not give them again on the same day: DAY 1: SNOW, HAT; DAY 2: SNOW, STAR/.test(t), t);
+    const c = CX.prompts.checkText(p, pr.days);
+    ok(/Check them as a careful crossword editor/.test(c) && /Keep each day’s title exactly as it is/.test(c), c);
+    ok(/DAY 1: Dear Santa\nWORDS:\nSNOW \| Cold and white, it falls in winter\nHAT \| You wear it on your head/.test(c) && !/DAY 3/.test(c.split('Reply with')[1]), 'only the days with words, in the reply format');
+    ok(/keep at least 3 words that contain it \(DAY 1: H, DAY 2: A\)/.test(c), 'the hidden letters are kept');
+    // the check reply goes back in as a rewrite
+    const back = CX.reader.readDays('DAY 1: Dear Santa\nWORDS:\nSNOW | Cold and white, it falls in winter\nCAP | A small hat for cold ears');
+    eq(CX.content.rewrites(p, back, pr.days).map((r) => r.day.id), ['d1']);
   });
 
   await test('content: a full book has every prompt done and passes the checklist', () => {

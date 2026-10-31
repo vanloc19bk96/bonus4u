@@ -88,11 +88,46 @@
     return out;
   }
 
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  /*
+   * What makes the crossword work, for the days prompt and the check prompt alike: the rules for
+   * the words and the clues. Chat models know the theme but not the craft, so it is spelled out:
+   * one answer per clue (the answer-first test), no two answers of a day that mean the same,
+   * and a hard word is swapped rather than clued with something complicated.
+   */
+  function rules(project) {
+    var pl = project.plan, g = P.grid(pl.size), a = P.audience(pl.audience), tp = topic(project), easy = a.easy || tp.easy;
+    var maxLen = Math.min(g.n, a.maxLen || (easy ? 9 : g.n)), L = [];
+    L.push('Rules for the words:');
+    L.push('- One English word each, 3 to ' + maxLen + ' letters: no spaces, hyphens, apostrophes, numbers or abbreviations.');
+    L.push(maxLen <= 7 ? '- Mix the lengths: about half short (3 or 4 letters) and half longer (5 to ' + maxLen + ').' : '- Mix the lengths: about a third short (3 to 5 letters), a third medium (6 or 7) and a third long (8 or more).');
+    L.push(a.loose
+      ? '- Plenty of words are clearly about the day’s theme and ' + tp.focus + '. The rest (up to half) can be easy everyday words from home, the holidays, winter or a child’s day. Never an awkward or hard word just to stay on the theme.'
+      : '- Every word belongs to the book’s theme and the day’s theme. At least two thirds of them are clearly about ' + tp.focus + '; the rest are everyday words that still fit the day. No filler words that have nothing to do with the theme, and no awkward word forced in just to stay on it.');
+    if (a.words || easy) L.push('- Only ' + (a.words || 'easy, well-known words that everyone knows') + '.');
+    L.push('- No two words of the same day mean nearly the same thing or could answer the same clue (not GLOVE and MITTEN; not MONEY, CASH and COIN; not SHOP and STORE). When two words are that close, keep one and choose a different word.');
+    L.push('- No brand names, no famous people, no song lyrics, no foreign words, nothing sad or scary.');
+    L.push(a.reuse ? '- Never the same word twice on one day. A good easy word may come back on another day when it fits that day too.' : '- Never use the same word twice, on the same day or on two days.');
+    L.push('Rules for the clues:');
+    L.push('- ' + cap(a.clue) + ': a plain definition the solver can work out. No puns, no cryptic tricks, no fill-in-the-blank song lines.');
+    L.push('- The answer-first test: ' + (a.reader || 'a solver') + ' who reads the clue without seeing the answer thinks of this exact word. A clue that only makes sense once you know the answer is not good enough. Bad: "Draw this with crayons" (PICTURE: you can draw anything). Good: "A photo or a drawing in a frame" (PICTURE).');
+    L.push('- A clue fits only its own answer, never another answer of the same day. "A sweet treat" could be many things; "Red and white sweet shaped like a hook" is one.');
+    L.push('- ' + ((a.clueWords || 8) > 8 ? 'Clear beats short: up to ' + a.clueWords + ' simple words.' : 'Under 8 words.') + ' A clue never contains its answer, a word made from it or another answer of the same day. Do not write the letter count.');
+    if (a.clueHow) L.push('- ' + a.clueHow);
+    L.push('- When a word is hard to clue clearly' + (a.level ? ' for ' + a.level : '') + ', change the word instead of forcing a long or tricky clue.');
+    return L;
+  }
+
+  function finalCheck(project) {
+    var a = P.audience(project.plan.audience);
+    return 'Before you reply, read every clue as ' + (a.reader || 'a solver') + ' would, without the answer, and check: does it lead to this one word, could another answer of the same day fit it too, is any word in it too hard? Replace any word that fails rather than forcing a complicated clue.';
+  }
+
   function daysPrompt(project, p) {
     var pl = project.plan, g = P.grid(pl.size), a = P.audience(pl.audience), tp = topic(project), easy = a.easy || tp.easy;
     var todo = p.days.filter(function (d) { return !dayDone(project, d); });
     if (!todo.length) todo = p.days;
-    var maxLen = Math.min(g.n, a.maxLen || (easy ? 9 : g.n));
     var L = [about(project), ''];
     L.push('Write the words and clues for ' + (todo.length > 1 ? 'these days' : 'this day') + ':');
     todo.forEach(function (day) {
@@ -107,27 +142,28 @@
     L.push('Each day has its own small theme, taken from the book’s theme and following the countdown: ' + tp.arc +
       (pl.bonus ? '; the bonus days are the quiet days after Christmas up to Twelfth Night' : '') + '. Give each day a short, ' + (easy ? 'fun' : 'warm') + ' title of 2 to 4 words that names its theme (for example "' + tp.sample[0] + '").');
     L.push('');
-    L.push('Rules for the words:');
-    L.push('- One English word each, 3 to ' + maxLen + ' letters: no spaces, hyphens, apostrophes, numbers or abbreviations.');
-    L.push(maxLen <= 7 ? '- Mix the lengths: about half short (3 or 4 letters) and half longer (5 to ' + maxLen + ').' : '- Mix the lengths: about a third short (3 to 5 letters), a third medium (6 or 7) and a third long (8 or more).');
-    L.push('- Every word belongs to the book’s theme and the day’s theme. At least two thirds of them are clearly about ' + tp.focus + '; the rest are everyday words that still fit the day. No filler words that have nothing to do with the theme.');
-    if (a.words || easy) L.push('- Only ' + (a.words || 'easy, well-known words that everyone knows') + '.');
-    L.push('- No brand names, no famous people, no song lyrics, no foreign words, nothing sad or scary.');
-    L.push('- Never use the same word twice, on the same day or on two days.');
-    L.push('Rules for the clues:');
-    L.push('- ' + a.clue.charAt(0).toUpperCase() + a.clue.slice(1) + ': a plain definition the solver can work out. No puns, no cryptic tricks, no fill-in-the-blank song lines.');
-    L.push('- Under 8 words. A clue never contains its answer, a word made from it or another answer of the same day. Do not write the letter count.');
-    if (a.clueHow) L.push('- ' + a.clueHow);
+    Array.prototype.push.apply(L, rules(project));
     var extra = [];
     if (todo.some(function (d) { return needs(project, d).story; })) extra.push(easy ? 'STORY: one happy sentence (under 15 words, in words a child can read) that sets the scene for the day' : 'STORY: one warm sentence (under 25 words) that sets the scene for the day');
     if (todo.some(function (d) { return needs(project, d).question; })) extra.push('QUESTION: one friendly question that invites the solver to share a memory or a thought about the day’s theme');
     if (extra.length) { L.push('For every day also write:'); extra.forEach(function (e) { L.push('- ' + e + '.'); }); }
-    var old = [];
-    todo.forEach(function (day) { ((project.days[day.id] || {}).words || []).forEach(function (x) { old.push(x.w); }); });
-    var other = usedElsewhere(project, todo);
-    if (old.length || other.length) L.push('- These words are already in the book; do not use them again: ' + old.concat(other).join(', ') + '.');
+    if (a.reuse) {
+      // other days' words may come back, so only a day's own words are off limits for it
+      var own = todo.filter(function (day) { return ((project.days[day.id] || {}).words || []).length; }).map(function (day) {
+        return label(day) + ': ' + project.days[day.id].words.map(function (x) { return x.w; }).join(', ');
+      });
+      if (own.length) L.push('- These days already have these words; do not give them again on the same day: ' + own.join('; ') + '.');
+    } else {
+      var old = [];
+      todo.forEach(function (day) { ((project.days[day.id] || {}).words || []).forEach(function (x) { old.push(x.w); }); });
+      var other = usedElsewhere(project, todo);
+      if (old.length || other.length) L.push('- These words are already in the book; do not use them again: ' + old.concat(other).join(', ') + '.');
+    }
     L.push('');
-    L.push('Most important: stay on the book’s theme in every title, word and clue. The theme: ' + tp.guide.replace(/[.\s]+$/, '') + '. Everything must suit ' + a.who + '.');
+    L.push((a.loose ? 'Most important: every title stays on the book’s theme and most words fit the day’s theme, but an easy word always beats a hard one.'
+      : 'Most important: stay on the book’s theme in every title, word and clue.') + ' The theme: ' + tp.guide.replace(/[.\s]+$/, '') + '. Everything must suit ' + a.who + '.');
+    L.push('');
+    L.push(finalCheck(project));
     L.push('');
     L.push('Reply with one code block in exactly this format, one line per word:');
     L.push('');
@@ -166,6 +202,43 @@
     return L.join('\n');
   }
 
+  /*
+   * Sends the words and clues the days already have back to the AI with the same rules, for a
+   * corrected version of each day in full. Its reply goes in with "Replace", so a bad clue found
+   * in the book can be fixed without starting the day over. Titles stay (pictures may be made for them).
+   */
+  function checkPrompt(project, days) {
+    var pl = project.plan, a = P.audience(pl.audience);
+    var have = days.filter(function (d) { return ((project.days[d.id] || {}).words || []).length; });
+    var L = [about(project), ''];
+    L.push('Below ' + (have.length > 1 ? 'are the words and clues of ' + have.length + ' days' : 'are the words and clues of one day') + ' of the book. Check them as a careful crossword editor for ' + a.who + ' and send them back corrected.');
+    L.push('');
+    Array.prototype.push.apply(L, rules(project));
+    L.push('');
+    L.push('How to check:');
+    L.push('- Read every clue as ' + (a.reader || 'a solver') + ' would, without the answer. Rewrite any clue that fails the answer-first test, that another answer of the same day also fits, or that has a hard word in it.');
+    L.push('- When two answers of a day mean nearly the same thing, or a word is too hard to read, spell or clue simply, replace the word with a better one that keeps the rules.');
+    L.push('- Keep every good word and clue exactly as it is, and keep about the same number of words in each day.');
+    L.push('- Keep each day’s title exactly as it is.' + (pl.story || pl.memory ? ' Keep the STORY and QUESTION lines too, only making them easier to read where needed.' : ''));
+    var letters = have.map(function (day) { var l = P.letterOf(project, day); return l ? label(day) + ': ' + l : ''; }).filter(Boolean);
+    if (letters.length) L.push('- Each day needs words with its letter of the hidden sentence: keep at least 3 words that contain it (' + letters.join(', ') + ').');
+    L.push('');
+    L.push(finalCheck(project));
+    L.push('');
+    L.push('Reply with one code block in the same format as the days below: every day in full, with all its words (the ones you kept and the new ones), one line per word.');
+    L.push('');
+    have.forEach(function (day, i) {
+      var d = project.days[day.id];
+      if (i) L.push('');
+      L.push(label(day) + ': ' + (d.title.trim() || '(a short title)'));
+      if (d.story.trim()) L.push('STORY: ' + d.story.trim());
+      if (d.question.trim()) L.push('QUESTION: ' + d.question.trim());
+      L.push('WORDS:');
+      d.words.forEach(function (x) { L.push(x.w + ' | ' + x.c); });
+    });
+    return L.join('\n');
+  }
+
   function text(project, p) { return p.kind === 'extras' ? extrasPrompt(project) : daysPrompt(project, p); }
 
   function title(p) {
@@ -174,5 +247,5 @@
     return (a.set === 'bonus' ? 'Bonus days ' : 'Days ') + a.no + (z !== a ? '–' + z.no : '');
   }
 
-  CX.prompts = { WORDS_PER_PROMPT: WORDS_PER_PROMPT, perPrompt: perPrompt, needs: needs, dayDone: dayDone, list: list, next: next, text: text, title: title, label: label, extrasWanted: extrasWanted, isDone: isDone };
+  CX.prompts = { WORDS_PER_PROMPT: WORDS_PER_PROMPT, perPrompt: perPrompt, needs: needs, dayDone: dayDone, list: list, next: next, text: text, checkText: checkPrompt, title: title, label: label, extrasWanted: extrasWanted, isDone: isDone };
 })(typeof window !== 'undefined' ? window : globalThis);

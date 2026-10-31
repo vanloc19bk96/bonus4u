@@ -31,10 +31,28 @@ solutions at the back, like the bestselling crossword advent calendars on Amazon
    ChatGPT is asked for more words than a grid holds (18 for 9x9, 24 for 11x11, 30 for 13x13,
    36 for 15x15); the app keeps the ones that cross best, so a puzzle has about 10, 15, 18
    or 22 answers. If a day's grid comes out small, copy its prompt again: it asks for a few more words.
-   Click "View" next to a day to see its grid, remove a word you don't like, or click
-   "New grid" for a different layout of the same words.
+   The prompts teach ChatGPT how a crossword works: every clue must lead to one answer
+   (the "answer-first test"), no two answers of a day may mean the same thing (GLOVE and
+   MITTEN), and a word that is hard to clue is swapped for an easier one. For young kids
+   (6 to 8) it also asks for second-grade reading and spelling, and lets good easy words
+   come back on another day.
    The last prompt writes the week pages, the Christmas Eve note and the back cover text.
    Claude, Gemini or Copilot work the same way.
+
+   FIXING A DAY (a weak clue, two answers that are too alike, a word that is too hard):
+     - Click "Edit" next to a day: change any clue right there, change the title, story or
+       question, remove a word or type a new word with its clue. "New grid" gives a
+       different layout of the same words. The printed clues are listed first.
+     - Or let ChatGPT fix it: click "Copy check prompt" (in the prompt's box, or in the
+       day's Edit window). It sends the day's words and clues back to ChatGPT with the
+       crossword rules. Paste ChatGPT's reply into the box as usual and click "Add to book".
+       The app sees that the day already has words and asks: choose "Replace" and the day
+       takes the corrected words and clues. ("Add" keeps the words and only updates
+       changed clues and adds new words.)
+     - Or start a day over: click "Write these days again" under the prompt. The words are
+       cleared but the titles stay, so the day themes (and any pictures you made for them)
+       do not change. Copy the prompt again and paste the new reply.
+   A day's title never changes when you paste a reply: change it yourself in "Edit".
 4. Check and download: when every item is green, click "Download book PDF".
 
 COVER: click "Book cover" at the top of the left panel (the panel and the preview switch to

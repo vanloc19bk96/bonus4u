@@ -206,17 +206,31 @@
       panel.appendChild(ul);
       var gs = P.grid(p.plan.size);
       panel.appendChild(h('p', { class: 'pn-note' }, 'ChatGPT is asked for ' + gs.ask + ' words a day, more than a ' + gs.label + ' grid holds: the app keeps the ones that cross best, so each puzzle has about ' + gs.target + ' answers.'));
-      if (cur.done) panel.appendChild(h('p', { class: 'hint' }, 'These days are done. To replace words, open a day under "Your days" and remove some; the prompt then asks only for what is missing.'));
+      if (cur.done) panel.appendChild(h('p', { class: 'hint' }, 'These days are done. Found a weak clue? Copy the check prompt: it sends these days back to ChatGPT with the crossword rules and asks for a corrected version. Paste the reply below and choose Replace.'));
     } else {
       panel.appendChild(h('p', { class: 'pn-note' }, 'A welcome for each week page (' + P.weeks(p).length + '), the Christmas Eve note and the back cover text. Without them the book prints ready-made texts.'));
     }
+    // a finished prompt asks for nothing, so its main button checks the days instead
+    var filled = cur.kind === 'days' ? cur.days.filter(function (d) { return (p.days[d.id] || {}).words && p.days[d.id].words.length; }) : [];
+    var check = function () { return CX.prompts.checkText(state.p, cur.days); };
+    var main = cur.done && filled.length ? check : function () { return CX.prompts.text(state.p, cur); };
     panel.appendChild(h('div', { class: 'actions first' }, [
-      dom.copyButton('Copy prompt', function () { return CX.prompts.text(state.p, cur); }, 'btn btn-primary'),
+      dom.copyButton(cur.done && filled.length ? 'Copy check prompt' : 'Copy prompt', main, 'btn btn-primary'),
       h('a', { class: 'btn', href: CHATGPT, target: '_blank', rel: 'noopener noreferrer' }, 'Open ChatGPT ↗')
     ]));
     var peek = h('details', { class: 'peek' }, [h('summary', null, 'See the prompt'), h('textarea', { class: 'textarea', readonly: true, rows: 8 })]);
-    peek.addEventListener('toggle', function () { if (peek.open) peek.querySelector('textarea').value = CX.prompts.text(state.p, cur); });
+    peek.addEventListener('toggle', function () { if (peek.open) peek.querySelector('textarea').value = main(); });
     panel.appendChild(peek);
+    if (filled.length) {
+      panel.appendChild(h('div', { class: 'fix-days' }, [
+        h('b', null, 'Fix these days'),
+        h('p', { class: 'hint' }, 'The check prompt has ChatGPT test every clue (one clear answer, no two answers alike, easy words) and send the days back corrected. Or clear their words and write them again: titles stay, so the day themes do not change.'),
+        h('div', { class: 'actions first' }, [
+          cur.done ? null : dom.copyButton('Copy check prompt', check, 'btn'),
+          h('button', { type: 'button', class: 'btn danger-text', onclick: function () { redoDays(filled); } }, filled.length > 1 ? 'Write these days again' : 'Write this day again')
+        ])
+      ]));
+    }
     out.push(panel);
 
     var ta = h('textarea', { class: 'textarea paste', id: 'fPaste', placeholder: 'Paste ChatGPT’s whole reply here', spellcheck: 'false' });
@@ -225,7 +239,7 @@
     var res = h('div', { class: 'result' });
     if (state.result) res.appendChild(state.result);
     out.push(res);
-    out.push(h('p', { class: 'hint' }, 'Claude, Gemini or Copilot work the same way. The app reads the day numbers in any reply, so a reply can go in while another prompt is selected.'));
+    out.push(h('p', { class: 'hint' }, 'Claude, Gemini or Copilot work the same way. The app reads the day numbers in any reply, so a reply can go in while another prompt is selected. A corrected reply for days that already have words can replace them: the app asks.'));
 
     out.push(h('h3', { class: 'sub-head' }, 'Your days'));
     var rows = h('ul', { class: 'ch-list days-list' });
@@ -236,7 +250,7 @@
         h('span', { class: 'no' }, (day.set === 'bonus' ? 'B' : '') + day.no),
         h('span', { class: 'ct' }, d && d.title ? d.title : h('i', { class: 'muted' }, day.date)),
         h('span', { class: 'n', title: st.words + ' words, ' + gridTxt + ' in the grid' }, st.state === 'empty' ? 'no words yet' : st.state === 'ok' ? '✓ ' + gridTxt : st.state === 'weak' ? gridTxt + ': too few' : st.words + ' of ' + st.ask + ' words'),
-        h('button', { type: 'button', class: 'mini', disabled: !(d && d.words.length), onclick: function () { viewDay(day); } }, 'View')
+        h('button', { type: 'button', class: 'mini', onclick: function () { viewDay(day); } }, 'Edit')
       ]));
     });
     out.push(rows);
@@ -251,7 +265,9 @@
     return out;
   }
 
-  function addReply(text, cur) {
+  function dayName(day) { return (day.set === 'bonus' ? 'Bonus day ' : 'Day ') + day.no; }
+
+  async function addReply(text, cur) {
     var p = state.p;
     if (!text.trim()) { state.result = msg('err', 'The box is empty. Paste ChatGPT’s reply into it first.'); renderBody(); return; }
     var kind = CX.reader.kind(text);
@@ -263,10 +279,30 @@
       var got = CX.content.addExtras(p, CX.reader.readExtras(text));
       state.result = msg('ok', 'Added: ' + got.join(', ') + '.');
     } else {
-      var parsed = CX.reader.readDays(text);
-      var rep = CX.content.addReply(p, parsed, cur.kind === 'days' ? cur.days : []);
-      var n = rep.added.reduce(function (s, r) { return s + r.n; }, 0), notes = [];
-      if (rep.repeats) notes.push(U.plural(rep.repeats, 'word was', 'words were') + ' already in the book, so they were left out.');
+      var parsed = CX.reader.readDays(text), fallback = cur.kind === 'days' ? cur.days : [];
+      // a corrected or rewritten day: replace its words, or add to them?
+      var redo = CX.content.rewrites(p, parsed, fallback), replace = [];
+      if (redo.length) {
+        var one = redo.length === 1;
+        var pick = await dom.confirm({
+          title: one ? dayName(redo[0].day) + ' already has words' : 'These days already have words',
+          body: [
+            'This reply brings a new version of ' + redo.map(function (r) { return dayName(r.day) + ' (' + r.got + ' words in the reply, ' + r.have + ' in the book)'; }).join(', ') + '.',
+            'Replace: ' + (one ? 'the day keeps' : 'the days keep') + ' only the words and clues of this reply. Choose it when you asked ChatGPT to fix or rewrite ' + (one ? 'it' : 'them') + '. Titles stay as they are.',
+            'Add: the words stay, changed clues are updated and new words are added. Choose it when you asked for more words.'
+          ],
+          actions: [{ label: 'Cancel', value: null }, { label: 'Add', value: 'add' }, { label: 'Replace', value: 'replace', primary: true }]
+        });
+        if (!pick) return;
+        if (pick === 'replace') replace = redo.map(function (r) { return r.day.id; });
+      }
+      var rep = CX.content.addReply(p, parsed, fallback, replace);
+      var plain = rep.added.filter(function (r) { return rep.replaced.indexOf(r.day) === -1; });
+      var n = plain.reduce(function (s, r) { return s + r.n; }, 0), notes = [], heads = [];
+      if (rep.replaced.length) heads.push('Replaced the words of ' + rep.replaced.map(dayName).join(', ') + ' with this reply.');
+      if (n) heads.push('Added ' + U.plural(n, 'word') + ': ' + plain.map(function (r) { return dayName(r.day).replace(' day', '') + ' (' + r.n + ')'; }).join(', ') + '.');
+      if (rep.updated) heads.push('Updated ' + U.plural(rep.updated, 'clue') + '.');
+      if (rep.repeats) notes.push(U.plural(rep.repeats, 'word was', 'words were') + ' already on another day, so they were left out.');
       if (rep.extra) notes.push(U.plural(rep.extra, 'word was', 'words were') + ' more than a day can use, so they were left out.');
       if (rep.skipped) {
         var why = {};
@@ -274,16 +310,33 @@
         notes.push(U.plural(rep.skipped, 'word was', 'words were') + ' left out (' + Object.keys(why).map(function (k) { return why[k] + ': ' + k; }).join('; ') + ').');
       }
       if (rep.unplaced) notes.push(U.plural(rep.unplaced, 'word', 'words') + ' did not match a day. Select the prompt they answer, then paste again.');
-      if (!n && !rep.texts) {
+      if (!heads.length && !rep.texts) {
+        if (rep.same) notes.unshift(U.plural(rep.same, 'word is', 'words are') + ' already in the book with the same clue.');
         state.result = msg('err', 'Nothing new was added.', notes.length ? notes : ['Check that you pasted the reply to this prompt.']);
         renderBody(); return;
       }
       var weak = rep.added.filter(function (r) { return CX.puzzles.status(p, r.day).state === 'weak'; });
-      if (weak.length) notes.push('The grid for ' + weak.map(function (r) { return (r.day.set === 'bonus' ? 'bonus day ' : 'day ') + r.day.no; }).join(', ') + ' came out small. Copy the prompt again: it asks for a few more words.');
-      state.result = msg('ok', n ? 'Added ' + U.plural(n, 'word') + ': ' + rep.added.map(function (r) { return (r.day.set === 'bonus' ? 'Bonus ' : 'Day ') + r.day.no + ' (' + r.n + ')'; }).join(', ') + '.' : 'Updated the day texts.', notes);
+      if (weak.length) notes.push('The grid for ' + weak.map(function (r) { return dayName(r.day).toLowerCase(); }).join(', ') + ' came out small. Copy the prompt again: it asks for a few more words.');
+      state.result = msg('ok', heads.length ? heads.join(' ') : 'Updated the day texts.', notes);
     }
     state.sel = CX.prompts.next(p);
     if (CX.prompts.list(p).every(function (x) { return x.done; })) state.result.appendChild(h('div', { class: 'fix-help' }, 'Every prompt is done. Look through the book on the right, then go on to the cover.'));
+    changed(true);
+  }
+
+  // Clears the words of days so the prompt asks ChatGPT for all of them again.
+  async function redoDays(days) {
+    var names = days.map(dayName).join(', ');
+    var ok = await dom.confirm({
+      title: days.length > 1 ? 'Write these days again?' : 'Write this day again?',
+      body: ['The words and clues of ' + names + ' are cleared. Titles, stories and questions stay, so the day themes do not change.',
+        'Then copy the prompt again: it asks ChatGPT for all their words. Save the project file first if you may want the old words back.'],
+      actions: [{ label: 'Cancel', value: false }, { label: 'Clear the words', value: true, danger: true }]
+    });
+    if (!ok) return;
+    CX.content.clearDays(state.p, days);
+    state.sel = CX.prompts.list(state.p).findIndex(function (pr) { return pr.kind === 'days' && pr.days.some(function (d) { return d.id === days[0].id; }); });
+    state.result = msg('ok', 'Cleared ' + names + '. Copy the prompt again and paste the new reply.');
     changed(true);
   }
 
@@ -303,12 +356,23 @@
     return s.join('');
   }
 
-  // One day: its grid, its words with a remove button each, a new grid.
+  /*
+   * One day, to fix by hand: its grid, its title and texts, its words with an editable clue each,
+   * a box to add a word, a new grid. Typing goes straight into the book; only adding or removing
+   * a word draws the grid and the list again. The step list is rebuilt when the window closes.
+   */
   function viewDay(day) {
-    var p = state.p, d = P.day(p, day.id);
-    var body = h('div', { class: 'day-view' });
+    var p = state.p, d = P.day(p, day.id), pl = p.plan, n = P.grid(pl.size).n;
+    var body = h('div', { class: 'day-view' }), top = h('div'), list = h('div');
+    function heading() { return dayName(day) + (d.title.trim() ? ': ' + d.title.trim() : ''); }
+    function text(key, label, hint, multi) {
+      var el = h(multi ? 'textarea' : 'input', { class: multi ? 'textarea short' : 'input', id: 'd-' + key, maxlength: multi ? 300 : 80, rows: multi ? 2 : null });
+      el.value = d[key];
+      el.addEventListener('input', function () { d[key] = el.value; document.getElementById('modalTitle').textContent = heading(); changed(); });
+      return field(label, el, hint, 'd-' + key);
+    }
     function draw() {
-      body.innerHTML = '';
+      top.innerHTML = '';
       var st = CX.puzzles.status(p, day), pz = st.pz;
       var head = h('div', { class: 'day-view-head' });
       if (pz) {
@@ -322,35 +386,73 @@
         if (pz.grid.letter) facts.push(pz.grid.mark ? 'The thick square holds ' + pz.grid.letter + ', letter ' + day.no + ' of the sentence.' : 'No square holds ' + pz.grid.letter + ': add words with that letter, or click New grid.');
         if (pz.grid.given.length) facts.push('Printed as a head start: ' + pz.grid.entries.filter(function (e) { return pz.grid.given.indexOf(e.dir + e.num) !== -1; }).map(function (e) { return e.w; }).join(', ') + ' (shaded).');
         pz.problems.forEach(function (x) { facts.push('⚠ ' + x.charAt(0).toUpperCase() + x.slice(1) + '.'); });
-      }
-      head.appendChild(h('div', { class: 'day-facts' }, [
-        d.story ? h('p', { class: 'story' }, d.story) : null,
-        d.question ? h('p', null, [h('b', null, 'Question: '), d.question]) : null,
-        h('ul', null, facts.map(function (f) { return h('li', null, f); }))
-      ]));
-      body.appendChild(head);
+      } else facts.push(d.words.length ? 'Too few words for a grid yet.' : 'No words yet: copy the prompt in step 3, or add words below.');
+      head.appendChild(h('div', { class: 'day-facts' }, h('ul', null, facts.map(function (f) { return h('li', null, f); }))));
+      top.appendChild(head);
+
+      list.innerHTML = '';
       var used = {};
       if (pz) pz.grid.entries.forEach(function (e) { used[e.w] = e; });
       var ol = h('ol', { class: 'q-list words' });
-      d.words.forEach(function (x, i) {
-        var e = used[x.w];
+      // the printed clues first (Across, then Down); the order of d.words stays, so does the grid
+      function rank(x, i) { var e = used[x.w]; return e ? (e.dir === 'A' ? 0 : 100) + e.num : 1000 + i; }
+      d.words.map(function (x, i) { return { x: x, r: rank(x, i) }; }).sort(function (a, b) { return a.r - b.r; }).forEach(function (o) {
+        var x = o.x, e = used[x.w];
+        var clue = h('input', { class: 'input clue-in', value: x.c, maxlength: 160, spellcheck: 'true', 'aria-label': 'Clue for ' + x.w });
+        function mark(v) { clue.classList.toggle('invalid', !v || CX.reader.givesAway(x.w, v)); }
+        clue.addEventListener('input', function () { var v = clue.value.trim(); mark(v); if (v) { x.c = v; changed(); } });
+        clue.addEventListener('change', function () { if (!clue.value.trim()) { clue.value = x.c; mark(x.c); } });
         ol.appendChild(h('li', { class: e ? '' : 'unused' }, [
-          h('div', { class: 'q' }, x.w + ' (' + x.w.length + ')'),
-          h('div', { class: 'a' }, x.c + (e ? ' · ' + e.num + (e.dir === 'A' ? ' Across' : ' Down') : ' · not in this grid')),
-          h('button', { type: 'button', class: 'mini danger-text', onclick: function () { d.words.splice(i, 1); draw(); changed(true); } }, 'Remove')
+          h('div', { class: 'q' }, [x.w + ' (' + x.w.length + ')', h('span', { class: 'where' }, e ? e.num + (e.dir === 'A' ? ' Across' : ' Down') : 'not in this grid')]),
+          clue,
+          h('button', { type: 'button', class: 'mini danger-text', onclick: function () { d.words.splice(d.words.indexOf(x), 1); draw(); changed(); } }, 'Remove')
         ]));
       });
-      body.appendChild(ol);
+      if (d.words.length) list.appendChild(ol);
+
+      // a word typed by hand, with the same checks as a pasted one
+      var nw = h('input', { class: 'input', id: 'dNewWord', placeholder: 'NEW WORD', maxlength: n, spellcheck: 'false', 'aria-label': 'New word' });
+      var nc = h('input', { class: 'input', id: 'dNewClue', placeholder: 'Its clue', maxlength: 160, 'aria-label': 'Clue for the new word' });
+      var err = h('div', { class: 'add-err', role: 'status' });
+      function add() {
+        var w = nw.value.trim().toUpperCase(), c = nc.value.trim(), why = '';
+        var other = P.days(p).filter(function (o) { return o.id !== day.id && ((p.days[o.id] || {}).words || []).some(function (x) { return x.w === w; }); })[0];
+        if (!/^[A-Z]+$/.test(w)) why = 'Type one word, letters only.';
+        else if (w.length < 3 || w.length > n) why = 'The word needs 3 to ' + n + ' letters.';
+        else if (d.words.some(function (x) { return x.w === w; })) why = w + ' is already on this day.';
+        else if (other && !P.audience(pl.audience).reuse) why = w + ' is already on ' + dayName(other).toLowerCase() + '.';
+        else if (!c) why = 'Write a clue for it.';
+        else if (CX.reader.givesAway(w, c)) why = 'The clue gives the answer away.';
+        if (why) { err.textContent = why; return; }
+        d.words.push({ w: w, c: c.charAt(0).toUpperCase() + c.slice(1) });
+        draw(); changed();
+        document.getElementById('dNewWord').focus();
+      }
+      [nw, nc].forEach(function (el) { el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); add(); } }); });
+      list.appendChild(h('div', { class: 'add-word' }, [nw, nc, h('button', { type: 'button', class: 'btn', onclick: add }, 'Add word')]));
+      list.appendChild(err);
     }
+    body.appendChild(top);
+    body.appendChild(h('div', { class: 'day-texts' }, [
+      text('title', 'Title', 'The day’s theme. Once it is set, replies from ChatGPT keep it.'),
+      pl.story ? text('story', 'Story line', null, true) : null,
+      pl.memory ? text('question', 'Memory question') : null
+    ]));
+    body.appendChild(h('div', { class: 'words-head' }, [
+      h('b', null, 'Words and clues'),
+      d.words.length ? dom.copyButton('Copy check prompt', function () { return CX.prompts.checkText(p, [day]); }, 'mini') : null
+    ]));
+    body.appendChild(h('p', { class: 'hint' }, 'Fix a clue right here. To swap a word, remove it and add a new one at the bottom. Or copy the check prompt, paste it into ChatGPT, then paste its reply in step 3 and choose Replace. A red clue is empty or gives its answer away.'));
+    body.appendChild(list);
     draw();
-    openModal((day.set === 'bonus' ? 'Bonus day ' : 'Day ') + day.no + (d.title ? ': ' + d.title : ''), body, [
-      { label: 'Remove all words', danger: true, run: function () { d.words.length = 0; draw(); changed(true); } },
-      { label: 'New grid', run: function () { d.v = (d.v || 0) + 1; draw(); changed(true); } },
+    openModal(heading(), body, [
+      { label: 'Remove all words', danger: true, run: function () { d.words.length = 0; draw(); changed(); } },
+      { label: 'New grid', run: function () { d.v = (d.v || 0) + 1; draw(); changed(); } },
       { label: 'Close', primary: true }
-    ]);
+    ], function () { changed(true); });
   }
 
-  function openModal(title, bodyEl, actions) {
+  function openModal(title, bodyEl, actions, onClose) {
     var back = document.getElementById('modal'), prev = document.activeElement;
     document.getElementById('modalTitle').textContent = title;
     var body = document.getElementById('modalBody');
@@ -358,7 +460,7 @@
     body.appendChild(bodyEl);
     var acts = document.getElementById('modalActions');
     acts.innerHTML = '';
-    function close() { back.hidden = true; back.classList.remove('wide'); document.removeEventListener('keydown', onKey, true); if (prev && prev.focus) prev.focus(); }
+    function close() { back.hidden = true; back.classList.remove('wide'); document.removeEventListener('keydown', onKey, true); if (onClose) onClose(); if (prev && prev.focus && document.contains(prev)) prev.focus(); }
     function onKey(e) { if (e.key === 'Escape') { e.preventDefault(); close(); } }
     actions.forEach(function (a) {
       acts.appendChild(h('button', { type: 'button', class: a.primary ? 'btn btn-primary' : 'btn' + (a.danger ? ' danger-text' : ''), onclick: function () { if (a.run) a.run(); if (!a.run || a.close) close(); } }, a.label));

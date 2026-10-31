@@ -444,3 +444,16 @@ details.spoiler p { margin-top: 6px; }
 .q-list.words li.unused .q { color: var(--muted); }
 .q-list.words li.unused .a { font-style: italic; }
 .modal-backdrop.wide .modal { width: 760px; }
+.fix-days { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line-2); }
+.fix-days .hint { margin: 2px 0 8px; }
+.day-texts { margin: 4px 0 6px; }
+.day-texts .field { margin-bottom: 10px; }
+.words-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
+.words-head + .hint { margin: 2px 0 6px; }
+.q-list.words .where { margin-left: 8px; font-family: var(--ui); font-size: 12px; color: var(--muted); }
+.q-list.words li.unused .where { font-style: italic; }
+.q-list.words .clue-in { margin-top: 4px; padding: 5px 8px; font-size: 13px; }
+.add-word { display: grid; grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.6fr) auto; gap: 8px; margin-top: 12px; }
+.add-word .input { padding: 6px 9px; font-size: 13px; }
+#dNewWord { text-transform: uppercase; }
+.add-err { min-height: 18px; margin-top: 4px; font-size: 12.5px; color: var(--bad); }

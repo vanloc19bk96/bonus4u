@@ -36,16 +36,21 @@
   // words is an extra rule for the answers, easy keeps them short (maxLen letters at most), clueHow
   // shows the AI what a good clue looks like, days caps the days one prompt asks for (fewer clues
   // at once, better clues), blurb is the back-cover tone, more gives extra head-start answers and
-  // defaults are set when it is picked.
+  // defaults are set when it is picked. reader is who the clues are read aloud as in the checks,
+  // level the reading level, clueWords the longest clue, loose lets everyday words fill half a
+  // day (instead of a third) and reuse lets a good word come back on another day.
   var AUDIENCES = [
     { id: 'seniors', label: 'Adults & seniors', who: 'adults and seniors who enjoy a gentle daily crossword', clue: 'friendly, everyday English', blurb: 'cozy and inviting' },
     { id: 'women', label: 'Women', who: 'women who like a calm, cozy puzzle with their morning coffee', clue: 'friendly, everyday English', blurb: 'cozy and inviting' },
     { id: 'family', label: 'The whole family', who: 'families solving together, from teenagers to grandparents', clue: 'simple, everyday English', blurb: 'warm and inviting',
       words: 'words everyone in the family knows, from a teenager to a grandparent' },
-    { id: 'young', label: 'Young kids (6 to 8)', who: 'children aged 6 to 8 who are just starting to read on their own', clue: 'very short, simple words a young reader knows', easy: true, maxLen: 7, more: true,
-      clueHow: 'Write every clue the way a parent explains a word to a 6-year-old: what it looks like, what it does, what sound it makes or where you find it. Only short, common words a child reads alone. Good: "Santa’s helper who makes toys" (ELF), "It rings: jingle, jingle!" (BELL), "Cold and white, it falls in winter" (SNOW). Bad: "Diminutive festive artisan", "Festive metallic chimer". Every clue fits only its own answer: "A sweet treat you eat" could be many things, "Red and white sweet shaped like a hook" is one. Never a clue with two meanings or a trick. Before you reply, read every clue as a 6-year-old would and rewrite any clue with a hard word in it.', days: 3,
-      words: 'very easy words a child aged 6 to 8 can read and spell', blurb: 'fun and inviting, written for the parents and grandparents who buy it', defaults: { size: 9, lines: 2 } },
+    { id: 'young', label: 'Young kids (6 to 8)', who: 'children aged 6 to 8 who are just starting to read on their own', clue: 'simple second-grade words a young reader knows', easy: true, maxLen: 7, more: true,
+      reader: 'a 6-year-old', level: 'second-grade readers (ages 6 to 8)', clueWords: 12, loose: true, reuse: true,
+      clueHow: 'Write every clue the way a parent explains a word to a 6-year-old: what it looks like, what it does, what sound it makes or where you find it. Only short, common words a child reads alone. Good: "Santa’s helper who makes toys" (ELF), "It rings: jingle, jingle!" (BELL), "Cold and white, it falls in winter" (SNOW). Bad: "Diminutive festive artisan", "Festive metallic chimer". Never a clue with two meanings or a trick.', days: 3,
+      words: 'very easy words a child aged 6 to 8 can read and spell. Think about reading and spelling, not just whether a child knows the word: a word a child can say but not spell yet (like WREATH or GNOME) is too hard',
+      blurb: 'fun and inviting, written for the parents and grandparents who buy it', defaults: { size: 9, lines: 2 } },
     { id: 'kids', label: 'Kids (8 to 12)', who: 'children aged 8 to 12', clue: 'very simple words a child knows', easy: true,
+      reader: 'a 9-year-old', clueWords: 10, reuse: true,
       clueHow: 'Write every clue the way you would explain the word to a child: what it looks like, what it does or where you find it, in common words. Good: "Santa’s helper who makes toys" (ELF). Bad: "Diminutive festive artisan".',
       words: 'easy, well-known words that a child aged 8 to 12 knows and can spell', blurb: 'fun and inviting, written for the parents and grandparents who buy it' }
   ];
