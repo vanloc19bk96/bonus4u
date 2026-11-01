@@ -320,6 +320,8 @@ function checkPage(pg) {
       const book = CX.layout.layoutBook(p, {});
       book.pages.forEach(checkPage);
       ok(book.m.inside >= CX.kdp.margins(book.pages.length).minInside * 72, 'gutter too small for ' + book.pages.length + ' pages');
+      const gap = CX.kdp.CLEARANCE * 72 - 0.01;
+      book.pages.forEach((pg) => ok(pg.x0 - pg.safe.x0 >= gap && pg.safe.x1 - pg.x1 >= gap && pg.y0 - pg.safe.y0 >= gap && pg.safe.y1 - pg.y1 >= gap, 'content touches the safe area on page ' + pg.num));
       book.pages.filter((pg) => pg.kind === 'day').forEach((pg) => ok(pg.meta.cell >= 18, 'grid squares ' + (pg.meta.cell || 0).toFixed(1) + ' pt on ' + t.id));
       book.pages.filter((pg) => pg.kind === 'clues').forEach((pg) => ok(pg.meta.clueSize >= 7.5, 'clues ' + pg.meta.clueSize + ' pt'));
       counts.push(t.id + '/' + pr + '/' + size + ':' + book.pages.length);
@@ -502,6 +504,14 @@ function checkPage(pg) {
     const s10 = files['ppt/slides/slide10.xml'];
     words.forEach((w) => ok(s10.includes(w.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')), 'missing text on slide 10: ' + w));
     ok(/<a:prstGeom prst="rect">/.test(s10), 'shapes kept');
+    for (const trim of ['6x9', '8.5x11']) {
+      const bk = CX.layout.layoutBook(fullProject((q) => { q.book.trim = trim; q.book.print = 'xl'; }), {});
+      const fs2 = unzip(await CX.pptx.build(bk));
+      bk.pages.forEach((pg, i) => (fs2['ppt/slides/slide' + (i + 1) + '.xml'].match(/<p:sp>.*?<\/p:sp>/g) || []).filter((sp) => sp.includes('txBox="1"')).forEach((sp) => {
+        const m = /<a:off x="(-?\d+)" y="-?\d+"\/><a:ext cx="(\d+)"/.exec(sp), x = +m[1] / 12700, w = +m[2] / 12700;
+        ok(x >= pg.safe.x0 - 0.01 && x + w <= pg.safe.x1 + 0.01, 'text box past the safe area on ' + trim + ' slide ' + (i + 1) + ': ' + x.toFixed(1) + '-' + (x + w).toFixed(1));
+      }));
+    }
     const cfiles = unzip(await CX.pptx.buildCover(CX.cover.build(p, book.pages.length)));
     ok(cfiles['ppt/slides/slide1.xml'] && !cfiles['ppt/slides/slide2.xml'], 'cover is one slide');
   });

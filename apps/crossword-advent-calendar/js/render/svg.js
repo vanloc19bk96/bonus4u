@@ -52,9 +52,10 @@
     }
     s.push('<g>' + items(page.items) + '</g>');
     if (opts.margins) {
-      s.push('<rect x="' + page.x0 + '" y="' + page.y0 + '" width="' + (page.x1 - page.x0) + '" height="' + (page.y1 - page.y0) + '" class="safe"/>');
-      var gx = page.side === 'right' ? 0 : page.x1;
-      var gw = page.side === 'right' ? page.x0 : W - page.x1;
+      var sf = page.safe;
+      s.push('<rect x="' + sf.x0 + '" y="' + sf.y0 + '" width="' + (sf.x1 - sf.x0) + '" height="' + (sf.y1 - sf.y0) + '" class="safe"/>');
+      var gx = page.side === 'right' ? 0 : sf.x1;
+      var gw = page.side === 'right' ? sf.x0 : W - sf.x1;
       s.push('<rect x="' + gx + '" y="0" width="' + gw + '" height="' + H + '" class="gutter"/>');
     }
     s.push('</svg>');

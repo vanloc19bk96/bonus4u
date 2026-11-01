@@ -68,6 +68,12 @@
     this.x0 = this.side === 'right' ? m.inside : m.outside;
     this.x1 = L.W - (this.side === 'right' ? m.outside : m.inside);
     this.y0 = m.top; this.y1 = L.H - m.bottom;
+    var s = L.safe;
+    this.safe = {
+      x0: this.side === 'right' ? s.inside : s.outside,
+      x1: L.W - (this.side === 'right' ? s.outside : s.inside),
+      y0: s.top, y1: L.H - s.bottom
+    };
     this.cb = this.y1 - L.foot;
     this.cx = (this.x0 + this.x1) / 2;
     this.w = this.x1 - this.x0;
@@ -210,6 +216,7 @@
     this.W = t.w * PT; this.H = t.h * PT;
     var m = KDP.margins(pages);
     this.m = { inside: m.inside * PT, outside: m.outside * PT, top: m.top * PT, bottom: m.bottom * PT };
+    this.safe = { inside: m.safe.inside * PT, outside: m.safe.outside * PT, top: m.safe.top * PT, bottom: m.safe.bottom * PT };
     this.S = sizes(PRINT[project.book.print] ? PRINT[project.book.print].base : 14);
     this.foot = this.S.folio + 12;
     this.pages = [];

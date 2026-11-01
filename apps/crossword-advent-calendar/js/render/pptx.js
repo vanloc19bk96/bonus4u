@@ -4,7 +4,8 @@
  * text box (lines of one paragraph share a box), and boxes, lines, circles and shapes stay vector
  * shapes, so nothing is merged or re-flowed on import the way Canva does with a PDF.
  * Text boxes are centred on the printed line and a little wider than it, so a stand-in font keeps
- * each line on its own line. Fonts are named, not embedded: Source Serif 4 and Source Sans 3.
+ * each line on its own line, but they stop at the safe area so no box reaches the KDP margins.
+ * Fonts are named, not embedded: Source Serif 4 and Source Sans 3.
  */
 (function (root) {
   'use strict';
@@ -65,12 +66,19 @@
     return out;
   }
 
-  function textbox(g, id, F) {
+  // The widest box for this line that stays inside lim (never narrower than the line itself).
+  function boxWidth(align, ax, want, W, lim) {
+    var room = align === 'center' ? Math.min(ax - lim.x0, lim.x1 - ax) * 2 : align === 'right' ? ax - lim.x0 : lim.x1 - ax;
+    return Math.min(want, Math.max(W, room));
+  }
+
+  function textbox(g, id, F, lim) {
     var it = g.first, f = F[it.font], size = it.size, face = FACE[it.font] || FACE.serif;
     var mid = (f.ascent - f.descent) / 2 * size; // middle of the line's ink box, above the baseline
     var W = 0;
     g.lines.forEach(function (l) { if (l.w > W) W = l.w; });
     var pad = Math.max(size * 0.8, W * 0.12), bw = W + pad;
+    if (!it.angle) bw = boxWidth(it.align, g.ax, bw, W, lim);
     var step = g.step || size * 1.2, n = g.lines.length;
     var bh = (n - 1) * step + size * 1.6;
     var cy = (g.lines[0].y + g.lines[n - 1].y) / 2 - mid;
@@ -125,8 +133,8 @@
   }
 
   function slide(page, F) {
-    var body = '', id = 2;
-    groupText(page.items, F).forEach(function (it) { body += it.t === 'textbox' ? textbox(it, id++, F) : shape(it, id++); });
+    var body = '', id = 2, lim = page.safe || { x0: 0, x1: page.W };
+    groupText(page.items, F).forEach(function (it) { body += it.t === 'textbox' ? textbox(it, id++, F, lim) : shape(it, id++); });
     return HEAD + '<p:sld ' + NS + '><p:cSld><p:spTree>' + TREE + body + '</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>';
   }
 

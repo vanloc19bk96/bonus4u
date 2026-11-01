@@ -42,6 +42,7 @@
     OUTSIDE: 0.5,              // double the KDP minimum
     TOP: 0.55,
     BOTTOM: 0.55,
+    CLEARANCE: 0.125,          // the content stays this far inside the safe area
     SPINE_TEXT_MIN_PAGES: 79,  // KDP prints spine text from 79 pages
     COVER_BLEED: 0.125,
 
@@ -65,12 +66,14 @@
       return GUTTER[GUTTER.length - 1].inside;
     },
 
-    // The margins we print with, for a book of this many pages (inches).
+    // The margins we print with, for a book of this many pages (inches); safe: the safe area around them.
     margins: function (pages) {
+      var safe = { inside: KDP.minGutter(pages) + KDP.GUTTER_SAFETY, outside: KDP.OUTSIDE, top: KDP.TOP, bottom: KDP.BOTTOM };
       return {
-        inside: KDP.minGutter(pages) + KDP.GUTTER_SAFETY,
+        inside: safe.inside + KDP.CLEARANCE,
         minInside: KDP.minGutter(pages),
-        outside: KDP.OUTSIDE, top: KDP.TOP, bottom: KDP.BOTTOM
+        outside: safe.outside + KDP.CLEARANCE, top: safe.top + KDP.CLEARANCE, bottom: safe.bottom + KDP.CLEARANCE,
+        safe: safe
       };
     },
 
