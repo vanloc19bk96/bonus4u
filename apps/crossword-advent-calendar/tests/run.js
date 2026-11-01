@@ -457,6 +457,29 @@ function checkPage(pg) {
     ok(!CX.cover.build(p, 60).items.some((it) => it.angle), 'no spine text under 79 pages');
   });
 
+  await test('layout: no text on top of other text, on any page, any trim x text size', () => {
+    const LONG = 'A Very Long Day Title That Keeps Going Well Past What Any One Line Of This List Could Ever Hold';
+    function clash(pg) {
+      const b = pg.items.filter((it) => it.t === 'text').map((it) => ({ it, x0: it.x, x1: it.x + textWidth(it), y0: it.y - it.size * 0.72, y1: it.y + it.size * 0.2 }));
+      for (let i = 0; i < b.length; i++) for (let j = i + 1; j < b.length; j++) {
+        if (Math.min(b[i].x1, b[j].x1) - Math.max(b[i].x0, b[j].x0) > 0.5 && Math.min(b[i].y1, b[j].y1) - Math.max(b[i].y0, b[j].y0) > 0.5) return b[i].it.str + ' / ' + b[j].it.str;
+      }
+      return '';
+    }
+    CX.kdp.TRIMS.forEach((t) => ['regular', 'large', 'xl'].forEach((print) => [[24, false], [25, false], [24, true]].forEach(([days, bonus]) => {
+      const p = fullProject((q) => { q.book.trim = t.id; q.book.print = print; q.plan.days = days; q.plan.bonus = bonus; });
+      CX.plan.days(p).forEach((d) => { if (d.no % 2) p.days[d.id].title = LONG; });
+      const book = CX.layout.layoutBook(p, {}), at = t.id + '/' + print + '/' + days + (bonus ? '+bonus' : '');
+      book.pages.forEach((pg) => { const c = clash(pg); ok(!c, 'text overlaps on page ' + pg.num + ' (' + pg.label + ') of ' + at + ': ' + c); });
+      const gates = {};
+      book.pages.filter((pg) => pg.kind === 'gate').forEach((pg) => { gates[pg.label] = (gates[pg.label] || 0) + 1; });
+      Object.keys(gates).forEach((w) => eq(gates[w], 2, 'a week gate is two pages: ' + w + ' of ' + at));
+      const main = book.pages.filter((pg) => pg.kind === 'days')[0];
+      const refs = main.items.filter((it) => it.t === 'text' && /^page \d+$/.test(it.str)).map((it) => it.x + textWidth(it));
+      ok(refs.length && refs.every((r) => Math.abs(r - refs[0]) < 0.5), 'page refs line up on the right: ' + at);
+    })));
+  });
+
   // ---------- PDF ----------
   await test('pdf: interior and cover, checked with PyMuPDF', async () => {
     const p = fullProject();

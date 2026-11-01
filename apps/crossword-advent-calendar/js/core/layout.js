@@ -335,6 +335,7 @@
     });
     var bh = bw * 1.1, ns = Math.max(7, bw * 0.26);
     this.need(rows.length * (bh + gap * 2) + S.b);
+    pg = this.pg; // need() may have started a new page
     var y = this.y + S.b * 0.4, i = 0;
     rows.forEach(function (r, ri) {
       var cells = r.reduce(function (a, b) { return a + b; }, 0), spaces = r.length - 1;
@@ -353,14 +354,13 @@
   };
 
   // ---------- the grid ----------
-  var GRID_PAD = 7;     // the most room the rounded frame takes around a grid
+  var GRID_PAD = 1;     // room for the outer lines of a grid
   /*
    * Draws a puzzle grid with its top-left at x, y and squares of cs points. mode: 'puzzle'
    * (numbers, head-start letters, the thick square) or 'solution' (every letter).
    */
   function drawGrid(pg, pz, x, y, cs, mode) {
-    var g = pz.grid, pad = Math.max(4, Math.min(GRID_PAD, cs * 0.28));
-    pg.rbox(x - pad, y - pad, g.cols * cs + pad * 2, g.rows * cs + pad * 2, pad * 1.2, Math.max(1, cs * 0.05));
+    var g = pz.grid;
     var ns = Math.max(7, cs * 0.3), ls = mode === 'solution' ? cs * 0.62 : cs * 0.6;
     for (var r = 0; r < g.rows; r++) {
       for (var c = 0; c < g.cols; c++) {
@@ -379,7 +379,6 @@
       pg.box(mx + lw / 2, my + lw / 2, cs - lw, cs - lw, lw);
       if (mode !== 'solution') pg.dot(mx + cs - lw - cs * 0.12, my + lw + cs * 0.12, Math.max(1, cs * 0.06));
     }
-    return { w: g.cols * cs, h: g.rows * cs, pad: pad };
   }
 
   // ---------- front matter ----------
@@ -504,39 +503,48 @@
     L.page('days', 'The Days', 'The days');
     L.pg.items.length = 0; L.y = L.pg.y0;
     L.heading('Advent crosswords', 'The ' + capWords(NUMW[n]) + ' Days', 'One grid a day. Check the box when the grid is full.', 'left');
-    var gap = S.b * 0.6, rowsAll = Math.ceil(n / 2) + (p.plan.bonus ? 6 : 0);
-    // rows shrink (down to two lines of small type) so the whole list fits one page when it can
-    // (a row advances rowH + gap * 0.2; the solutions line and the bonus label need their room too)
-    var room = L.pg.cb - L.y - S.b * 0.8 - S.lead - 4 - (p.plan.bonus ? S.b * 2.6 : 0);
-    var minH = S.b * 1.9 + gap * 0.3, fitH = function (rows) { return room / rows - gap * 0.2; };
-    var rowH = Math.max(minH, Math.min(Math.max(S.b * 2.7, S.lead * 1.95), fitH(Math.ceil(n / 2))));
-    if (p.plan.bonus && (rowH + gap * 0.2) * rowsAll > room) rowH = Math.max(minH, fitH(rowsAll));
-    ['main', 'bonus'].forEach(function (set) {
-      var list = ds.filter(function (d) { return d.set === set; });
-      if (!list.length) return;
-      if (set === 'bonus') L.label('The Twelve Days');
-      for (var i = 0; i < list.length; i += 2) {
-        L.need(rowH + gap * 0.5);
-        var pg = L.pg, colW = (pg.w - gap) / 2, y = L.y + gap * 0.5;
-        [list[i], list[i + 1]].forEach(function (d, k) {
-          if (!d) return;
-          var x = pg.x0 + k * (colW + gap);
-          pg.rbox(x, y, colW, rowH - gap * 0.3, 4, 0.8, 0.7);
-          var ns = S.b * 1.25, nw = wid('00', ns, 'serifBold');
-          pg.text(String(d.no), x + S.b * 0.45 + nw / 2, y + rowH * 0.5 + ns * 0.33, ns, 'serifBold', { align: 'center' });
-          var bs = S.b * 1.05, tx = x + S.b * 0.7 + nw, tw = colW - (tx - x) - bs - S.b * 0.9;
-          var title = ((p.days[d.id] || {}).title || '').trim() || (L.draft ? 'Day ' + d.no : d.date);
-          var ts = Math.max(8, S.b * 0.8), tl = fit(title, 'serif', tw, ts, Math.max(7.5, ts * 0.8), 2);
-          var page = refs.days && refs.days[d.id] ? 'page ' + refs.days[d.id] : d.date;
-          var lh = tl.size * 1.15, blockH = tl.lines.length * lh + S.small * 1.2, ty = y + (rowH - gap * 0.3 - blockH) / 2;
-          tl.lines.forEach(function (l, j) { pg.text(l, tx, ty + (j + 0.82) * lh, tl.size, 'serif'); });
-          pg.text(page, tx, ty + tl.lines.length * lh + S.small * 0.95, Math.max(7, S.small * 0.95), 'sans', { ink: 0.8 });
-          pg.rbox(x + colW - bs - S.b * 0.45, y + (rowH - gap * 0.3 - bs) / 2, bs, bs, 2, 0.9);
-        });
-        L.y = y + rowH - gap * 0.3;
-      }
+    // one row a day, like a table of contents: the page refs and boxes line up down the page, and
+    // the rows shrink so the whole list fits one page when it can (the solutions line and the
+    // bonus label need their room too). A very long title takes a second line and a taller row.
+    // When the bonus days cannot share the page they get their own, so no group is cut in two.
+    var MIN_ROW = 12, labelH = S.b * 2.6, room = L.pg.cb - L.y - S.b * 0.8 - S.lead - 4;
+    var apart = p.plan.bonus && (room - labelH) / ds.length < MIN_ROW;
+    var rows = apart ? n : ds.length;
+    if (p.plan.bonus && !apart) room -= labelH;
+    var ts = Math.max(9.5, Math.min(S.b, room / rows * 0.72)), lh = ts * 1.2, gap = S.b * 0.5;
+    var ps = Math.max(7, ts * 0.8), nw = wid('00', ts, 'serifBold');
+    function pageOf(d) { return refs.days && refs.days[d.id] ? 'page ' + refs.days[d.id] : d.date; }
+    var pw = ds.reduce(function (m, d) { return Math.max(m, wid(pageOf(d), ps, 'sans')); }, wid('page 000', ps, 'sans'));
+    var bs = ts * 0.95, tw = L.pg.w - nw - pw - bs - gap * 3;
+    var titled = ds.map(function (d) {
+      var title = ((p.days[d.id] || {}).title || '').trim() || (L.draft ? 'Day ' + d.no : d.date);
+      return { d: d, lines: wrap(title, ts, 'serif', tw) };
     });
-    if (refs.solutions) { L.y += S.b * 0.8; L.need(S.lead); L.y += S.lead; L.pg.text('Solutions start on page ' + refs.solutions + '.', L.pg.x0, L.y - S.lead * 0.26, S.fact, 'serif', { ink: 0.85 }); }
+    var extra = titled.reduce(function (m, r) { return m + (r.d.set === 'main' || !apart ? r.lines.length - 1 : 0); }, 0);
+    var rowH = Math.max(MIN_ROW, lh, Math.min(S.lead * 1.5, (room - extra * lh) / rows));
+    ['main', 'bonus'].forEach(function (set) {
+      var list = titled.filter(function (r) { return r.d.set === set; });
+      if (!list.length) return;
+      if (set === 'bonus') {
+        if (apart) L.page(L.flow.kind, L.flow.label, L.flow.head);
+        L.label('The Twelve Days');
+      }
+      list.forEach(function (r) {
+        var more = (r.lines.length - 1) * lh;
+        L.need(rowH + more);
+        var pg = L.pg, base = L.y + rowH / 2 + ts * 0.33, last = base + more, tx = pg.x0 + nw + gap;
+        pg.text(String(r.d.no), pg.x0 + nw, base, ts, 'serifBold', { align: 'right' });
+        r.lines.forEach(function (l, j) { pg.text(l, tx, base + j * lh, ts, 'serif'); });
+        var bx = pg.x1 - bs, px = bx - gap, pl = wid(pageOf(r.d), ps, 'sans');
+        pg.text(pageOf(r.d), px, last, ps, 'sans', { align: 'right', ink: 0.8 });
+        var lx0 = tx + wid(r.lines[r.lines.length - 1], ts, 'serif') + gap * 0.6, lx1 = px - pl - gap * 0.6;
+        if (lx1 - lx0 > S.b) pg.line(lx0, last, lx1, last, 0.75, 0.55, [0.75, 3]);
+        pg.rbox(bx, last - ts * 0.33 - bs / 2, bs, bs, 2, 0.9);
+        L.y += rowH + more;
+      });
+    });
+    // only where it fits: never a page of its own for this one line
+    if (refs.solutions && L.y + S.b * 0.8 + S.lead <= L.pg.cb) { L.y += S.b * 0.8 + S.lead; L.pg.text('Solutions start on page ' + refs.solutions + '.', L.pg.x0, L.y - S.lead * 0.26, S.fact, 'serif', { ink: 0.85 }); }
   }
 
   function stripPage(L) {
@@ -605,7 +613,8 @@
         notes.push(r.g ? cap(many[r.g]) + (r.g > 1 ? ' are' : ' is') + ' printed for you ' + span + '.' : 'No answers are printed ' + span + ': the grids are all yours.');
       });
       notes.push('The letter strip fills boxes ' + wk.from + (wk.to !== wk.from ? ' to ' + wk.to : '') + (wk.set === 'bonus' ? ' of the bonus strip.' : ' this ' + unit + '.'));
-      L.bullets(notes);
+      // the tightest level keeps only the strip note: the subtitle already says what the others do
+      L.bullets(level < 3 ? notes : notes.slice(-1));
       if (level < 2) L.label('The days of this ' + unit);
       var rowH = S.lead * (level ? 1.45 : 1.8), colW = (L.pg.w - S.b) / 2;
       for (var i = 0; level < 2 && i < ds.length; i += 2) {
@@ -632,9 +641,9 @@
           : 'None of the ' + NUMW[total] + ' boxes are filled. ' + cap(NUMW[total]) + ' days are still to come.';
       L.para(msg, 'sans', S.small * 1.15, S.lead * 0.9);
     }
-    for (var level = 0; level < 3; level++) {
+    for (var level = 0; level < 4; level++) {
       left(level);
-      if (L.pages.length === mark + 1 || level === 2) break;
+      if (L.pages.length === mark + 1 || level === 3) break;
       L.pages.length = mark;
     }
 
@@ -681,7 +690,7 @@
     tl.lines.forEach(function (l, i) { pg.text(l, tx, ty + (i + 0.85) * lh, tl.size, 'serifBold', { ink: d.title.trim() ? 1 : 0.5 }); });
     var dy = ty + tl.lines.length * lh + S.small * 1.35, dw = pg.text(day.date + '  ', tx, dy, Math.max(7.5, S.small * 1.05), 'sans', { ls: 1 });
     if (P.stars(p, day)) stars(pg, tx + dw, dy + 0.5, P.stars(p, day), Math.max(7.5, S.small * 1.05));
-    return top + bs + S.b * 1.2;
+    return Math.max(top + bs, dy + S.small * 0.3) + S.b * 1.2; // a long title can run past the number box
   }
 
   function gridPage(L, day, pz) {
@@ -700,8 +709,8 @@
     var cs = Math.min(36, (pg.w - pad * 2 - 2) / g.cols, (availH - pad * 2) / g.rows);
     var gw = g.cols * cs, gh = g.rows * cs;
     var gx = pg.cx - gw / 2, gy = y + pad + Math.max(0, Math.min(S.b * 1.2, (availH - gh - pad * 2) * 0.3));
-    var res = drawGrid(pg, pz, gx, gy, cs, 'puzzle');
-    var by = gy + gh + res.pad;
+    drawGrid(pg, pz, gx, gy, cs, 'puzzle');
+    var by = gy + gh;
     if (letterOk) pg.text('Write the thick square letter in box ' + day.no + '.', pg.cx, by + S.b * 1.7, Math.max(8, S.small * 1.2), 'sans', { align: 'center' });
     if (pg.cb - by > S.b * 7) garland(pg, pg.cx, (by + S.b * 2.2 + pg.cb) / 2, Math.min(90, pg.w * 0.3));
     pg.meta.cell = cs;
