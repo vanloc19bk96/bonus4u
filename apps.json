@@ -68,6 +68,11 @@
       "description": "Cryptogram puzzle book interiors, ready for KDP."
     },
     {
+      "slug": "escape-room-book-maker",
+      "title": "Escape Room Book Maker",
+      "description": "Pencil-only escape room books: the AI chat writes the story, the app builds and proves the puzzles, codes and route."
+    },
+    {
       "slug": "find-the-killer-puzzle-books",
       "title": "Mystery Story Weaver",
       "entry": "mystery-story-weaver.html",
