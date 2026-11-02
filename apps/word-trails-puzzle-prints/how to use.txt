@@ -15,6 +15,10 @@ their owner, so leave them off your title, subtitle, cover and keywords. The app
 puzzle "Word Trails"; you can choose your own name in step 1.
 
 1. The book: who will solve it, the theme of the book, how many puzzles, the title and your pen name.
+   Choosing Kids or Young kids also sets an easy level, a fitting grid and the "For kids" theme (you can
+   change them). The prompts then ask for easy words, simple titles and child-friendly subjects, and
+   the How to Play page uses simpler words. Read every puzzle yourself: the app checks the letters,
+   not whether a child knows a word.
 2. Puzzles and pages: the grid size (6 x 8 is the classic), the level, hints, puzzle log and
    stars, the page size, one or two puzzles to a page and the text size.
      Easy: gentle trails; the page shows each word's first letter and length.

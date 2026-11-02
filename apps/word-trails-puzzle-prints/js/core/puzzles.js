@@ -37,7 +37,7 @@
     var lim = P.limits(project), n = P.letters(d.span).length;
     if (!n) return 'no span word yet';
     if (n < lim.spanMin) return 'the span word has ' + n + ' letters; it needs at least ' + lim.spanMin + ' to reach from edge to edge';
-    if (n > lim.spanMax) return 'the span word has ' + n + ' letters; ' + lim.spanMax + ' is the most this grid can hold';
+    if (n > lim.spanMax) return 'the span word has ' + n + ' letters; ' + lim.spanMax + ' is the most for this grid and reader';
     return '';
   }
 

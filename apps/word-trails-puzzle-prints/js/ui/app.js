@@ -54,13 +54,13 @@
     var p = state.p, pl = p.plan, b = p.book;
     var out = [h('p', { class: 'lead' }, 'Who is the book for, what is it about and how many puzzles does it hold?')];
     out.push(h('div', { class: 'field' }, [h('div', { class: 'field-label' }, 'Who will solve it?'), h('div', { class: 'cards' }, P.AUDIENCES.map(function (a) {
-      return radio('aud', a.label, null, pl.audience === a.id, function () { pl.audience = a.id; Object.assign(pl, a.defaults); changed(true); });
+      return radio('aud', a.label, null, pl.audience === a.id, function () { P.setAudience(pl, a.id); changed(true); });
     }))]));
     var custom = h('textarea', { class: 'textarea short', id: 'fCustom', rows: 2, maxlength: 300, placeholder: 'For example: life by the sea, with boats, lighthouses, fish and seaside towns' });
     custom.value = pl.customTheme;
     custom.addEventListener('input', function () { pl.customTheme = custom.value; changed(); });
     out.push(field('Theme of the book', select('fTheme', P.THEMES.map(function (t) { return { v: t.id, t: t.title + ' – ' + t.sub }; }), pl.theme, function (v) { pl.theme = v; changed(true); }),
-      'Every puzzle gets its own subject inside this theme.', 'fTheme'));
+      'Every puzzle gets its own subject inside this theme.' + (P.audience(pl.audience).kid ? ' For kids, ChatGPT gets a child-friendly version of the theme.' : ''), 'fTheme'));
     if (pl.theme === 'custom') out.push(field('Your theme', custom, 'ChatGPT writes every puzzle around it.', 'fCustom'));
     var other = state.otherCount || P.COUNTS.indexOf(pl.count) === -1;
     out.push(h('div', { class: 'field' }, [h('div', { class: 'field-label' }, 'How many puzzles?'), h('div', { class: 'cards' }, P.COUNTS.map(function (n) {
@@ -117,7 +117,7 @@
     var levels = [{ id: 'mixed', label: 'Mixed', help: 'Easy first, then medium, then hard, each with its own opening page.' }].concat(P.LEVELS);
     out.push(h('div', { class: 'field' }, [h('div', { class: 'field-label' }, 'Level'), h('div', { class: 'cards' }, levels.map(function (l) {
       return radio('level', l.label, l.help, pl.level === l.id, function () { pl.level = l.id; changed(true); });
-    }))]));
+    })), P.audience(pl.audience).kid ? h('div', { class: 'hint' }, 'For kids, Easy is the best start: Mixed and Hard end with pages that print no help.') : null]));
     out.push(h('div', { class: 'field' }, [h('div', { class: 'field-label' }, 'In the book'), h('div', { class: 'stack' }, [
       check('Hints', 'Two rounds at the back: the theme in plain words and where the span word starts, then two free words', pl.hints, function (v) { pl.hints = v; changed(); }),
       check('Puzzle log', 'A page to tick off each puzzle', pl.log, function (v) { pl.log = v; changed(); }),

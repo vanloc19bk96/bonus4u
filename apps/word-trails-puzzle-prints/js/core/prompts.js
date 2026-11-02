@@ -50,14 +50,15 @@
 
   function label(pz) { return 'PUZZLE ' + pz.no; }
 
-  // The chosen theme, or the user's own one, as { guide, topics, sample, easy }.
+  // The chosen theme, or the user's own one, as { guide, topics, sample, easy }: for kids, its kid version.
   function topic(project) {
-    var pl = project.plan, t = P.theme(pl.theme);
-    if (t.id !== 'custom') return t;
-    var own = pl.customTheme.trim();
-    if (!own) return P.theme('mix');
-    return { guide: own, topics: 'as many different sides of this theme as you can find',
-      sample: { title: 'A Playful Title', theme: 'What the words have in common', span: 'THESPANWORD', words: ['WORD', 'ANOTHER', 'THIRDWORD', 'FOURTH', 'FIFTHONE', 'SIXTH'] } };
+    var pl = project.plan, a = P.audience(pl.audience), t = P.theme(pl.theme), own = pl.customTheme.trim();
+    if (t.id === 'custom' && own) {
+      return { guide: own, topics: 'as many different sides of this theme as you can find',
+        sample: { title: a.kid ? 'A Fun Title' : 'A Playful Title', theme: 'What the words have in common', span: a.kid ? 'SPANWORD' : 'THESPANWORD', words: ['FIRST', 'ANOTHER', 'THIRD', 'FOURTH', 'FIFTH', 'SIXTH', 'LAST'] } };
+    }
+    if (t.id === 'custom') t = P.theme('mix');
+    return a.kid && t.kid || t;
   }
 
   function about(project) {
@@ -76,23 +77,32 @@
    * What makes the puzzle work, for the writing prompt and the check prompt alike. Chat models know
    * the subject but not the craft, so it is spelled out: a sideways title, a span word that sums up
    * the set, words that clearly belong and can't be mistaken for one another, and a spread of lengths
-   * (the app can only fill the grid exactly when it has lengths to choose from).
+   * (the app can only fill the grid exactly when it has lengths to choose from). The app takes the
+   * earlier words first, so in a kid book the easiest words have to come first.
    */
   function rules(project) {
     var lim = P.limits(project), a = P.audience(project.plan.audience), tp = topic(project), L = [];
-    var mid = Math.min(lim.maxLen, lim.minLen + 3);
+    var mid = Math.min(lim.maxLen, lim.minLen + 3), n = P.letters(tp.sample.span).length;
+    var count = n >= lim.spanMin && n <= lim.spanMax ? ' (' + tp.sample.span + ' has ' + n + ')' : '';
     L.push('Rules for each puzzle:');
-    L.push('- TITLE: a playful hint of 2 to 5 words that points at the theme sideways, like a pun or a common saying ("' + tp.sample.title + '"). It must not contain the span word or any of the words. It should make the solver think, not state the category.');
-    L.push('- THEME: the plain meaning in under 10 words ("' + tp.sample.theme + '"). It is printed in the hints at the back of the book, so it must not contain the span word or any of the words.');
-    L.push('- SPAN: one word or a short common phrase that sums up the theme, ' + lim.spanMin + ' to ' + lim.spanMax + ' letters not counting spaces (' + tp.sample.span + ' has ' + P.letters(tp.sample.span).length + '). Count the letters. It must be something people really say, and it is never one of the WORDS.');
-    L.push('- WORDS: ' + lim.ask + ' words that clearly belong to the theme, the strongest first. The app keeps about ' + lim.min + ' to ' + lim.max + ' of them.');
+    if (a.kid) L.push('- TITLE: ' + a.title + ' ("' + tp.sample.title + '"). No sayings, idioms or puns that only grown-ups know. Give every title its own shape, never the same pattern twice in a row, and make it read like a real phrase, not a list of words. It must not contain the span word or any of the words.');
+    else L.push('- TITLE: a playful hint of 2 to 5 words that points at the theme sideways, like a pun or a common saying ("' + tp.sample.title + '"). It must not contain the span word or any of the words. It should make the solver think, not state the category.');
+    L.push('- THEME: the plain meaning in under 10 ' + (a.kid ? 'easy ' : '') + 'words ("' + tp.sample.theme + '"). It is printed in the hints at the back of the book, so it must not contain the span word or any of the words.');
+    L.push('- SPAN: one word or a short common phrase that sums up the theme, ' + lim.spanMin + ' to ' + lim.spanMax + ' letters not counting spaces' + count + '. Count the letters. It must be something people really say' + (a.kid ? ' and easy for ' + a.reader + ' to read' : '') + ', and it is never one of the WORDS.');
+    L.push('- WORDS: ' + lim.ask + ' words that clearly belong to the theme, ' + (a.kid ? 'the easiest and best-known first, not sorted by length' : 'the strongest first') + '. The app keeps about ' + lim.min + ' to ' + lim.max + ' of them.');
     L.push('Rules for the words:');
-    L.push('- One real English word each, spelled the way a standard dictionary spells it, ' + lim.minLen + ' to ' + lim.maxLen + ' letters: no spaces, hyphens, apostrophes, numbers or abbreviations.');
-    L.push('- Mix the lengths on purpose: about a third short (' + lim.minLen + ' or ' + (lim.minLen + 1) + ' letters), a third medium (' + Math.min(lim.maxLen, lim.minLen + 2) + ' or ' + mid + ') and a third longer (' + Math.min(lim.maxLen, mid + 1) + ' or more). This matters: the app needs lengths to choose from.');
+    L.push('- One real English word each, spelled the way a standard American dictionary spells it, ' + lim.minLen + ' to ' + lim.maxLen + ' letters: no spaces, hyphens, apostrophes, numbers or abbreviations. Use American everyday words (PAJAMAS and SWEATER, not PYJAMAS and JUMPER).');
+    if (mid >= lim.maxLen) {
+      L.push('- Mix the lengths on purpose: about half short (' + lim.minLen + ' or ' + (lim.minLen + 1) + ' letters) and half longer (' + (lim.minLen + 2) + ' or ' + mid + '). This matters: the app needs lengths to choose from.');
+    } else {
+      var long = mid + 1, longer = long + (lim.maxLen > long + 1 ? ' or more' : lim.maxLen > long ? ' or ' + lim.maxLen : '');
+      L.push('- Mix the lengths on purpose: about a third short (' + lim.minLen + ' or ' + (lim.minLen + 1) + ' letters), a third medium (' + (lim.minLen + 2) + ' or ' + mid + ') and a third longer (' + longer + '). This matters: the app needs lengths to choose from.');
+    }
     L.push('- Every word is a clear member of that puzzle’s theme: a solver who has guessed the theme would accept it at once. No weak, stretched or generic filler.');
     L.push('- No word inside another word or inside the span word (not CAT and CATS, not TEA with TEAPOT), and no two forms of one word (not BAKE and BAKING).');
-    if (a.words || a.easy || tp.easy) L.push('- Only ' + (a.words || 'easy, well-known words that everyone knows') + '.');
+    if (a.words || tp.easy) L.push('- Only ' + (a.words || 'easy, well-known words that everyone knows') + '.');
     L.push('- No brand names, no names of living people, no song lyrics, no foreign words, nothing rude, sad or scary.');
+    if (a.kid) L.push('- Keep it cheerful and safe for children: no disasters or dangerous weather (TORNADO, FLOOD), no weapons, sharp tools or fighting sports (KNIFE, BOXING, FENCING), no alcohol, smoking, illness, hunting, death or romance.');
     L.push('- Every puzzle has its own subject. Never two puzzles about the same thing, and try not to repeat a word across puzzles.');
     return L;
   }
@@ -108,13 +118,14 @@
     return out;
   }
 
-  function sampleBlock(pz, sample, ask) {
-    var words = sample.words.slice(0, Math.min(sample.words.length, ask));
+  // The example in the reply format, without words too long or too short for this book.
+  function sampleBlock(pz, sample, lim) {
+    var words = sample.words.filter(function (w) { return w.length >= lim.minLen && w.length <= lim.maxLen; }).slice(0, lim.ask);
     return [label(pz), 'TITLE: ' + sample.title, 'THEME: ' + sample.theme, 'SPAN: ' + sample.span, 'WORDS: ' + words.join(', ') + ', ...'];
   }
 
   function puzzlesPrompt(project, p) {
-    var lim = P.limits(project), tp = topic(project);
+    var lim = P.limits(project), tp = topic(project), a = P.audience(project.plan.audience);
     var todo = p.puzzles.filter(function (x) { return !puzzleDone(project, x); });
     if (!todo.length) todo = p.puzzles;
     var L = [about(project), '', howItWorks(project), ''];
@@ -136,11 +147,12 @@
     var used = usedSubjects(project, todo);
     if (used.length) L.push('- These subjects are already in the book, so do not write about them again: ' + used.join(', ') + '.');
     L.push('');
-    L.push('Before you reply, check each puzzle: read the title as ' + P.audience(project.plan.audience).reader + ' would, count the letters of each span word, and replace any word that is misspelled, too obscure or only loosely on the theme.');
+    if (a.kid) L.push('Before you reply, check each puzzle as ' + a.reader + ' would read it: replace any word, span word, theme or title that child would not know or could not read, count the letters of each span word, and replace any word that is misspelled or only loosely on the theme.');
+    else L.push('Before you reply, check each puzzle: read the title as ' + a.reader + ' would, count the letters of each span word, and replace any word that is misspelled, too obscure or only loosely on the theme.');
     L.push('');
     L.push('Reply with one code block in exactly this format, for every puzzle:');
     L.push('');
-    Array.prototype.push.apply(L, sampleBlock(todo[0], tp.sample, lim.ask));
+    Array.prototype.push.apply(L, sampleBlock(todo[0], tp.sample, lim));
     if (todo.length > 1) { L.push(''); L.push('Start each puzzle with its own PUZZLE line, in order. Write out every word: never leave "..." in your reply.'); }
     else { L.push(''); L.push('Write out every word: never leave "..." in your reply.'); }
     return L.join('\n');
@@ -149,11 +161,16 @@
   function extrasPrompt(project) {
     var pl = project.plan, a = P.audience(pl.audience), L = [about(project), '', howItWorks(project), ''];
     L.push('The book has ' + pl.count + ' puzzles' + (pl.hints ? ', hints' : '') + ' and full solutions at the back. In the book the puzzle is called "' + (pl.name.trim() || 'Word Trails') + '". Write these short texts:');
-    L.push('- WELCOME: a warm note for the first pages, 2 or 3 sentences (about 50 words), inviting the reader in.');
-    L.push('- CLOSING: a short happy note for the last page, 2 short paragraphs (about 70 words), congratulating the solver. You may ask kindly for an honest review, but never offer anything in return.');
+    if (a.kid) {
+      L.push('- WELCOME: a warm note for the first pages that speaks to the child, 2 or 3 short sentences (about 40 words).');
+      L.push('- CLOSING: a short happy note for the last page that speaks to the child, 2 short paragraphs (about 70 words), congratulating them. If you mention a review, ask the child to tell a grown-up, because a grown-up has to write it, and never offer anything in return.');
+    } else {
+      L.push('- WELCOME: a warm note for the first pages, 2 or 3 sentences (about 50 words), inviting the reader in.');
+      L.push('- CLOSING: a short happy note for the last page, 2 short paragraphs (about 70 words), congratulating the solver. You may ask kindly for an honest review, but never offer anything in return.');
+    }
     L.push('- BACK COVER: a back-cover description of the book, about 70 words, ' + a.blurb + '. Do not name any newspaper, app or other puzzle brand, and promise nothing the book does not have.');
     L.push('');
-    L.push('Plain, friendly words for ' + a.who + '.');
+    L.push(a.kid ? 'Write the WELCOME and CLOSING in short, easy sentences that ' + a.reader + ' can read. Write the BACK COVER for the grown-up who buys the book.' : 'Plain, friendly words for ' + a.who + '.');
     L.push('');
     L.push('Reply with one code block in exactly this format:');
     L.push('');
@@ -183,7 +200,8 @@
     L.push('');
     L.push('How to check:');
     L.push('- Is every word spelled right and a clear member of the theme? Replace any that is not.');
-    L.push('- Does the title point at the theme without naming it? Does the span word really sum up the words?');
+    if (a.kid) L.push('- Would ' + a.reader + ' know and be able to read every word, the span word and the title? Replace any that child would not. Does the span word really sum up the words?');
+    else L.push('- Does the title point at the theme without naming it? Does the span word really sum up the words?');
     L.push('- Keep every good word and title exactly as it is, and keep at least ' + lim.ask + ' words in each puzzle.');
     L.push('');
     L.push('Reply with one code block in the same format as below: every puzzle in full, with all its words (the ones you kept and the new ones).');

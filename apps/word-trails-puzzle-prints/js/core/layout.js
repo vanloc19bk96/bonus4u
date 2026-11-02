@@ -455,8 +455,15 @@
     var welcome = p.ai.welcome.length ? p.ai.welcome : ['Every puzzle in this book hides a set of words that share one theme. Work out the theme, trace the words through the letters and watch the grid fill up until no letter is left over.'];
     welcome.forEach(function (t, i) { if (i) L.y += S.b * 0.5; L.para(t, 'serif', S.b, S.lead); });
     L.label('How to play');
-    var min = P.audience(pl.audience).minLen;
-    L.bullets([
+    var who = P.audience(pl.audience), min = who.minLen;
+    L.bullets(who.kid ? [
+      'The title is your first clue to what the words are about.',
+      'Trace a word by joining letters that touch: up, down, sideways or on a diagonal. A word can turn at any letter.',
+      'Every letter is used once. No letter is left over. Words are at least three letters long.',
+      'Trails never cross, so each word you find makes the next one easier.',
+      'One special word, the span word, tells you what the puzzle is about. It goes from one side of the grid to the other.',
+      'A star marks the span word in the writing spaces under the grid.'
+    ] : [
       'The title is your first hint. It points at the theme with a little wordplay.',
       'Trace a word by linking letters that touch: up, down, sideways or on a diagonal. A word can turn at any letter.',
       'Every letter belongs to exactly one word. No letter is left over and none is used twice. Words are at least ' + (min === 3 ? 'three' : 'four') + ' letters long.',

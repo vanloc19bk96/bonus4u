@@ -235,6 +235,76 @@ function clash(pg) {
     ok(/Do not name any newspaper/.test(CX.prompts.text(p, CX.prompts.list(p).slice(-1)[0])));
   });
 
+  await test('prompts: kids get their own titles, words, subjects and notes; adults keep theirs', () => {
+    const P = CX.plan;
+    const make = (aud, theme) => { const p = P.newProject(); p.plan.count = 12; P.setAudience(p.plan, aud); if (theme) p.plan.theme = theme; return p; };
+    ['kids', 'young'].forEach((aud) => P.THEMES.forEach((th) => {
+      const p = make(aud, th.id), t = CX.prompts.text(p, CX.prompts.list(p)[0]), at = aud + '/' + th.id;
+      ok(!/pun or a common saying|Snug as a Bug|make the solver think/.test(t), at + ': the grown-up title rule');
+      ok(/easiest and best-known first/.test(t) && !/strongest first/.test(t), at + ': easy words first');
+      ok(/TORNADO/.test(t) && /American/.test(t) && /only grown-ups know/.test(t) && /its own shape/.test(t), at + ': safe subjects, American words, varied titles');
+      const ex = CX.prompts.text(p, CX.prompts.list(p).slice(-1)[0]);
+      ok(/tell a grown-up/.test(ex) && /speaks to the child/.test(ex) && /for the grown-up who buys/.test(ex), at + ': notes for the child, cover for the buyer');
+      ok(/could not read|be able to read/.test(t + CX.prompts.checkText(p, [])), at);
+    }));
+    const a = make('adults'), t = CX.prompts.text(a, CX.prompts.list(a)[0]);
+    ok(/pun or a common saying/.test(t) && /Snug as a Bug/.test(t) && /strongest first/.test(t) && !/TORNADO/.test(t), 'adults keep their rules');
+    const y = make('young'), yt = CX.prompts.text(y, CX.prompts.list(y)[0]);
+    ok(/about half short \(3 or 4 letters\) and half longer \(5 or 6\)/.test(yt) && !/or more\)/.test(yt), 'no lengths past the limit for young kids');
+    const k = make('kids'), kt = CX.prompts.text(k, CX.prompts.list(k)[0]);
+    ok(/a third longer \(7 or 8\)/.test(kt), 'kids lengths stay inside the limit');
+  });
+
+  await test('prompts: every example obeys the rules it comes with', () => {
+    const P = CX.plan, E = CX.engine;
+    P.AUDIENCES.forEach((au) => P.GRID_SIZES.forEach((g) => P.THEMES.forEach((th) => {
+      const p = P.newProject(); p.plan.count = 12; P.setAudience(p.plan, au.id); p.plan.size = g.id; p.plan.theme = th.id; p.plan.customTheme = 'life by the sea';
+      const lim = P.limits(p), t = CX.prompts.text(p, CX.prompts.list(p)[0]), at = au.id + '/' + g.id + '/' + th.id;
+      const words = t.match(/^WORDS: (.*), \.\.\.$/m)[1].split(', '), span = P.letters(t.match(/^SPAN: (.*)$/m)[1]), title = t.match(/^TITLE: (.*)$/m)[1].toUpperCase();
+      ok(words.length >= 3, at + ': too few words in the example');
+      words.forEach((w) => ok(w.length >= lim.minLen && w.length <= lim.maxLen, at + ': ' + w + ' breaks the length rule'));
+      words.forEach((w, i) => { ok(!E.related(w, span), at + ': ' + w + ' inside the span word'); words.slice(i + 1).forEach((x) => ok(!E.related(w, x), at + ': ' + w + ' and ' + x)); });
+      // the kids' examples are the ones a child-friendly book learns from, so they have to fit its usual grids
+      if (au.kid && (g.id === '5x6' || g.id === '6x8')) {
+        ok(span.length >= lim.spanMin && span.length <= lim.spanMax, at + ': span word ' + span);
+        words.forEach((w) => ok(title.indexOf(w) === -1, at + ': ' + w + ' is in the title'));
+        ok(words.length >= 6, at + ': too few words in the example');
+      }
+    })));
+  });
+
+  await test('plan: choosing who solves it sets what fits them, and only what fits', () => {
+    const P = CX.plan, p = P.newProject(), pl = p.plan;
+    P.setAudience(pl, 'young');
+    eq([pl.size, pl.level, pl.theme], ['5x6', 'easy', 'kids']);
+    P.setAudience(pl, 'kids');
+    eq([pl.size, pl.level, pl.theme], ['6x8', 'easy', 'kids']);
+    eq([P.limits(p).spanMin, P.limits(p).spanMax], [6, 10]);
+    P.setAudience(pl, 'adults');
+    eq([pl.size, pl.level, pl.theme], ['6x8', 'mixed', 'mix'], 'nothing left over from a kid book');
+    eq(P.limits(p).spanMax, 14);
+    pl.theme = 'faith';
+    P.setAudience(pl, 'young');
+    eq(pl.theme, 'faith', 'a theme chosen on purpose stays');
+    eq([P.limits(p).spanMin, P.limits(p).spanMax], [5, 8]);
+    pl.size = '7x9';
+    eq(P.limits(p).spanMax, 15, 'short words in a big grid need the long span word');
+    pl.size = '5x6';
+    p.puzzles.p1 = Object.assign(P.emptyPuzzle(), { title: 'x', theme: 'y', span: 'FARM ANIMALS', words: [] });
+    ok(/8 is the most/.test(CX.puzzles.spanProblem(p, p.puzzles.p1)), 'a long span word is sent back');
+  });
+
+  await test('layout: the kids How to Play page fits and speaks plainly', () => {
+    ['kids', 'young'].forEach((aud) => CX.kdp.TRIMS.forEach((t) => Object.keys(CX.layout.PRINT).forEach((pr) => {
+      const p = fullProject((q) => { q.book.trim = t.id; q.book.print = pr; CX.plan.setAudience(q.plan, aud); }, 12);
+      const how = CX.layout.layoutBook(p, {}).pages.filter((pg) => pg.kind === 'how');
+      ok(how.length, 'no How to Play page');
+      how.forEach((pg) => { checkPage(pg); const c = clash(pg); ok(!c, aud + '/' + t.id + '/' + pr + ': ' + c); });
+      const words = how.map((pg) => pg.items.filter((it) => it.t === 'text').map((it) => it.str).join(' ')).join(' ');
+      ok(/first clue/.test(words) && !/walls/.test(words) && !/wordplay/.test(words), words.slice(0, 200));
+    })));
+  });
+
   await test('prompts: copying again tops up instead of starting over', () => {
     const p = CX.plan.newProject();
     p.plan.count = 10;
