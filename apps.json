@@ -148,6 +148,11 @@
       "slug": "word-fill-in-prints",
       "title": "Word Fill-In Prints",
       "description": "Word fill-in puzzle books, with word lists from any AI chat."
+    },
+    {
+      "slug": "word-trails-puzzle-prints",
+      "title": "Word Trails Puzzle Prints",
+      "description": "Themed trail word search books (every letter used, one edge-to-edge word), with words written by any AI chat."
     }
   ]
 }

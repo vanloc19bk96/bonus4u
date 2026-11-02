@@ -1,0 +1,62 @@
+WORD TRAILS PUZZLE PRINTS
+=========================
+
+Double-click index.html. It opens in your web browser (Chrome, Edge, Firefox or Safari)
+and works without the internet. Nothing to install. ChatGPT in step 3 is the only part
+that needs the internet, and you open that yourself.
+
+The book: a grid of letters with a playful title on each page. Hidden in the grid are theme
+words that bend in any direction (up, down, sideways, diagonal) and one "span word" that names
+the theme and runs from one edge to the opposite edge. Every letter is used exactly once.
+Then come two rounds of hints and full solutions with the trails drawn in.
+
+It is the same kind of puzzle as the Strands game. "Strands" and the newspaper's name belong to
+their owner, so leave them off your title, subtitle, cover and keywords. The app calls the
+puzzle "Word Trails"; you can choose your own name in step 1.
+
+1. The book: who will solve it, the theme of the book, how many puzzles, the title and your pen name.
+2. Puzzles and pages: the grid size (6 x 8 is the classic), the level, hints, puzzle log and
+   stars, the page size, one or two puzzles to a page and the text size.
+     Easy: gentle trails; the page shows each word's first letter and length.
+     Medium: trails turn more; the page shows each word's length.
+     Hard: trails twist at every chance; the page only says how many words to find.
+     Mixed: easy, then medium, then hard, each with its own opening page.
+3. Write the puzzles with ChatGPT:
+     - click "Copy prompt",
+     - click "Open ChatGPT", paste (Ctrl+V) and press Enter,
+     - when it has finished, click "Copy code" on its reply,
+     - paste it into the box and click "Add to book".
+   Do the same for every prompt ("Prompt 2 of 11" ...). Green ticks are done.
+   ChatGPT only writes the titles, themes and words. It is asked for more words than a grid holds
+   (14 for a 6 x 8 grid). The app picks the words whose letters fill the grid exactly, builds the
+   trails, and proves that the puzzle has exactly one solution. A word that appears in the title
+   is never used. If a puzzle gets no grid, copy its prompt again: it asks for a few more words.
+   The last prompt writes the welcome, the closing note and the back cover text.
+   Claude, Gemini or Copilot work the same way.
+
+   FIXING A PUZZLE (a weak word or a title you don't like):
+     - Click "Edit" next to a puzzle: change the title, theme, span word or words right there.
+       "New grid" gives a different layout of the letters.
+     - Or let ChatGPT fix it: click "Copy check prompt". Paste ChatGPT's reply into the box as
+       usual and click "Add to book". The app sees the puzzle already has words and asks:
+       choose "Replace" to take the corrected version.
+     - Or start over: click "Write these puzzles again", copy the prompt again and paste the reply.
+4. Check and download: when every item is green, click "Download book PDF".
+
+COVER: click "Book cover" at the top of the left panel (the panel and the preview switch to the
+cover). Pick one of the 30 templates (Bright, Bold, Calm). Each starts in its own colors; pick
+other colors if you like. Check the words on the cover, then click "Download cover PDF".
+Click "Book pages" to go back to the inside of the book.
+
+Upload to KDP: paperback, black & white interior, no bleed, the same trim size you picked.
+The book PDF is the manuscript; the cover PDF is "a cover you already have".
+Download the cover again whenever the page count changes (the spine width follows it).
+KDP asks whether AI helped make the book: the themes and words came from an AI chat, so answer yes for the text.
+
+Solve two or three puzzles yourself before you publish. The app proves each grid has one solution,
+but only a reader can tell whether a theme feels fair.
+
+The app does not keep your work in the browser: closing or reloading the tab clears it.
+Click "Save project file" to keep your work; open it later with "Open project file".
+
+If you have any questions, feel free to let me know.
