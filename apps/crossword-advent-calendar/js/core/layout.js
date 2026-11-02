@@ -12,9 +12,9 @@
  * thinner than 0.75 pt and no text is smaller than 7 pt: the KDP rules.
  *
  * Book order (the bestseller's): title, copyright, how this book works, the list of days, the
- * letter strip, then for every week a two-page gate (how the week runs | the candles) and one
+ * secret message page (the strip in this code), then for every week a two-page gate (how the week runs | the candles or a wreath) and one
  * spread a day (grid on the left page, clues on the right), the Christmas Eve page, the Twelve
- * Days bonus, the solutions and the hidden sentence. Every gate and day starts on a left-hand
+ * Days bonus, the solutions and the secret message revealed. Every gate and day starts on a left-hand
  * page; when one would not, a Notes page fills the gap. Page numbers that point forward (the
  * strip, the days, the solutions) come from the previous layout pass.
  */
@@ -362,6 +362,7 @@
   function drawGrid(pg, pz, x, y, cs, mode) {
     var g = pz.grid;
     var ns = Math.max(7, cs * 0.3), ls = mode === 'solution' ? cs * 0.62 : cs * 0.6;
+    var lw = Math.max(1.8, cs * 0.09); // the border of the thick square
     for (var r = 0; r < g.rows; r++) {
       for (var c = 0; c < g.cols; c++) {
         var ch = g.cells[r][c];
@@ -369,13 +370,15 @@
         var cx = x + c * cs, cy = y + r * cs, k = r + ',' + c;
         pg.box(cx, cy, cs, cs, mode === 'solution' ? 0.75 : 0.9);
         var num = g.nums[k];
-        if (num && mode !== 'solution') pg.text(String(num), cx + Math.max(1.2, cs * 0.06), cy + ns * 0.95, ns, 'sans');
+        // in the thick square the number sits just inside the border
+        var thick = g.mark && g.mark.r === r && g.mark.c === c, inset = lw + Math.max(0.8, cs * 0.04);
+        if (num && mode !== 'solution') pg.text(String(num), cx + (thick ? inset : Math.max(1.2, cs * 0.06)), cy + (thick ? inset + ns * 0.72 : ns * 0.95), ns, 'sans');
         var show = mode === 'solution' || g.givenCells[k];
         if (show) pg.text(ch, cx + cs / 2, cy + cs * 0.5 + ls * 0.36 + (mode === 'solution' ? 0 : cs * 0.06), ls, 'sans', { align: 'center' });
       }
     }
     if (g.mark) {
-      var mx = x + g.mark.c * cs, my = y + g.mark.r * cs, lw = Math.max(1.8, cs * 0.09);
+      var mx = x + g.mark.c * cs, my = y + g.mark.r * cs;
       pg.box(mx + lw / 2, my + lw / 2, cs - lw, cs - lw, lw);
       if (mode !== 'solution') pg.dot(mx + cs - lw - cs * 0.12, my + lw + cs * 0.12, Math.max(1, cs * 0.06));
     }
@@ -450,8 +453,8 @@
     L.page('how', 'How This Book Works', 'How this book works');
     L.pg.items.length = 0; L.y = L.pg.y0;
     L.heading('Advent crosswords', 'How This Book Works', null, 'left');
-    var t = 'Every day is one puzzle. Read the clues, fill the grid, and look for the one square with a thick border. Write that letter in the matching box on the letter strip' +
-      (refs.strip ? ' (page ' + refs.strip + ')' : '') + '. On December ' + P.lastDate(p) + ' the strip spells a single sentence.';
+    var t = 'Every day is one puzzle. Read the clues, fill the grid, and look for the one square with a thick border. Write that letter in the matching box on the Secret Message page' +
+      (refs.strip ? ' (page ' + refs.strip + ')' : '') + '. On December ' + P.lastDate(p) + ' your letters spell out the secret message.';
     if (pl.headStart) t += ' ' + runText(givenRuns(p, 'main'));
     L.para(t, 'serif', S.b, S.lead);
     // the example: a tiny grid beside the rules
@@ -549,14 +552,14 @@
 
   function stripPage(L) {
     var p = L.project, S = L.S, n = p.plan.days;
-    L.page('strip', 'The Letter Strip', 'The letter strip');
+    L.page('strip', 'The Secret Message', 'The secret message');
     L.pg.items.length = 0; L.y = L.pg.y0;
-    L.heading('Advent crosswords', 'The Letter Strip', 'One letter a day, in the box with the same number.', 'left');
+    L.heading('Advent crosswords', 'The Secret Message', 'One letter a day, in the box with the same number.', 'left');
     L.strip(n, null, P.sentenceWords(p, 'main'));
     L.y += S.b * 0.6;
-    L.para('On December ' + P.lastDate(p) + ' the strip reads as one sentence.', 'sans', S.small * 1.2, S.lead * 0.9);
-    L.label('Why the strip is empty');
-    L.para('Nothing is printed here in advance. Every one of the ' + NUMW[n] + ' boxes waits for a letter you worked out yourself, and the sentence is not finished until the last day is done.', 'serif', S.b, S.lead);
+    L.para('On December ' + P.lastDate(p) + ' the boxes spell out the secret message.', 'sans', S.small * 1.2, S.lead * 0.9);
+    L.label('Why the boxes are empty');
+    L.para('Nothing is printed here in advance. Every one of the ' + NUMW[n] + ' boxes waits for a letter you worked out yourself, and the message is not finished until the last day is done.', 'serif', S.b, S.lead);
     L.y += S.b * 1.2;
     ['This book belongs to', 'Started on', 'Finished on'].forEach(function (lab) {
       L.need(S.b * 3);
@@ -569,14 +572,14 @@
 
   // ---------- the week gates ----------
   var WEEK_TEXT = [
-    'The strip is empty, the first grids are the gentlest in the book, and the house is waking up to December. Take your time: every letter you collect goes in its box on the letter strip.',
-    'The candles are lit in the evenings now and the cards have started to arrive. The grids give you a little less each day; you are more than ready for it.',
+    'The secret message is still a secret, the first grids are the gentlest in the book, and the house is waking up to December. Take your time: every letter you collect goes in its box on the Secret Message page.',
+    'The lights are on in the evenings now and the cards have started to arrive. The grids give you a little less each day; you are more than ready for it.',
     'The busiest week of the year, and the grids open up. Pour something warm, find a quiet corner and give yourself one puzzle of peace a day.',
-    'The last few days. The strip is nearly full and the sentence is taking shape. One more grid a day, and then it is Christmas.'
+    'The last few days. The boxes are nearly full and the secret message is taking shape. One more grid a day, and then it is Christmas.'
   ];
   // The first welcome of a countdown that starts after December 1.
-  var LATE_TEXT = 'The strip is empty, the first grids are the gentlest in the book, and Christmas is close now. Take your time: every letter you collect goes in its box on the letter strip.';
-  var BONUS_TEXT = 'Christmas is done, the wrapping is folded and the days are quiet. Twelve more grids carry you from December 26 to Twelfth Night, with a strip of their own.';
+  var LATE_TEXT = 'The secret message is still a secret, the first grids are the gentlest in the book, and Christmas is close now. Take your time: every letter you collect goes in its box on the Secret Message page.';
+  var BONUS_TEXT = 'Christmas is done, the wrapping is folded and the days are quiet. Twelve more grids carry you from December 26 to Twelfth Night, with a secret message of their own.';
 
   // The ready-made welcome: the first block opens the book, the last one closes the countdown and
   // the ones between follow the calendar week they start in.
@@ -612,8 +615,8 @@
         var span = r.from === r.to ? 'on day ' + NUMW[r.from] : (r.from === wk.from && r.to === wk.to ? 'every day this ' + unit : 'on days ' + NUMW[r.from] + ' to ' + NUMW[r.to]);
         notes.push(r.g ? cap(many[r.g]) + (r.g > 1 ? ' are' : ' is') + ' printed for you ' + span + '.' : 'No answers are printed ' + span + ': the grids are all yours.');
       });
-      notes.push('The letter strip fills boxes ' + wk.from + (wk.to !== wk.from ? ' to ' + wk.to : '') + (wk.set === 'bonus' ? ' of the bonus strip.' : ' this ' + unit + '.'));
-      // the tightest level keeps only the strip note: the subtitle already says what the others do
+      notes.push('This ' + unit + ' fills box' + (wk.to !== wk.from ? 'es ' + wk.from + ' to ' + wk.to : ' ' + wk.from) + ' of the ' + (wk.set === 'bonus' ? 'Twelve Days ' : '') + 'secret message.');
+      // the tightest level keeps only the secret message note: the subtitle already says what the others do
       L.bullets(level < 3 ? notes : notes.slice(-1));
       if (level < 2) L.label('The days of this ' + unit);
       var rowH = S.lead * (level ? 1.45 : 1.8), colW = (L.pg.w - S.b) / 2;
@@ -632,11 +635,11 @@
         });
         L.y += rowH;
       }
-      L.label(wk.set === 'bonus' ? 'The Twelve Days strip' : 'The strip so far');
+      L.label(wk.set === 'bonus' ? 'The Twelve Days secret message' : 'The secret message so far');
       L.strip(total, null, P.sentenceWords(p, wk.set));
       L.y += S.b * 0.4;
       var rest = total - done;
-      var msg = wk.set === 'bonus' ? 'One letter a day from December 26. On January 6 the strip reads as one sentence.'
+      var msg = wk.set === 'bonus' ? 'One letter a day from December 26. On January 6 the boxes spell out the secret message.'
         : done ? cap(NUMW[done]) + ' of the ' + NUMW[total] + ' boxes should be filled by now. ' + cap(NUMW[rest]) + ' days are still to come.'
           : 'None of the ' + NUMW[total] + ' boxes are filled. ' + cap(NUMW[total]) + ' days are still to come.';
       L.para(msg, 'sans', S.small * 1.15, S.lead * 0.9);
@@ -647,7 +650,7 @@
       L.pages.length = mark;
     }
 
-    // right: the candles
+    // right: the candles, or a wreath that says nothing about the date
     pg = L.page('gate', wk.title, 'Advent crosswords');
     pg.items.length = 0;
     pg.text((wk.set === 'bonus' ? 'The twelve days' : 'Advent crosswords').toUpperCase(), pg.x1, pg.y0 + S.small, S.small, 'sans', { align: 'right', ls: 2.2 });
@@ -655,10 +658,10 @@
     if (wk.set === 'bonus') {
       pg.poly(starPts(pg.cx, base - ch * 0.55, ch * 0.5), 0.8);
       pg.path(starPts(pg.cx, base - ch * 0.55, ch * 0.62), 0.9, 1, true);
-    } else {
+    } else if (p.plan.candles) {
       var nC = 4, sp = Math.min(pg.w / 5.5, ch * 0.75);
       for (var c = 0; c < nC; c++) candle(pg, pg.cx + (c - (nC - 1) / 2) * sp, base, ch, c < wk.candles);
-    }
+    } else wreath(pg, pg.cx, base - ch * 0.55, ch * 0.5);
     var y = base + S.b * 1.8;
     var tt = fit(wk.title, 'serifBold', pg.w * 0.9, S.h1 * 1.1, S.b * 1.2, 2);
     tt.lines.forEach(function (l) { y += tt.size * 1.08; pg.text(l, pg.cx, y, tt.size, 'serifBold', { align: 'center' }); });
@@ -772,7 +775,7 @@
         var bs = S.b * 2.3, ms = Math.max(7.5, S.small * 1.05), ml = ms * 1.42;
         var lines = ['Today’s letter, for box ' + day.no + '.',
           g ? cap(NUMW[g]) + ' answer' + (g > 1 ? 's are' : ' is') + ' filled in for you.' : 'Every square is yours today.',
-          L.refs.strip ? 'Letter strip on page ' + (day.set === 'bonus' ? L.refs.bonusStrip || L.refs.strip : L.refs.strip) + '.' : ''].filter(Boolean);
+          L.refs.strip ? 'Secret message on page ' + (day.set === 'bonus' ? L.refs.bonusStrip || L.refs.strip : L.refs.strip) + '.' : ''].filter(Boolean);
         var bh = Math.max(bs, lines.length * ml);
         if (draw) {
           pg.rbox(pg.x0, by, bs, bs, 3, 1.1);
@@ -826,8 +829,8 @@
     L.heading('December ' + P.lastDate(p), 'You Made It!');
     if (p.ai.eve.length) p.ai.eve.forEach(function (t, i) { if (i) L.y += S.b * 0.5; L.para(t, 'serif', S.b, S.lead); });
     else if (L.draft) L.placeholder('Your Christmas Eve note', 'It appears here after you paste the reply to the last prompt in step 3.', S.b * 7);
-    else L.para('Every grid is full and every box on the strip has its letter. Thank you for spending a few quiet minutes of each December day with this book. Merry Christmas!', 'serif', S.b, S.lead);
-    L.label('The sentence, in your own hand');
+    else L.para('Every grid is full and every box of the secret message has its letter. Thank you for spending a few quiet minutes of each December day with this book. Merry Christmas!', 'serif', S.b, S.lead);
+    L.label('The secret message, in your own hand');
     var pg = L.pg;
     for (var i = 0; i < 2; i++) { L.need(S.b * 2.4); L.y += S.b * 2.2; L.pg.line(L.pg.x0, L.y, L.pg.x1, L.y, 0.9, 0.7); }
     pg = L.pg;
@@ -876,16 +879,16 @@
 
   function sentencePage(L) {
     var p = L.project, S = L.S;
-    L.page('sentence', 'The Hidden Sentence', 'The hidden sentence');
+    L.page('sentence', 'The Secret Message Revealed', 'The secret message');
     L.pg.items.length = 0; L.y = L.pg.y0;
-    L.heading('', 'The Hidden Sentence', 'Did your strip spell it out?');
+    L.heading('', 'The Secret Message Revealed', 'Did your letters spell it out?');
     [{ set: 'main', n: p.plan.days, label: 'The ' + capWords(NUMW[p.plan.days]) + ' Days' }, { set: 'bonus', n: 12, label: 'The Twelve Days' }].forEach(function (s) {
       if (s.set === 'bonus' && !p.plan.bonus) return;
       var ok = P.sentenceOk(p, s.set);
       if (!ok && !L.draft) return;
       if (p.plan.bonus) L.label(s.label);
       L.strip(s.n, ok ? P.sentenceOf(p, s.set) : null, P.sentenceWords(p, s.set));
-      var text = ok ? (s.set === 'bonus' ? p.plan.bonusSentence : p.plan.sentence).trim().replace(/\s+/g, ' ') : 'The sentence has the wrong number of letters (step 1).';
+      var text = ok ? (s.set === 'bonus' ? p.plan.bonusSentence : p.plan.sentence).trim().replace(/\s+/g, ' ') : 'The secret message has the wrong number of letters (step 1).';
       L.y += S.b * 0.6;
       L.need(S.h2 * 1.6);
       L.y += S.h2 * 1.2;
@@ -917,7 +920,7 @@
     sections.push({ page: L.pages.length + 1, title: 'The Days' });
     daysPage(L);
     out.strip = L.pages.length + 1;
-    sections.push({ page: out.strip, title: 'The Letter Strip' });
+    sections.push({ page: out.strip, title: 'The Secret Message' });
     stripPage(L);
     P.weeks(project).forEach(function (wk, i) {
       if (wk.set === 'bonus') {
@@ -942,7 +945,7 @@
       sections.push({ page: out.solutions, title: 'Solutions' });
       solutions(L, list);
     }
-    sections.push({ page: L.pages.length + 1, title: 'The Hidden Sentence' });
+    sections.push({ page: L.pages.length + 1, title: 'The Secret Message Revealed' });
     sentencePage(L);
     folios(L);
     return {

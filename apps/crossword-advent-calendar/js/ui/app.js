@@ -72,7 +72,7 @@
   // ---------- step 1: the book ----------
   function body1() {
     var p = state.p, pl = p.plan, b = p.book;
-    var out = [h('p', { class: 'lead' }, 'Who is the book for, how long is the countdown and what does the letter strip spell?')];
+    var out = [h('p', { class: 'lead' }, 'Who is the book for, how long is the countdown and what does the secret message say?')];
     out.push(h('div', { class: 'field' }, [h('div', { class: 'field-label' }, 'Who will solve it?'), h('div', { class: 'cards' }, P.AUDIENCES.map(function (a) {
       return radio('aud', a.label, null, pl.audience === a.id, function () { pl.audience = a.id; Object.assign(pl, a.defaults); changed(true); });
     }))]));
@@ -95,11 +95,11 @@
       out.push(field('How many days?', select('fDays', opts, pl.days, function (v) { setDays(+v, true); }),
         'The countdown always ends on Christmas Eve, so the book starts on December ' + P.firstDate(p) + '.', 'fDays'));
     }
-    out.push(check('Add the Twelve Days bonus', '12 more grids from December 26 to January 6, with a strip of their own', pl.bonus, function (v) { pl.bonus = v; changed(true); }));
-    out.push(h('h3', { class: 'sub-head' }, 'The hidden sentence'));
-    out.push(h('p', { class: 'hint' }, 'One square in every grid has a thick border. Its letter goes on the letter strip, and on the last day the strip reads as this sentence.'));
-    out.push(sentenceField('fSentence', 'Sentence for the ' + pl.days + ' days', 'sentence', pl.days));
-    if (pl.bonus) out.push(sentenceField('fBonusSentence', 'Sentence for the Twelve Days', 'bonusSentence', 12, 'bonus'));
+    out.push(check('Add the Twelve Days bonus', '12 more grids from December 26 to January 6, with a secret message of their own', pl.bonus, function (v) { pl.bonus = v; changed(true); }));
+    out.push(h('h3', { class: 'sub-head' }, 'The secret message'));
+    out.push(h('p', { class: 'hint' }, 'One square in every grid has a thick border. Its letter goes in the matching box, and on the last day the boxes spell out this message.'));
+    out.push(sentenceField('fSentence', 'Secret message for the ' + pl.days + ' days', 'sentence', pl.days));
+    if (pl.bonus) out.push(sentenceField('fBonusSentence', 'Secret message for the Twelve Days', 'bonusSentence', 12, 'bonus'));
 
     out.push(h('h3', { class: 'sub-head' }, 'Title and author'));
     var title = h('input', { class: 'input', id: 'fTitle', value: b.title, maxlength: 140 });
@@ -151,6 +151,9 @@
     ])]));
     if (pl.memory) out.push(field('Writing lines under the question', select('fLines', [0, 2, 3, 4, 5, 6].map(function (n) { return { v: n, t: n ? n + ' lines' : 'No lines' }; }), pl.lines, function (v) { pl.lines = +v; changed(); }),
       'Lines are dropped automatically on a day whose clues need the room.', 'fLines'));
+    out.push(h('div', { class: 'field' }, [h('div', { class: 'field-label' }, 'Each week'), h('div', { class: 'stack' }, [
+      check('Advent candles', 'The week pages show four candles, one more lit each week. Real ones are lit on Sundays, so the picture will not always match the date. Off: a wreath instead.', pl.candles, function (v) { pl.candles = v; changed(); })
+    ])]));
     out.push(h('h3', { class: 'sub-head' }, 'Page size and print'));
     out.push(field('Page size', select('fTrim', CX.kdp.TRIMS.map(function (t) { return { v: t.id, t: t.label + ' – ' + t.hint }; }), b.trim, function (v) { b.trim = v; changed(); }), null, 'fTrim'));
     out.push(field('Text size', select('fPrint', Object.keys(CX.layout.PRINT).map(function (k) { return { v: k, t: CX.layout.PRINT[k].label }; }), b.print, function (v) { b.print = v; changed(); }),
@@ -383,7 +386,7 @@
       var facts = [];
       if (pz) {
         facts.push(pz.grid.entries.length + ' of ' + d.words.length + ' words fit the grid (' + pz.grid.crossings + ' crossings).');
-        if (pz.grid.letter) facts.push(pz.grid.mark ? 'The thick square holds ' + pz.grid.letter + ', letter ' + day.no + ' of the sentence.' : 'No square holds ' + pz.grid.letter + ': add words with that letter, or click New grid.');
+        if (pz.grid.letter) facts.push(pz.grid.mark ? 'The thick square holds ' + pz.grid.letter + ', letter ' + day.no + ' of the secret message.' : 'No square holds ' + pz.grid.letter + ': add words with that letter, or click New grid.');
         if (pz.grid.given.length) facts.push('Printed as a head start: ' + pz.grid.entries.filter(function (e) { return pz.grid.given.indexOf(e.dir + e.num) !== -1; }).map(function (e) { return e.w; }).join(', ') + ' (shaded).');
         pz.problems.forEach(function (x) { facts.push('⚠ ' + x.charAt(0).toUpperCase() + x.slice(1) + '.'); });
       } else facts.push(d.words.length ? 'Too few words for a grid yet.' : 'No words yet: copy the prompt in step 3, or add words below.');

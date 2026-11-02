@@ -188,7 +188,7 @@
     L.push('- CHRISTMAS EVE: a short, happy note for the last page (' + (P.lastDate(project) === 25 ? 'Christmas Day' : 'Christmas Eve') + '), 2 short paragraphs (about 90 words), congratulating the solver on finishing the countdown and wishing them a merry Christmas.');
     L.push('- BACK COVER: a back-cover description of the book, about 70 words, ' + P.audience(pl.audience).blurb + '. Do not mention a number of clues.');
     L.push('');
-    L.push('Plain, friendly words for ' + P.audience(pl.audience).who + '. No song lyrics.');
+    L.push('Plain, friendly words for ' + P.audience(pl.audience).who + '. No song lyrics.' + (pl.candles ? '' : ' Do not mention Advent candles or how many are lit.'));
     L.push('');
     L.push('Reply with one code block in exactly this format:');
     L.push('');
@@ -221,7 +221,7 @@
     L.push('- Keep every good word and clue exactly as it is, and keep about the same number of words in each day.');
     L.push('- Keep each day’s title exactly as it is.' + (pl.story || pl.memory ? ' Keep the STORY and QUESTION lines too, only making them easier to read where needed.' : ''));
     var letters = have.map(function (day) { var l = P.letterOf(project, day); return l ? label(day) + ': ' + l : ''; }).filter(Boolean);
-    if (letters.length) L.push('- Each day needs words with its letter of the hidden sentence: keep at least 3 words that contain it (' + letters.join(', ') + ').');
+    if (letters.length) L.push('- Each day needs words with its letter of the secret message: keep at least 3 words that contain it (' + letters.join(', ') + ').');
     L.push('');
     L.push(finalCheck(project));
     L.push('');

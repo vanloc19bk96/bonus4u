@@ -203,7 +203,7 @@
       plan: {
         days: 24, bonus: false, theme: 'cozy', customTheme: '', audience: 'seniors',
         sentence: 'Have a holly jolly Christmas', bonusSentence: 'Twelfth Night',
-        size: 13, headStart: true, stars: false, memory: true, story: true, lines: 4
+        size: 13, headStart: true, stars: false, memory: true, story: true, lines: 4, candles: true
       },
       days: {},              // day id -> { title, story, question, words: [{ w, c }], v (grid variant) }
       ai: { weeks: [], eve: [], blurb: '' },
@@ -226,7 +226,7 @@
     pl.days = validDays(pl.days) || 24;
     pl.size = grid(pl.size).n;
     pl.lines = CX.util.clamp(Math.round(+pl.lines) || 0, 0, 6);
-    ['bonus', 'headStart', 'stars', 'memory', 'story'].forEach(function (k) { pl[k] = !!pl[k]; });
+    ['bonus', 'headStart', 'stars', 'memory', 'story', 'candles'].forEach(function (k) { pl[k] = !!pl[k]; });
     ['sentence', 'bonusSentence', 'customTheme'].forEach(function (k) { if (typeof pl[k] !== 'string') pl[k] = d.plan[k]; });
     out.days = {};
     if (p.days && typeof p.days === 'object') {

@@ -65,7 +65,7 @@ const MESSY = [
 const EXTRAS = [
   '```',
   'WEEK 1:',
-  'The strip is empty and the house is waking up.',
+  'The boxes are empty and the house is waking up.',
   'Take your time with these first gentle grids.',
   '',
   'WEEK 2:',

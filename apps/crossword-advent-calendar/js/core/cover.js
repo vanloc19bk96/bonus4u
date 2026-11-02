@@ -477,15 +477,15 @@
     y += hs;
     sh.text(head, safe.x + safe.w / 2, y, hs, 'serifBold', headColor, { align: 'center' });
     y += hs * 0.7;
-    var blurb = project.ai.blurb || ('Open one crossword a day from ' + P.dateOf(project, 1) + ' and count down to Christmas. Friendly clues, roomy grids and a hidden sentence that appears letter by letter, ' +
-      'one square a day, until the strip is full on December ' + P.lastDate(project) + '.');
+    var blurb = project.ai.blurb || ('Open one crossword a day from ' + P.dateOf(project, 1) + ' and count down to Christmas. Friendly clues, roomy grids and a secret message that appears letter by letter, ' +
+      'one square a day, until it is complete on December ' + P.lastDate(project) + '.');
     blurb.split('\n').forEach(function (para) {
       wrapK(para, size, 'serif', safe.w).forEach(function (l) { y += lead; sh.text(l, safe.x, y, size, 'serif', pal.ink); });
       y += lead * 0.4;
     });
     var t = CX.content.totals(project);
     var items = [pl.days + ' ' + (project.book.print !== 'regular' ? 'large print ' : '') + 'crosswords, one for each day from ' + P.dateOf(project, 1) + (t.clues >= pl.days * 8 ? ', ' + t.clues + (pl.bonus ? '+' : '') + ' clues in all' : '')];
-    items.push('A hidden sentence: one letter a day on the letter strip');
+    items.push('A secret message, revealed one letter a day');
     items.push('Grid on the left, clues on the right: no page turning');
     if (pl.headStart) items.push('An easy start: answers filled in for the first days');
     if (pl.memory) items.push('A memory question for every day');

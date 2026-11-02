@@ -353,7 +353,7 @@ function checkPage(pg) {
     const strs = [].concat.apply([], book.pages.filter((pg) => pg.kind === 'days').map((pg) => pg.items.filter((it) => it.t === 'text').map((it) => it.str)));
     ok(strs.indexOf('page ' + book.refs.days.d1) !== -1 && strs.indexOf('page ' + book.refs.days.d24) !== -1, 'day pages listed');
     const clues = book.pages[book.refs.days.d5];
-    ok(clues.items.some((it) => it.t === 'text' && it.str === 'Letter strip on page ' + book.refs.strip + '.'), 'clue page points at the strip');
+    ok(clues.items.some((it) => it.t === 'text' && it.str === 'Secret message on page ' + book.refs.strip + '.'), 'clue page points at the strip');
     const how = book.pages.find((pg) => pg.kind === 'how').items.filter((it) => it.t === 'text').map((it) => it.str).join(' ');
     ok(how.indexOf('(page ' + book.refs.strip + ')') !== -1, 'how-to points at the strip');
     const sent = book.pages.find((pg) => pg.kind === 'sentence').items.filter((it) => it.t === 'text').map((it) => it.str).join(' ');
@@ -373,6 +373,64 @@ function checkPage(pg) {
     const pz = CX.puzzles.get(p, CX.plan.days(p)[4]);
     const texts = clues.items.filter((it) => it.t === 'text').map((it) => it.str).join(' ');
     pz.grid.entries.forEach((e) => ok(texts.indexOf('(' + e.w.length + ')') !== -1, 'clue for ' + e.w));
+  });
+
+  await test('layout: a number in the thick square stays clear of the border', () => {
+    // 20 pt is the smallest puzzle square: 15 x 15 on 5.5 x 8.5
+    [20, 24, 26, 30, 36].forEach((cs) => {
+      const items = [];
+      const pg = {
+        box: (x, y, w, h, lw) => items.push({ t: 'box', lw }),
+        text: (str, x, y, size, font) => items.push({ t: 'text', str, x, y, size, font }),
+        dot: (cx, cy, r) => items.push({ t: 'dot', cx, r })
+      };
+      const grid = { rows: 1, cols: 1, cells: [['A']], nums: { '0,0': 12 }, givenCells: {}, mark: { r: 0, c: 0 } };
+      CX.layout.drawGrid(pg, { grid }, 0, 0, cs, 'puzzle');
+      const num = items.find((it) => it.t === 'text'), lw = items.filter((it) => it.t === 'box').pop().lw;
+      const dot = items.find((it) => it.t === 'dot'), digitH = num.size * 0.7;
+      ok(num.x >= lw + 0.5, cs + ': number clear of the left border');
+      ok(num.y - digitH >= lw, cs + ': number clear of the top border');
+      ok(num.y <= cs - lw && num.x + textWidth(num) < dot.cx - dot.r, cs + ': number inside the square, clear of the dot');
+    });
+  });
+
+  await test('wording: the secret message has one name, in the book and on the cover', () => {
+    const old = /letter strip|the strip|your strip|bonus strip|strip so far|days strip|hidden sentence/i;
+    [(p) => { p.plan.bonus = true; }, (p) => { p.plan.days = 12; p.plan.sentence = CX.plan.sentencesFor(12)[0]; }].forEach((mut) => {
+      const p = fullProject(mut);
+      p.ai = { weeks: [], eve: [], blurb: '' }; // the app's own texts, not the sample replies
+      const texts = (items) => items.filter((it) => it.t === 'text').map((it) => it.str).join(' ');
+      const book = CX.layout.layoutBook(p, {});
+      book.pages.forEach((pg) => {
+        const t = texts(pg.items);
+        ok(!old.test(t), 'old name on page ' + pg.num + ' (' + pg.label + '): ' + (t.match(old) || [])[0]);
+      });
+      const cv = CX.cover.build(p, book.pages.length);
+      ok(!old.test(texts(cv.items)), 'old name on the cover');
+      ok(/secret message/i.test(texts(cv.items)), 'the cover names it');
+    });
+  });
+
+  await test('layout: the Advent candles can be turned off', () => {
+    const pl = CX.plan.newProject().plan;
+    ok(pl.candles, 'on by default');
+    ok(CX.plan.normalize({ plan: { days: 24 } }).plan.candles, 'an older project file keeps its candles');
+    eq(CX.plan.normalize({ plan: { candles: false } }).plan.candles, false, 'the choice is saved');
+    const rects = (pg) => pg.items.filter((it) => it.t === 'rect').length;
+    const rings = (pg) => pg.items.filter((it) => it.t === 'ellipse' && it.mode === 'stroke').length;
+    const on = fullProject(), off = fullProject((p) => { p.plan.candles = false; p.plan.bonus = true; });
+    const right = (book) => book.pages.filter((pg) => pg.kind === 'gate' && pg.side === 'right');
+    right(CX.layout.layoutBook(on, {})).forEach((pg) => ok(rects(pg) === 4 && !rings(pg), 'four candles, no wreath on page ' + pg.num));
+    off.ai = { weeks: [], eve: [], blurb: '' };
+    const book = CX.layout.layoutBook(off, {});
+    right(book).filter((pg) => pg.label !== 'The Twelve Days').forEach((pg) => ok(!rects(pg) && rings(pg) === 1, 'a wreath, no candles on page ' + pg.num));
+    book.pages.filter((pg) => pg.kind === 'gate').forEach((pg) => {
+      checkPage(pg);
+      ok(!pg.items.some((it) => it.t === 'text' && /candle/i.test(it.str)), 'no word about candles on page ' + pg.num);
+    });
+    const extras = (p) => CX.prompts.text(p, { kind: 'extras' });
+    ok(/Do not mention Advent candles/.test(extras(off)), 'the prompt keeps ChatGPT off the candles');
+    ok(!/Do not mention Advent candles/.test(extras(on)), 'no such line when the candles are on');
   });
 
   await test('layout: the draft shows placeholders, the print leaves empty parts out', () => {

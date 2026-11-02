@@ -9,7 +9,7 @@
     var out = [], b = project.book, pl = project.plan;
     var author = (b.author || '').trim();
     out.push({ ok: !!author, step: 1, label: 'Pen name', detail: author ? author : 'Type the name to print on the cover and title page.' });
-    [{ set: 'main', n: pl.days, label: 'Hidden sentence' }, { set: 'bonus', n: 12, label: 'Twelve Days sentence' }].forEach(function (s) {
+    [{ set: 'main', n: pl.days, label: 'Secret message' }, { set: 'bonus', n: 12, label: 'Twelve Days secret message' }].forEach(function (s) {
       if (s.set === 'bonus' && !pl.bonus) return;
       var have = P.sentenceOf(project, s.set).length;
       out.push({ ok: have === s.n, step: 1, label: s.label, detail: have === s.n ? '“' + (s.set === 'bonus' ? pl.bonusSentence : pl.sentence).trim() + '”' : have + ' letters; it needs exactly ' + s.n + ', one for each day.' });
