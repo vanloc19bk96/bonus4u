@@ -43,24 +43,29 @@
 
   /*
    * Adds a puzzles reply. replace: ids of the puzzles the reply replaces (from rewrites()); those also
-   * take the reply's title, theme and span word. A top-up never changes them, except a span word the
-   * grid cannot use. Returns { added: [{ pz, n }], replaced: [pz], same, texts, extra, unplaced, skipped }.
+   * take the reply's title, theme and span word. A top-up never changes them, except the span word of
+   * a puzzle with no grid. A full puzzle with no grid lets its first words go, so new words still count.
+   * Returns { added: [{ pz, n }], replaced: [pz], touched: [pz], same, texts, extra, unplaced, skipped }.
    */
   function addReply(project, parsed, fallback, replace) {
     var ask = P.limits(project).ask;
-    var rep = { added: [], replaced: [], same: 0, texts: 0, extra: 0, unplaced: 0, skipped: parsed.skipped.length };
+    var rep = { added: [], replaced: [], touched: [], same: 0, texts: 0, extra: 0, unplaced: 0, skipped: parsed.skipped.length };
     match(project, parsed, fallback).forEach(function (m) {
       var part = m.part, pz = m.pz;
       if (!pz) { rep.unplaced += part.words.length; return; }
-      var d = P.puzzle(project, pz.id), n = 0;
+      var d = P.puzzle(project, pz.id), n = 0, stuck = CX.puzzles.status(project, pz).state === 'weak';
       var swap = (replace || []).indexOf(pz.id) !== -1 && part.words.length && rep.replaced.indexOf(pz) === -1;
       if (swap) { d.words = []; rep.replaced.push(pz); }
+      if (rep.touched.indexOf(pz) === -1) rep.touched.push(pz);
       if (part.title && (swap || !d.title.trim())) { d.title = part.title; rep.texts++; }
       if (part.theme && (swap || !d.theme.trim())) { d.theme = part.theme; rep.texts++; }
-      if (part.span && (swap || !d.span.trim() || CX.puzzles.spanProblem(project, d))) { d.span = part.span; rep.texts++; }
+      if (part.span && (swap || stuck || !d.span.trim() || CX.puzzles.spanProblem(project, d))) { d.span = part.span; rep.texts++; }
       part.words.forEach(function (w) {
         if (d.words.indexOf(w) !== -1) { rep.same++; return; }
-        if (d.words.length >= ask + SPARE) { rep.extra++; return; }
+        if (d.words.length >= ask + SPARE) {
+          if (!stuck) { rep.extra++; return; }
+          d.words.shift();
+        }
         d.words.push(w);
         n++;
       });
@@ -88,7 +93,7 @@
     [{ key: 'span', what: 'span word', norm: P.letters }, { key: 'title', what: 'title', norm: function (s) { return String(s).trim().toLowerCase(); } }].forEach(function (f) {
       var seen = {};
       P.puzzles(project).forEach(function (x) {
-        var d = project.puzzles[x.id], v = d ? f.norm(d[f.key]) : '';
+        var d = project.puzzles[x.id], v = d ? f.norm(f.key === 'span' ? CX.puzzles.spanOf(project, x) : d[f.key]) : '';
         if (v) (seen[v] = seen[v] || []).push(x.no);
       });
       Object.keys(seen).forEach(function (v) { if (seen[v].length > 1) out.push({ what: f.what, name: v, nos: seen[v] }); });

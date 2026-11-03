@@ -18,7 +18,7 @@
   function needs(project, pz) {
     var d = project.puzzles[pz.id] || P.emptyPuzzle(), st = CX.puzzles.status(project, pz);
     var words = st.state === 'ok' ? 0 : Math.max(0, st.ask - d.words.length);
-    var span = !!CX.puzzles.spanProblem(project, d);
+    var span = st.state !== 'ok' && !!CX.puzzles.spanProblem(project, d);
     if (!words && st.state === 'weak' && !span) words = TOP_UP;
     return { words: words, title: !d.title.trim(), theme: !d.theme.trim(), span: span };
   }
@@ -133,7 +133,7 @@
     todo.forEach(function (x) {
       var d = project.puzzles[x.id] || P.emptyPuzzle(), n = needs(project, x), parts = [];
       if (!n.title) parts.push('its title is "' + d.title.trim() + '"');
-      if (!n.span) parts.push('its span word is ' + d.span.trim());
+      if (!n.span) parts.push('its span word is ' + CX.puzzles.spanOf(project, x));
       else if (P.letters(d.span)) parts.push('its span word ' + d.span.trim() + ' does not fit, so choose another of ' + lim.spanMin + ' to ' + lim.spanMax + ' letters');
       if (d.words.length && n.words) parts.push('exactly ' + n.words + ' more words (it already has ' + d.words.join(', ') + '; do not repeat them), with a good mix of lengths');
       else if (!n.words) parts.push('no new words');
@@ -212,7 +212,7 @@
       L.push(label(x));
       L.push('TITLE: ' + (d.title.trim() || '(a playful title)'));
       L.push('THEME: ' + (d.theme.trim() || '(the plain meaning)'));
-      L.push('SPAN: ' + (d.span.trim() || '(the span word)'));
+      L.push('SPAN: ' + (CX.puzzles.spanOf(project, x) || '(the span word)'));
       L.push('WORDS: ' + d.words.join(', '));
     });
     return L.join('\n');

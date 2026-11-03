@@ -185,18 +185,150 @@ function clash(pg) {
     eq(CX.puzzles.titleSpoils(p, b), '');
     p.puzzles.p2.title = 'A Fruitbowl';
     eq(CX.puzzles.titleSpoils(p, b), 'FRUITBOWL');
-    // a span too short for the grid
-    p.puzzles.p3 = Object.assign(CX.plan.emptyPuzzle(), { title: 'x', theme: 'y', span: 'CAT', words: S.PACKS[0][3].split(',') });
+    // a span too short for the grid, with no word long enough to take its place
+    p.puzzles.p3 = Object.assign(CX.plan.emptyPuzzle(), { title: 'x', theme: 'y', span: 'CAT', words: 'ABCD,EFGH,IJKL,MNOP,QRST,UVWX,ABDC,EFHG,IJLK,MNPO,QRTS,UVXW,ACBD,EGFH'.split(',') });
     const st = CX.puzzles.status(p, CX.plan.puzzles(p)[2]);
     eq(st.state, 'weak');
     ok(/at least 6/.test(st.pz.problems[0]), st.pz.problems[0]);
     ok(CX.prompts.needs(p, CX.plan.puzzles(p)[2]).span, 'the prompt asks for a new span word');
+    // with a longer word in the list the app needs nobody: that word becomes the span word
+    p.puzzles.p3.words = S.PACKS[0][3].split(',');
+    const fixed = CX.puzzles.status(p, CX.plan.puzzles(p)[2]);
+    eq(fixed.state, 'ok');
+    ok(/one of the puzzle’s own words/.test(fixed.pz.note), fixed.pz.note);
+    ok(!CX.prompts.needs(p, CX.plan.puzzles(p)[2]).span, 'nothing to ask for once it has a grid');
     // a mixed book moves through the levels
     p.plan.count = 100;
     const lv = CX.plan.puzzles(p).map((x) => CX.plan.levelOf(p, x));
     eq([lv[0], lv[29], lv[30], lv[69], lv[70], lv[99]], ['easy', 'easy', 'medium', 'medium', 'hard', 'hard']);
     p.plan.level = 'hard';
     eq(CX.plan.levelOf(p, CX.plan.puzzles(p)[0]), 'hard');
+  });
+
+  await test('puzzles: a stuck puzzle fixes itself, and a puzzle that works keeps its grid', () => {
+    const P = CX.plan, E = CX.engine, pz = { id: 'p18', no: 18, index: 17 };
+    const WORDS = 'OATMEAL,PANCAKES,COCOA,WAFFLES,TOAST,SYRUP,BACON,EGGS,COFFEE,SAUSAGE,GRITS,CINNAMON,BISCUITS,PORRIDGE'.split(',');
+    const make = (span, words, mut) => {
+      const p = P.newProject();
+      p.seed = 'fix';
+      if (mut) mut(p);
+      p.puzzles.p18 = Object.assign(P.emptyPuzzle(), { title: 'Rise and Dine', theme: 'Warm food in the morning', span, words: words.slice() });
+      return p;
+    };
+    // the customer's case: one letter too long
+    let p = make('WINTER BREAKFAST', WORDS), res = CX.puzzles.get(p, pz);
+    ok(res.ok, res.problems[0]);
+    eq(res.span, 'BREAKFAST', 'the end of the phrase');
+    ok(/WINTER BREAKFAST does not fit/.test(res.note), res.note);
+    eq(res.grid.trails.find((t) => t.span).w, 'BREAKFAST');
+    eq(E.check(res.grid), []);
+    eq(CX.puzzles.spanOf(p, pz), 'BREAKFAST');
+    ok(CX.prompts.puzzleDone(p, { id: 'p18', no: 18, index: 17 }), 'nothing left to ask ChatGPT');
+    // a small word is never left at the end of a phrase
+    p = make('A LONG COLD MORNING OF WINTER', WORDS);
+    ok(CX.puzzles.get(p, pz).ok);
+    ok(!/^(OF|A)\b|\b(OF|A)$/.test(CX.puzzles.get(p, pz).span), CX.puzzles.get(p, pz).span);
+    // the piece of a phrase never gives the title away
+    p = make('WINTER SUPERBREAKFAST', WORDS, null);
+    p.puzzles.p18.title = 'Superbreakfast Time';
+    ok(CX.puzzles.get(p, pz).ok);
+    eq(CX.puzzles.titleSpoils(p, pz), '', 'the fix does not spoil the title');
+    // words that cannot add up with the usual number of words
+    p = make('HOT BREAKFAST', 'EGGS,OATS,MILK,HAMS,PEAR,PLUM,KIWI,LIME,BEAN,CORN,RICE,SOUP,CAKE,TART'.split(','));
+    ok(CX.puzzles.get(p, pz).ok, 'one more word on the grid');
+    eq(CX.puzzles.get(p, pz).note, '', 'the AI span word stays');
+    eq(CX.puzzles.get(p, pz).grid.trails.length, 10, 'nine words of 4 letters and the span word');
+    eq(E.check(CX.puzzles.get(p, pz).grid), []);
+    // words that cannot add up at all with this span word: a piece of it changes the sum
+    p = make('HOT BREAKFAST', 'TOAST,EGGS,BACON,COCOA,SYRUP,GRITS,OATS,HONEY,MILK,BAGEL,SCONE,APPLE'.split(','));
+    eq(CX.puzzles.get(p, pz).span, 'BREAKFAST');
+    ok(/could not fill the grid/.test(CX.puzzles.get(p, pz).note));
+    // the middle of a phrase counts too
+    p = make('THE GREAT OUTDOORS IN THE SNOW', WORDS, (x) => { x.plan.audience = 'kids'; });
+    eq(CX.puzzles.get(p, pz).span, 'OUTDOORS');
+    // no span word at all, and a span word that is one long run of letters
+    ['', 'THEVERYBESTOFALLWINTERBREAKFASTS'].forEach((span) => {
+      const q = make(span, WORDS), r = CX.puzzles.get(q, pz);
+      ok(r.ok, JSON.stringify(span));
+      ok(WORDS.indexOf(r.span) !== -1, r.span);
+      eq(E.check(r.grid), []);
+    });
+    // a puzzle that works does not move, whatever else the app can do now
+    const q = make('BREAKFAST', WORDS), g = CX.puzzles.get(q, pz).grid.cells;
+    const lim = P.limits(q), base = 'fix|p18|0', sets = E.pick(CX.puzzles.usable(q, q.puzzles.p18), lim.cells - 9, { min: lim.min, max: lim.max, seed: base });
+    const avoid = CX.puzzles.usable(q, q.puzzles.p18).filter((w) => sets[0].indexOf(w) === -1);
+    eq(g, E.build({ span: 'BREAKFAST', words: sets[0], cols: lim.cols, rows: lim.rows, level: 'easy', seed: base + '|0', avoid, tries: 50 }).cells, 'the same grid as before the fix');
+  });
+
+  await test('puzzles: every kind of AI slip gets a grid, at every size and for every reader', () => {
+    const P = CX.plan, pz = { id: 'p18', no: 18, index: 17 };
+    const POOL = 'SNOW,ICE,MITTEN,SCARF,SLED,SKATE,COCOA,FROST,BLIZZARD,SNOWMAN,SWEATER,FIREPLACE,ICICLE,HOCKEY,GLOVES,BOOTS,PARKA,SHOVEL,CHIMNEY,WOOL,EARMUFFS,THERMOS,FLANNEL,QUILT,BLANKET,SKIING,TOBOGGAN,COAT,HATS,LODGE,SLEIGH,PINE,WINDY,CHILL,FREEZE,HAIL,DRIFT,FLAKE,WREATH,CANDLE,LANTERN,CABIN,TUNDRA,POLAR,WALRUS,PENGUIN,REINDEER,CARIBOU,MOOSE,ERMINE,TEA,JAM,HAM,PIE'.split(',');
+    const SPANS = ['WINTER BREAKFAST', 'COZY WINTER MORNINGS AT HOME', 'WINTER', 'COLD', '', 'THE GREAT OUTDOORS IN THE SNOW', 'SNOWY'];
+    let tried = 0, none = [];
+    // the prompts ask for a third of the words long, so a list holds a word that can reach from edge to edge
+    const mix = (list, lim, rng) => {
+      const long = rng.shuffle(list.filter((w) => w.length >= lim.spanMin)).slice(0, Math.ceil(lim.ask / 3));
+      return rng.shuffle(long.concat(rng.shuffle(list.filter((w) => long.indexOf(w) === -1)).slice(0, lim.ask - long.length)));
+    };
+    P.AUDIENCES.forEach((au) => P.GRID_SIZES.forEach((g) => SPANS.forEach((span, si) => {
+      for (let i = 0; i < 6; i++) {
+        const p = P.newProject();
+        p.seed = 'slip' + i;
+        P.setAudience(p.plan, au.id);
+        p.plan.size = g.id;
+        const lim = P.limits(p), rng = CX.util.makeRng('w' + au.id + g.id + si + i);
+        const words = mix(POOL.filter((w) => w.length >= lim.minLen && w.length <= lim.maxLen), lim, rng);
+        p.puzzles.p18 = Object.assign(P.emptyPuzzle(), { title: 'A Title', theme: 'A theme', span, words });
+        const res = CX.puzzles.get(p, pz);
+        // young kids on the big grids: no word of theirs is long enough, so only a span word that fits can work
+        if (lim.maxLen < lim.spanMin && !(P.letters(span).length >= lim.spanMin && P.letters(span).length <= lim.spanMax)) continue;
+        tried++;
+        if (!res.ok) { none.push([au.id, g.id, span, res.problems[0]].join('/')); continue; }
+        eq(CX.engine.check(res.grid), [], au.id + '/' + g.id + '/' + span);
+      }
+    })));
+    ok(none.length === 0, none.length + ' of ' + tried + ' have no grid: ' + none.slice(0, 5).join('; '));
+  });
+
+  await test('layout: a puzzle with no grid never prints: no blank page, no gap in the numbers, the true count', () => {
+    const stuck = 'ABCD,EFGH,IJKL,MNOP,QRST,UVWX,ABDC,EFHG,IJLK,MNPO,QRTS,UVXW,ACBD,EGFH'.split(',');
+    const p = fullProject();
+    const before = CX.plan.puzzles(p).length;
+    p.ai.blurb = 'Enjoy ' + before + ' fun themed puzzles. Open since ' + before + ' years.';
+    p.ai.welcome = ['Here are ' + before + ' word trails for you.'];
+    p.puzzles.p3 = Object.assign(CX.plan.emptyPuzzle(), { title: 'Rise and Dine', theme: 'x', span: 'CAT', words: stuck });
+    eq(CX.puzzles.status(p, CX.plan.puzzles(p)[2]).state, 'weak');
+    const n = before - 1;
+    const book = CX.layout.layoutBook(p, {});
+    const texts = (pg) => pg.items.filter((it) => it.t === 'text').map((it) => it.str).join(' ');
+    const puzzles = book.pages.filter((pg) => pg.kind === 'puzzle');
+    eq(puzzles.length, n, 'one page a printed puzzle');
+    puzzles.forEach((pg, i) => { ok(pg.meta.cell, 'a grid on page ' + pg.num); ok(texts(pg).includes('PUZZLE ' + (i + 1)), 'number ' + (i + 1) + ' on page ' + pg.num); });
+    ok(!book.pages.some((pg) => /Rise and Dine/.test(texts(pg))), 'the stuck title is gone');
+    book.pages.forEach((pg) => { checkPage(pg); ok(pg.items.some((it) => it.t === 'text'), 'page ' + pg.num + ' is blank'); });
+    ok(texts(book.pages[0]).replace(/\s+/g, ' ').startsWith(CX.plan.bookTitle(p)), 'title page');
+    ok(CX.plan.bookSubtitle(p).startsWith(n + ' '), 'the subtitle says ' + n);
+    ok(texts(book.pages.find((pg) => pg.kind === 'how')).includes(n + ' word trails'), 'the welcome says ' + n);
+    const cover = CX.cover.build(p, book.pages.length).items.filter((it) => it.t === 'text').map((it) => it.str).join(' ');
+    ok(cover.includes('Enjoy ' + n + ' fun themed puzzles') && cover.includes('since ' + before + ' years') && cover.includes(n + ' large print'), cover.slice(0, 400));
+    // the preview still shows the buyer what is missing, and the number they chose
+    const draft = CX.layout.layoutBook(p, { draft: true });
+    eq(draft.pages.filter((pg) => pg.kind === 'puzzle').length, before);
+    ok(draft.pages.some((pg) => /Puzzle 3 goes here/.test(texts(pg))), 'placeholder for the stuck puzzle');
+    ok(CX.plan.bookSubtitle(p, true).startsWith(before + ' '), 'the preview keeps the plan');
+    // the checklist says why, and how the PDF deals with it
+    const items = CX.checklist.run(p, book);
+    ok(/puzzle 3 \(/.test(items.find((i) => i.label === 'Grids').detail), 'the reason is in the checklist');
+    ok(new RegExp('numbered 1 to ' + n).test(items.find((i) => i.label === 'Puzzles in the PDF').detail));
+    // a full stuck puzzle still takes new words, and a new span word
+    const full = CX.plan.newProject();
+    full.plan.count = 10;
+    full.puzzles.p1 = Object.assign(CX.plan.emptyPuzzle(), { title: 'x', theme: 'y', span: 'CAT', words: stuck.concat('ABEF,ABGH,ABIJ,ABKL,ABMN,ABOP,ABQR,ABST,ABUV,ABWX'.split(',')) });
+    eq(full.puzzles.p1.words.length, 24);
+    CX.content.addReply(full, CX.reader.readPuzzles('PUZZLE 1\nSPAN: RECEPTION\nWORDS: ' + S.PACKS[0][3]), []);
+    eq(full.puzzles.p1.span, 'RECEPTION');
+    eq(full.puzzles.p1.words.length, 24);
+    eq(CX.puzzles.status(full, CX.plan.puzzles(full)[0]).state, 'ok');
   });
 
   await test('plan: project files keep what they should and repair the rest', () => {

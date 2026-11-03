@@ -361,7 +361,7 @@
     f.cx = f.x + f.w / 2;
     var w = {
       title: P.bookTitle(project), sub: P.bookSubtitle(project), author: (project.book.author || '').trim(),
-      count: project.plan.count, large: project.book.print !== 'regular'
+      count: P.bookCount(project), large: project.book.print !== 'regular'
     };
     var lay = CX.coverFronts[tpl.layout] || CX.coverFronts.bubbles;
     var start = sh.items.length, res = null;
@@ -391,12 +391,12 @@
     y += hs;
     sh.text(head, safe.x + safe.w / 2, y, hs, 'serifBold', headColor, { align: 'center' });
     y += hs * 0.7;
-    var blurb = project.ai.blurb || ('Every puzzle hides a set of words that share one theme. Work out what links them, trace each word through the letters and use every letter in the grid. One special word stretches from edge to edge and names the theme.');
+    var blurb = P.countText(project, project.ai.blurb) || ('Every puzzle hides a set of words that share one theme. Work out what links them, trace each word through the letters and use every letter in the grid. One special word stretches from edge to edge and names the theme.');
     blurb.split('\n').forEach(function (para) {
       wrapK(para, size, 'serif', safe.w).forEach(function (l) { y += lead; sh.text(l, safe.x, y, size, 'serif', pal.ink); });
       y += lead * 0.4;
     });
-    var items = [pl.count + ' ' + (project.book.print !== 'regular' ? 'large print ' : '') + 'puzzles, every one with its own theme'];
+    var items = [P.bookCount(project) + ' ' + (project.book.print !== 'regular' ? 'large print ' : '') + 'puzzles, every one with its own theme'];
     items.push('Every grid has exactly one solution, and every letter is used');
     if (pl.level === 'mixed') items.push('Three levels, from easy warm-ups to expert trails');
     else items.push(P.level(pl.level).label + ' level from start to finish');

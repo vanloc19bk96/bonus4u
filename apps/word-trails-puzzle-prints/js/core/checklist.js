@@ -9,11 +9,12 @@
     var out = [], b = project.book;
     var author = (b.author || '').trim();
     out.push({ ok: !!author, step: 1, label: 'Pen name', detail: author ? author : 'Type the name to print on the cover and title page.' });
-    var all = P.puzzles(project), missing = [], weak = [], spoils = [];
+    var all = P.puzzles(project), missing = [], weak = [], spoils = [], fixes = [];
     all.forEach(function (x) {
       var st = CX.puzzles.status(project, x), d = project.puzzles[x.id] || P.emptyPuzzle();
       if (st.state === 'empty' || st.state === 'words' || !d.title.trim() || !d.theme.trim()) missing.push(x.no);
-      else if (st.state === 'weak') weak.push(x.no);
+      else if (st.state === 'weak') weak.push(x.no + ' (' + st.pz.problems[0] + ')');
+      if (st.pz && st.pz.note) fixes.push(x.no + ': ' + st.pz.note);
       var s = CX.puzzles.titleSpoils(project, x);
       if (s) spoils.push(x.no + ' (' + s + ')');
     });
@@ -23,8 +24,14 @@
     });
     out.push({
       ok: !weak.length && !missing.length, step: 3, label: 'Grids',
-      detail: weak.length ? 'No grid yet for puzzle ' + short(weak) + '. Copy that prompt again for a few more words.' : missing.length ? 'Built as the words come in.' : all.length + ' grids. Every letter is used and each has exactly one solution.'
+      detail: weak.length ? 'No grid yet for puzzle ' + short(weak) + '. Copy that prompt again for more words.' : missing.length ? 'Built as the words come in.' : all.length + ' grids. Every letter is used and each has exactly one solution.'
     });
+    var print = CX.puzzles.printed(project).length;
+    out.push({
+      ok: print === all.length, step: 3, label: 'Puzzles in the PDF',
+      detail: print === all.length ? 'All ' + print + ' puzzles.' : print ? 'The PDF has the ' + print + ' puzzles that are ready, numbered 1 to ' + print + ', with no blank page. The title page and cover say ' + print + ' too, so use ' + print + ' in your KDP listing.' : 'No puzzle is ready yet.'
+    });
+    if (fixes.length) out.push({ ok: true, step: 3, label: 'Fixed by the app', detail: 'Puzzle ' + short(fixes) });
     out.push({ ok: !spoils.length, step: 3, label: 'Titles', detail: spoils.length ? 'These titles give the span word away: puzzle ' + short(spoils) + '. Click Edit to change them.' : 'No title names its own span word.' });
     var rep = CX.content.repeats(project);
     out.push({

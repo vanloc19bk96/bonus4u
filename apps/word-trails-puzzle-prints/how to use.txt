@@ -34,7 +34,13 @@ puzzle "Word Trails"; you can choose your own name in step 1.
    ChatGPT only writes the titles, themes and words. It is asked for more words than a grid holds
    (14 for a 6 x 8 grid). The app picks the words whose letters fill the grid exactly, builds the
    trails, and proves that the puzzle has exactly one solution. A word that appears in the title
-   is never used. If a puzzle gets no grid, copy its prompt again: it asks for a few more words.
+   is never used.
+   A puzzle that does not fit as ChatGPT wrote it is fixed for you: a span word that is too long is
+   shortened (WINTER BREAKFAST becomes BREAKFAST), the grid may hold a word or two more, and in the end
+   one of the puzzle's own words can become the span word. Step 4 lists what was changed.
+   If a puzzle still has no grid, copy its prompt again for more words. If you would rather not, the
+   PDF leaves that puzzle out and numbers the rest without a gap, and the title page and cover say the
+   real number. No page is ever blank. Use the same number in your KDP listing.
    The last prompt writes the welcome, the closing note and the back cover text.
    Claude, Gemini or Copilot work the same way.
 

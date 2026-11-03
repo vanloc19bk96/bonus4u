@@ -85,7 +85,7 @@
     name.addEventListener('input', function () { pl.name = name.value; changed(); });
     live.push(function () {
       title.placeholder = P.titleIdeas(p)[0];
-      sub.placeholder = P.subtitleIdea(p);
+      sub.placeholder = P.subtitleIdea(p, true);
       ideas.innerHTML = '';
       P.titleIdeas(p).forEach(function (t) {
         ideas.appendChild(h('button', { type: 'button', class: 'chip-btn small', onclick: function () { b.title = t; title.value = t; changed(); } }, t));
@@ -288,8 +288,11 @@
         state.result = msg('err', 'Nothing new was added.', notes.length ? notes : ['Check that you pasted the reply to this prompt.']);
         renderBody(); return;
       }
-      var stuck = rep.added.filter(function (r) { var st = CX.puzzles.status(p, r.pz); return st.state === 'weak'; });
-      if (stuck.length) notes.push('No grid yet for ' + stuck.map(function (r) { return pzName(r.pz).toLowerCase(); }).join(', ') + '. Copy the prompt again: it asks for a few more words.');
+      rep.touched.forEach(function (x) {
+        var st = CX.puzzles.status(p, x);
+        if (st.pz && st.pz.note) notes.push(pzName(x) + ': ' + st.pz.note);
+        if (st.state === 'weak') notes.push(pzName(x) + ' has no grid yet (' + st.pz.problems[0] + '). Copy the prompt again for more words. Until then the PDF leaves it out and numbers the rest.');
+      });
       var dups = CX.content.repeats(p);
       if (dups.length) notes.push(dups.slice(0, 3).map(function (r) { return 'The ' + r.what + ' ' + r.name + ' is on puzzles ' + r.nos.join(', '); }).join('. ') + '. Click Edit to change one, or write it again.');
       state.result = msg('ok', heads.length ? heads.join(' ') : 'Updated the puzzle texts.', notes);
@@ -353,6 +356,7 @@
         facts.push('In the grid: ' + words.join(', ') + '.');
         facts.push('The span word runs ' + (pz.grid.axis === 'v' ? 'top to bottom' : 'left to right') + '. Level: ' + P.level(pz.level).label + '.');
         facts.push('Checked: every letter is used and there is exactly one solution.');
+        if (pz.note) facts.push(pz.note);
         if (pz.grid.unused.length) facts.push('Not used this time: ' + pz.grid.unused.join(', ') + '.');
         if (pz.grid.decoys.length) facts.push('⚠ A spare word can also be traced in this grid: ' + pz.grid.decoys.join(', ') + '. It can mislead a solver: click New grid or remove it.');
       } else facts.push(d.words.length ? 'No grid yet. The grid needs ' + lim.min + ' to ' + lim.max + ' words that fill all ' + lim.cells + ' squares together with the span word.' : 'No words yet: copy the prompt in step 3, or type them below.');
@@ -454,7 +458,7 @@
       palBtns[0].el.firstChild.setAttribute('style', 'background:' + mine.bg + ';box-shadow:inset -9px 0 0 ' + mine.title);
     }
     function showDesigns() {
-      var pl = p.plan, key = JSON.stringify([b.title, b.subtitle, b.author, b.trim, b.print, b.paper, pl.count, pl.level, pl.hints, state.printPages, p.seed]);
+      var pl = p.plan, key = JSON.stringify([b.title, b.subtitle, b.author, b.trim, b.print, b.paper, P.bookCount(p), pl.level, pl.hints, state.printPages, p.seed]);
       var copy = null;
       btns.forEach(function (x) {
         x.el.hidden = group !== 'all' && x.d.group !== group;
@@ -654,10 +658,12 @@
     var p = state.p, book = CX.layout.layoutBook(p, {}), items = CX.checklist.run(p, book);
     var bad = items.filter(function (i) { return !i.ok; });
     if (bad.length) {
+      // what is left is never a blank page, so only these two stop the book from being ready for KDP
+      var blocked = !p.book.author.trim() || book.pages.length < CX.kdp.MIN_PAGES || book.pages.length > CX.kdp.maxPages(p.book.trim, p.book.paper);
       var go = await dom.confirm({
-        title: 'The book is not finished yet',
-        body: bad.map(function (i) { return i.label + ': ' + i.detail; }).concat(['You can download it anyway to have a look.']),
-        actions: [{ label: 'Keep working', value: false }, { label: 'Download anyway', value: true, primary: true }]
+        title: blocked ? 'The book is not finished yet' : 'Before you download',
+        body: bad.map(function (i) { return i.label + ': ' + i.detail; }).concat([blocked ? 'You can download it anyway to have a look.' : 'The PDF is ready for KDP as it is: no page is blank and the puzzle numbers run without a gap.']),
+        actions: [{ label: 'Keep working', value: false }, { label: blocked ? 'Download anyway' : 'Download the book', value: true, primary: true }]
       });
       if (!go) return;
     }

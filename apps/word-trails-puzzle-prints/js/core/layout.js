@@ -326,7 +326,8 @@
       L.flow = { kind: 'puzzle', label: 'Puzzle ' + pz.no };
       if (L.draft) {
         var h = Math.max(S.b * 6, bottom - L.y - S.b * 0.4);
-        L.placeholder('Puzzle ' + pz.no + ' goes here', 'Copy the prompt in step 3, paste it into ChatGPT, then paste the reply back. The app builds the grid.', h);
+        var stuck = res && res.problems.length;
+        L.placeholder('Puzzle ' + pz.no + ' goes here', stuck ? 'No grid yet. Copy the prompt in step 3 for more words. Until then the PDF leaves this puzzle out and numbers the rest, so no page is blank.' : 'Copy the prompt in step 3, paste it into ChatGPT, then paste the reply back. The app builds the grid.', h);
       }
       return;
     }
@@ -405,7 +406,7 @@
     var p = L.project, S = L.S;
     var pg = L.page('title', 'Title page');
     pg.folio = false;
-    var title = P.bookTitle(p), sub = P.bookSubtitle(p);
+    var title = P.bookTitle(p, L.draft), sub = P.bookSubtitle(p, L.draft);
     var y = pg.y0 + pg.H * 0.08;
     var t = fit(title, 'serifBold', pg.w * 0.9, Math.min(34, pg.w / 8.5), S.b * 1.3, 4);
     t.lines.forEach(function (l) { y += t.size * 1.1; pg.text(l, pg.cx, y, t.size, 'serifBold', { align: 'center' }); });
@@ -453,7 +454,7 @@
     L.pg.items.length = 0; L.y = L.pg.y0;
     L.heading('', 'Welcome to ' + name);
     var welcome = p.ai.welcome.length ? p.ai.welcome : ['Every puzzle in this book hides a set of words that share one theme. Work out the theme, trace the words through the letters and watch the grid fill up until no letter is left over.'];
-    welcome.forEach(function (t, i) { if (i) L.y += S.b * 0.5; L.para(t, 'serif', S.b, S.lead); });
+    welcome.forEach(function (t, i) { if (i) L.y += S.b * 0.5; L.para(P.countText(p, t, L.draft), 'serif', S.b, S.lead); });
     L.label('How to play');
     var who = P.audience(pl.audience), min = who.minLen;
     L.bullets(who.kid ? [
@@ -583,7 +584,7 @@
           var tl = fit(title.trim(), 'sansBold', cw, labS, 7.5, 1), line = tl.lines[0];
           while (wid(line, tl.size, 'sansBold') > cw && line.length > 4) line = line.slice(0, -2).trim() + '…';
           pg.text(line, x0 + cw / 2, y0 + tl.size, tl.size, 'sansBold', { align: 'center' });
-          var sw = fit(d.span.trim(), 'sans', cw, labS * 0.95, 7, 1);
+          var sw = fit(x.res.span, 'sans', cw, labS * 0.95, 7, 1);
           pg.text(sw.lines[0], x0 + cw / 2, y0 + labS * 2.2, sw.size, 'sans', { align: 'center', ls: 0 });
           drawGrid(pg, g, x0 + (cw - g.cols * cs) / 2, y0 + labH + (maxR - g.rows) * cs / 2, cs, 'solution');
           pg.meta.solCell = cs;
@@ -599,7 +600,7 @@
     L.page('closing', 'You Made It', 'You made it');
     L.pg.items.length = 0; L.y = L.pg.y0;
     L.heading('', 'You Made It!');
-    if (p.ai.closing.length) p.ai.closing.forEach(function (t, i) { if (i) L.y += S.b * 0.5; L.para(t, 'serif', S.b, S.lead); });
+    if (p.ai.closing.length) p.ai.closing.forEach(function (t, i) { if (i) L.y += S.b * 0.5; L.para(P.countText(p, t, L.draft), 'serif', S.b, S.lead); });
     else if (L.draft) L.placeholder('Your closing note', 'It appears here after you paste the reply to the last prompt in step 3.', S.b * 7);
     else L.para('Every trail found and every letter used. Thank you for spending your puzzle time with this book. We hope you had as much fun solving these as we had making them.', 'serif', S.b, S.lead);
     if (L.pg.cb - L.y > S.b * 6) trailMark(L.pg, L.pg.cx, (L.y + L.pg.cb) / 2, Math.min(90, L.pg.w * 0.3));
@@ -616,7 +617,8 @@
   function pass(project, pageGuess, draft, refs) {
     F = CX.metrics.load();
     var L = new Layout(project, pageGuess, draft, refs);
-    var out = L.out, sections = [], all = P.puzzles(project), pl = project.plan;
+    // the preview shows every puzzle with what it still needs; the print only the ones it can print
+    var out = L.out, sections = [], all = draft ? P.puzzles(project) : CX.puzzles.printed(project), pl = project.plan;
     var list = all.map(function (pz) { return { pz: pz, res: CX.puzzles.get(project, pz) }; });
     titlePage(L);
     copyrightPage(L);

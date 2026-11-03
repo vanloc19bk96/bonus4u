@@ -153,13 +153,29 @@
     return ideas.slice(0, 4);
   }
 
-  function subtitleIdea(project) {
-    var large = project.book.print !== 'regular', n = project.plan.count;
+  // The number of puzzles a book may promise: what the PDF really prints. planned: the number the
+  // buyer chose, for the preview and the set-up fields while the book is still being written.
+  function bookCount(project, planned) {
+    return (!planned && CX.puzzles.printed(project).length) || project.plan.count;
+  }
+
+  // A text that promises "100 puzzles" says what the PDF prints when a puzzle had to stay out.
+  function countText(project, s, planned) {
+    var from = project.plan.count, to = bookCount(project, planned);
+    if (from === to) return s;
+    return String(s).replace(new RegExp('\\b' + from + '\\b(?=(?:[\\s-]+[A-Za-z]+){0,4}[\\s-]+(?:puzzles?|trails?)\\b)', 'gi'), String(to));
+  }
+
+  function subtitleIdea(project, planned) {
+    var large = project.book.print !== 'regular', n = bookCount(project, planned);
     return n + ' ' + (large ? 'Large Print ' : '') + 'Themed Word Search Puzzles Where Every Letter Counts, with Hints and Solutions';
   }
 
-  function bookTitle(project) { return (project.book.title || '').trim() || titleIdeas(project)[0]; }
-  function bookSubtitle(project) { return (project.book.subtitle || '').trim() || subtitleIdea(project); }
+  function bookTitle(project, planned) { return countText(project, (project.book.title || '').trim() || titleIdeas(project)[0], planned); }
+  function bookSubtitle(project, planned) {
+    var own = (project.book.subtitle || '').trim();
+    return own ? countText(project, own, planned) : subtitleIdea(project, planned);
+  }
 
   function newProject() {
     return {
@@ -210,7 +226,7 @@
   CX.plan = {
     THEMES: THEMES, AUDIENCES: AUDIENCES, GRID_SIZES: GRID_SIZES, LEVELS: LEVELS, COUNTS: COUNTS, MIN_COUNT: MIN_COUNT, MAX_COUNT: MAX_COUNT,
     theme: theme, audience: audience, setAudience: setAudience, grid: grid, level: level, letters: letters, validCount: validCount, limits: limits,
-    puzzles: puzzles, levelOf: levelOf, titleIdeas: titleIdeas, subtitleIdea: subtitleIdea, bookTitle: bookTitle, bookSubtitle: bookSubtitle,
+    puzzles: puzzles, levelOf: levelOf, titleIdeas: titleIdeas, subtitleIdea: subtitleIdea, bookTitle: bookTitle, bookSubtitle: bookSubtitle, bookCount: bookCount, countText: countText,
     newProject: newProject, normalize: normalize, puzzle: puzzle, emptyPuzzle: emptyPuzzle
   };
 })(typeof window !== 'undefined' ? window : globalThis);
