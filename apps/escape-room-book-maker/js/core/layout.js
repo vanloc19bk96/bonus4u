@@ -267,7 +267,7 @@
     if (eyebrow) { y += S.small; pg.text(eyebrow.toUpperCase(), x, y, S.small * 1.05, 'sans', Object.assign({ ls: 2.2 }, o)); y += S.b * 0.7; }
     var t = fit(title, 'serifBold', pg.w * (left ? 1 : 0.92), S.h1, S.b * 1.2, 2);
     t.lines.forEach(function (l) { y += t.size * 1.05; pg.text(l, x, y, t.size, 'serifBold', o); y += t.size * 0.12; });
-    if (sub) wrap(sub, S.b, 'serif', pg.w * (left ? 1 : 0.88)).forEach(function (l) { y += S.b * 1.32; pg.text(l, x, y, S.b, 'serif', o); });
+    if (sub) { y += S.b * 0.3; wrap(sub, S.b, 'serif', pg.w * (left ? 1 : 0.88)).forEach(function (l) { y += S.b * 1.32; pg.text(l, x, y, S.b, 'serif', o); }); }
     if (left) { y += S.b * 0.7; pg.line(pg.x0, y, pg.x1, y, 0.9); this.y = y + S.b * 0.8; return; }
     y += S.b * 1.3;
     mark(pg, pg.cx, y, Math.min(70, pg.w * 0.24));
@@ -580,10 +580,16 @@
       lines2 = wrap(task, sz * 0.94, 'sans', pg.w);
       if (bottom - y - (lines1.length + lines2.length) * lead - sz <= minDraw - 1 && sz > Math.max(8.5, S.b * 0.72)) sz -= 0.25; else break;
     }
+    // as much space around the words as the drawing can spare: each try is drawn, checked and taken back
+    var textH = (lines1.length + lines2.length) * lead, drawn = pg.items.length, air = 1;
+    function drawBox(a) { var top = y + textH + sz * (0.95 + 1.5 * a); return { x: pg.x0, y: top, w: pg.w, h: bottom - top }; }
+    while (air > 0 && !D.draw(pg, built.draw, drawBox(air), { b: S.b })) { pg.items.length = drawn; air -= 0.25; }
+    pg.items.length = drawn;
+    y += sz * 0.65 * air;
     lines1.forEach(function (l) { y += lead; pg.text(l, pg.x0, y - lead * 0.2, sz, 'serif'); });
-    y += sz * 0.4;
+    y += sz * (0.4 + 0.35 * air);
     lines2.forEach(function (l) { y += lead; pg.text(l, pg.x0, y - lead * 0.2, sz * 0.94, 'sans'); });
-    y += sz * 0.55;
+    y += sz * (0.55 + 0.5 * air);
     var fine = D.draw(pg, built.draw, { x: pg.x0, y: y, w: pg.w, h: bottom - y }, { b: S.b });
     if (!fine) pg.meta.tight = slot.key;
   }
