@@ -6,7 +6,11 @@
 (function (root) {
   'use strict';
   var CX = root.CX, U = CX.util, P = CX.plan, Z = CX.puzzles, E = CX.engine, dom = CX.dom, h = dom.h;
-  var CHATGPT = 'https://chatgpt.com/';
+  var AI_CHATS = [
+    { name: 'ChatGPT', url: 'https://chatgpt.com/' },
+    { name: 'Claude', url: 'https://claude.ai/new' },
+    { name: 'Gemini', url: 'https://gemini.google.com/app' }
+  ];
 
   var state = { p: null, mode: 'book', open: 1, sel: null, result: null, printPages: 0, busy: false, otherRooms: false };
   var live = [];          // small updaters for the open step (derived text that follows typing)
@@ -64,7 +68,7 @@
       p.cover.design = CX.cover.designForArt(P.setting(v).art);
       p.cover.palette = '';
       changed(true);
-    }), 'ChatGPT writes the whole story for this place. The cover starts with a matching picture.', 'fSetting'));
+    }), 'The AI writes the whole story for this place. The cover starts with a matching picture.', 'fSetting'));
     if (pl.setting === 'custom') out.push(field('Your setting', custom, 'One or two sentences: the place, and why the reader is locked in.', 'fCustom'));
 
     var other = state.otherRooms || P.ROOM_COUNTS.indexOf(pl.rooms) === -1;
@@ -99,7 +103,7 @@
       });
     });
     live[live.length - 1]();
-    out.push(h('div', { class: 'field' }, [h('label', { for: 'fTitle' }, 'Book title'), title, h('div', { class: 'hint' }, 'Leave it empty to use the gray text, or click an idea. ChatGPT adds its own ideas here after the first prompt.'), ideas]));
+    out.push(h('div', { class: 'field' }, [h('label', { for: 'fTitle' }, 'Book title'), title, h('div', { class: 'hint' }, 'Leave it empty to use the gray text, or click an idea. The AI adds its own ideas here after the first prompt.'), ideas]));
     out.push(field('Subtitle', sub, 'Leave it empty to use the gray text.', 'fSub'));
     out.push(field(h('span', null, ['Pen name ', h('span', { class: 'req' }, '*')]), author, 'Printed on the cover and the title page.', 'fAuthor'));
     out.push(next(2, 'Next: puzzles and pages'));
@@ -140,7 +144,7 @@
       });
     });
     out.push(h('div', { class: 'field' }, [h('div', { class: 'field-label' }, 'Puzzle types'), kindsBox,
-      h('div', { class: 'hint' }, 'A mix sells best: reviews of other books ask for variety. Changing types after writing a room may ask ChatGPT for a few more words. Riddles are the one type the app can’t prove, so read those yourself.')]));
+      h('div', { class: 'hint' }, 'A mix sells best: reviews of other books ask for variety. Changing types after writing a room may ask the AI for a few more words. Riddles are the one type the app can’t prove, so read those yourself.')]));
     out.push(h('div', { class: 'field' }, [h('div', { class: 'field-label' }, 'In the book'), h('div', { class: 'stack' }, [
       check('Shuffle the rooms', 'The next room is never the next page, so only the right code gets you there. Recommended.', pl.shuffle, function (v) { pl.shuffle = v; changed(); }),
       check('Answers upside down', 'A stray glance can’t spoil an answer.', pl.flip, function (v) { pl.flip = v; changed(); }),
@@ -171,8 +175,8 @@
     var cur = list[state.sel];
     var out = [h('ol', { class: 'howto' }, [
       h('li', null, ['Click ', h('b', null, 'Copy prompt'), '.']),
-      h('li', null, ['Click ', h('b', null, 'Open ChatGPT'), ', paste (Ctrl+V) and press Enter.']),
-      h('li', null, ['When it has finished, click ', h('b', null, 'Copy code'), ' on its reply (or select the whole reply and copy it).']),
+      h('li', null, ['Open ', h('b', null, 'ChatGPT'), ', ', h('b', null, 'Claude'), ' or ', h('b', null, 'Gemini'), ', paste (Ctrl+V) and press Enter.']),
+      h('li', null, ['When it has finished, click the ', h('b', null, 'copy'), ' button on its code block (or select the whole reply and copy it).']),
       h('li', null, ['Paste it in the box below and click ', h('b', null, 'Add to book'), '. The app builds the puzzles.'])
     ])];
     var dots = h('div', { class: 'pn-dots' });
@@ -195,7 +199,7 @@
         ul.appendChild(h('li', { class: st.done ? 'full' : '' }, [h('span', null, 'Room ' + room.no + (name ? ' · ' + name : '')), h('span', { class: 'n' }, st.done ? '✓ ' + st.total + ' puzzles' : st.ok + ' of ' + st.total + ' puzzles')]));
       });
       panel.appendChild(ul);
-      panel.appendChild(h('p', { class: 'pn-note' }, 'ChatGPT writes each room and the words its puzzles show. The app makes the puzzles, the hints and the answers, and proves they work.'));
+      panel.appendChild(h('p', { class: 'pn-note' }, 'The AI writes each room and the words its puzzles show. The app makes the puzzles, the hints and the answers, and proves they work.'));
     } else {
       panel.appendChild(h('p', { class: 'pn-note' }, 'The story, the rooms, ' + (p.plan.finale === 'culprit' ? 'the suspects, the culprit' : 'the final word') + ', the ending and the back cover. Do this one first: the other prompts build on it.'));
     }
@@ -203,17 +207,18 @@
     var checker = function () { return CX.prompts.checkText(state.p, cur.rooms); };
     var main = cur.done && filled.length ? checker : function () { return CX.prompts.text(state.p, cur); };
     panel.appendChild(h('div', { class: 'actions first' }, [
-      dom.copyButton(cur.done && filled.length ? 'Copy check prompt' : 'Copy prompt', main, 'btn btn-primary'),
-      h('a', { class: 'btn', href: CHATGPT, target: '_blank', rel: 'noopener noreferrer' }, 'Open ChatGPT ↗')
-    ]));
-    if (cur.done && filled.length) panel.appendChild(h('p', { class: 'hint' }, 'These rooms are done. The check prompt has ChatGPT edit them as a careful editor. Its reply replaces what it sends back.'));
+      dom.copyButton(cur.done && filled.length ? 'Copy check prompt' : 'Copy prompt', main, 'btn btn-primary')
+    ].concat(AI_CHATS.map(function (ai) {
+      return h('a', { class: 'btn', href: ai.url, target: '_blank', rel: 'noopener noreferrer' }, 'Open ' + ai.name + ' ↗');
+    }))));
+    if (cur.done && filled.length) panel.appendChild(h('p', { class: 'hint' }, 'These rooms are done. The check prompt has the AI edit them as a careful editor. Its reply replaces what it sends back.'));
     var peek = h('details', { class: 'peek' }, [h('summary', null, 'See the prompt'), h('textarea', { class: 'textarea', readonly: true, rows: 8 })]);
     peek.addEventListener('toggle', function () { if (peek.open) peek.querySelector('textarea').value = main(); });
     panel.appendChild(peek);
     if (filled.length) {
       panel.appendChild(h('div', { class: 'fix-days' }, [
         h('b', null, 'Fix these rooms'),
-        h('p', { class: 'hint' }, 'Send them to ChatGPT for an edit, or clear them and write them again.'),
+        h('p', { class: 'hint' }, 'Send them to the AI for an edit, or clear them and write them again.'),
         h('div', { class: 'actions first' }, [
           cur.done ? null : dom.copyButton('Copy check prompt', checker, 'btn'),
           h('button', { type: 'button', class: 'btn danger-text', onclick: function () { redo(filled); } }, filled.length > 1 ? 'Write these rooms again' : 'Write this room again')
@@ -222,13 +227,13 @@
     }
     out.push(panel);
 
-    var ta = h('textarea', { class: 'textarea paste', id: 'fPaste', placeholder: 'Paste ChatGPT’s whole reply here', spellcheck: 'false' });
-    out.push(h('div', { class: 'field' }, [h('label', { for: 'fPaste' }, 'ChatGPT’s reply'), ta]));
+    var ta = h('textarea', { class: 'textarea paste', id: 'fPaste', placeholder: 'Paste the AI’s whole reply here', spellcheck: 'false' });
+    out.push(h('div', { class: 'field' }, [h('label', { for: 'fPaste' }, 'The AI’s reply'), ta]));
     out.push(h('div', { class: 'actions first' }, h('button', { type: 'button', class: 'btn btn-primary', onclick: function () { addReply(ta.value, cur); } }, 'Add to book')));
     var res = h('div', { class: 'result' });
     if (state.result) res.appendChild(state.result);
     out.push(res);
-    out.push(h('p', { class: 'hint' }, 'Claude, Gemini or Copilot work the same way. The app reads the room numbers in any reply, so a reply can go in while another prompt is selected.'));
+    out.push(h('p', { class: 'hint' }, 'Copilot and other AI chats work the same way. The app reads the room numbers in any reply, so a reply can go in while another prompt is selected.'));
 
     out.push(h('h3', { class: 'sub-head' }, 'Your story'));
     var need = CX.prompts.storyNeeds(p);
@@ -254,10 +259,10 @@
 
   function addReply(text, cur) {
     var p = state.p;
-    if (!text.trim()) { state.result = msg('err', 'The box is empty. Paste ChatGPT’s reply into it first.'); renderBody(); return; }
+    if (!text.trim()) { state.result = msg('err', 'The box is empty. Paste the AI’s reply into it first.'); renderBody(); return; }
     var kind = CX.reader.kind(text);
     if (kind === 'unknown') {
-      state.result = msg('err', 'This does not look like a reply to one of the prompts.', ['Copy the whole reply: the Copy code button above ChatGPT’s block copies all of it.', 'Make sure you pasted the reply, not the prompt.']);
+      state.result = msg('err', 'This does not look like a reply to one of the prompts.', ['Copy the whole reply: the copy button on the AI’s code block copies all of it.', 'Make sure you pasted the reply, not the prompt.']);
       renderBody(); return;
     }
     if (kind === 'story') {
@@ -283,7 +288,7 @@
     changed(true);
   }
 
-  // Clears rooms so the prompt asks ChatGPT for all of them again.
+  // Clears rooms so the prompt asks the AI for all of them again.
   async function redo(rooms) {
     var names = rooms.map(function (r) { return 'room ' + r.no; }).join(' and ');
     var ok = await dom.confirm({
@@ -310,7 +315,7 @@
 
   function viewStory() {
     var p = state.p, st = p.story, pl = p.plan, body = h('div', { class: 'day-texts' }), add = function (x) { body.appendChild(x); };
-    add(textField('sPremise', 'Premise', st.premise, 'The whole story in a few sentences. Not printed: ChatGPT uses it to stay on track.', function (v) { st.premise = v; }, 3));
+    add(textField('sPremise', 'Premise', st.premise, 'The whole story in a few sentences. Not printed: the AI uses it to stay on track.', function (v) { st.premise = v; }, 3));
     add(textField('sRole', 'Who the reader is', st.role, null, function (v) { st.role = v; }));
     add(textField('sOpening', 'Opening', st.opening.join('\n\n'), null, function (v) { st.opening = paragraphs(v); }, 6));
     if (pl.finale === 'culprit') {
@@ -537,7 +542,7 @@
   var STEPS = [
     { n: 1, title: 'The book', body: body1, chip: function (p) { return { t: p.plan.rooms + ' rooms · ' + P.audience(p.plan.audience).label, ok: !!p.book.author.trim() }; } },
     { n: 2, title: 'Puzzles and pages', body: body2, chip: function (p) { return { t: p.plan.kinds.length + ' puzzle types · ' + CX.kdp.trim(p.book.trim).label, ok: true }; } },
-    { n: 3, title: 'Write the story with ChatGPT', body: body3, chip: function (p) { var l = CX.prompts.list(p), d = l.filter(function (x) { return x.done; }).length; return { t: d + ' of ' + l.length + ' prompts', ok: d === l.length }; } },
+    { n: 3, title: 'Write the story with AI', body: body3, chip: function (p) { var l = CX.prompts.list(p), d = l.filter(function (x) { return x.done; }).length; return { t: d + ' of ' + l.length + ' prompts', ok: d === l.length }; } },
     { n: 4, title: 'Check and download', body: body4, chip: function (p) { var it = CX.checklist.run(p, { pages: { length: state.printPages } }), bad = it.filter(function (x) { return !x.ok; }).length; return { t: bad ? bad + ' to fix' : 'Ready', ok: !bad }; } }
   ];
 

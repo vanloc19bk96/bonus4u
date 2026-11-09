@@ -2,8 +2,8 @@ ESCAPE ROOM BOOK MAKER
 ======================
 
 Double-click index.html. It opens in your web browser (Chrome, Edge, Firefox or Safari)
-and works without the internet. Nothing to install. ChatGPT in step 3 is the only part
-that needs the internet, and you open that yourself.
+and works without the internet. Nothing to install. The AI chat in step 3 (ChatGPT, Claude or
+Gemini) is the only part that needs the internet, and you open that yourself.
 
 The book: a story in locked rooms, played with only a pencil. No QR codes, no app, no scissors.
 Each room holds 3 or 4 puzzles and every puzzle gives one digit. The digits make the room's door
@@ -13,7 +13,7 @@ and sends the reader back. The rooms are shuffled through the book, so only the 
 you there.
 
 Who does what:
-  ChatGPT writes the story: the rooms, the opening and ending, and the words a puzzle shows.
+  The AI writes the story: the rooms, the opening and ending, and the words a puzzle shows.
   The app makes all the rest and proves it: the 18 kinds of puzzle, three hints and a full answer
   for each, the code tables, and every page number. It plays the finished book from the first
   room to the ending before you download it.
@@ -24,19 +24,19 @@ Who does what:
 2. Puzzles and pages: the level (Rising is easy rooms first and hard rooms last), 3 or 4 puzzles a
    room, which puzzle types are in, and the page size and text size. 6 x 9 in is what most escape
    room books use.
-3. Write the story with ChatGPT:
+3. Write the story with AI:
      - click "Copy prompt",
-     - click "Open ChatGPT", paste (Ctrl+V) and press Enter,
-     - when it has finished, click "Copy code" on its reply,
+     - click "Open ChatGPT", "Open Claude" or "Open Gemini", paste (Ctrl+V) and press Enter,
+     - when it has finished, click the copy button on its code block,
      - paste it into the box and click "Add to book".
    Do the first prompt first: it writes the story the others build on. Then do every other prompt.
    Green ticks are done. Copying a prompt again only asks for what is still missing or could not be
-   used, such as a message that is too long. Claude, Gemini or Copilot work the same way.
+   used, such as a message that is too long. Copilot and other AI chats work the same way.
 
    FIXING A ROOM:
      - Click "Edit" next to a room: change any text, change a puzzle's type, or click "New version
        of this puzzle" for a different one. The window shows the digit, the hints and the answer.
-     - Or let ChatGPT edit it: click "Copy check prompt", and paste its reply in the usual box. A
+     - Or let the AI edit it: click "Copy check prompt", and paste its reply in the usual box. A
        reply replaces what it sends back and leaves the rest alone.
      - Or start over: click "Write these rooms again", copy the prompt again and paste the reply.
      - "Edit the story" holds the opening, final word, suspects, ending and back cover.
@@ -52,7 +52,7 @@ Download the cover again whenever the page count changes (the spine width follow
 KDP asks whether AI helped make the book: the story came from an AI chat, so answer yes for the text.
 
 Before you publish, play at least one room yourself with a pencil. The app proves the puzzles and the
-route. It can't prove a riddle (ChatGPT writes those, so read each one), and only a reader can tell
+route. It can't prove a riddle (the AI writes those, so read each one), and only a reader can tell
 whether a story feels fair. To leave riddles out, untick them in step 2.
 
 Editing in Canva: "Book for Canva (.pptx)" in step 4 gives you editable pages. Change the words, not
