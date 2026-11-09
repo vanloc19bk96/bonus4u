@@ -115,7 +115,7 @@
   var PIG = {};
   (function () {
     var cells = [['r', 'b'], ['l', 'r', 'b'], ['l', 'b'], ['t', 'b', 'r'], ['t', 'b', 'l', 'r'], ['t', 'b', 'l'], ['t', 'r'], ['t', 'l', 'r'], ['t', 'l']];
-    var xs = ['s', 'w', 'e', 'n'];
+    var xs = ['s', 'e', 'w', 'n'];
     'ABCDEFGHI'.split('').forEach(function (ch, i) { PIG[ch] = { sides: cells[i] }; });
     'JKLMNOPQR'.split('').forEach(function (ch, i) { PIG[ch] = { sides: cells[i], dot: true }; });
     'STUV'.split('').forEach(function (ch, i) { PIG[ch] = { x: xs[i] }; });

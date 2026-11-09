@@ -370,6 +370,49 @@ const SOLVE = {
     });
   }
 
+  await test('shape code: every letter is drawn with the lines that bound it in the key', () => {
+    const recorder = () => {
+      const r = { lines: [], paths: [], dots: [], texts: [] };
+      r.line = (x1, y1, x2, y2) => r.lines.push({ x1, y1, x2, y2 });
+      r.path = (pts) => r.paths.push(pts);
+      r.dot = (x, y) => r.dots.push({ x, y });
+      r.text = (str, x, y) => r.texts.push({ str, x, y });
+      r.box = () => {};
+      return r;
+    };
+    const same = (a, b) => Math.abs(a - b) < 0.01, between = (v, a, b) => v > Math.min(a, b) && v < Math.max(a, b);
+    const signs = (v) => v.map((p) => Math.sign(p[0]) + ',' + Math.sign(p[1])).sort().join(' ');
+    const key = recorder(), cs = CX.draw.pigKey(key, 0, 0, 330, 66) / 3, bad = [];
+    const straight = key.lines.filter((l) => same(l.x1, l.x2) || same(l.y1, l.y2)), crossing = key.lines.filter((l) => !same(l.x1, l.x2) && !same(l.y1, l.y2));
+    eq(key.texts.map((t) => t.str).sort().join(''), E.ABC, 'the key holds every letter once');
+    key.texts.forEach(({ str: ch, x, y }) => {
+      const g = recorder();
+      CX.draw.draw(g, { type: 'pigpen', words: [ch], key: false }, { x: 0, y: 0, w: 300, h: 100 }, {});
+      const dotted = key.dots.some((d) => Math.abs(d.x - x) < cs * 0.5 && Math.abs(d.y - y) < cs * 0.5);
+      if (g.dots.length !== (dotted ? 1 : 0)) bad.push(ch + ': dot');
+      if (ch <= 'R') {
+        // a grid letter: the sides of its cell that have a line, against the sides drawn
+        const around = [];
+        straight.forEach((l) => {
+          const d = same(l.x1, l.x2) ? l.x1 - x : l.y1 - y, along = same(l.x1, l.x2) ? between(y, l.y1, l.y2) : between(x, l.x1, l.x2);
+          if (along && Math.abs(d) < cs) around.push(same(l.x1, l.x2) ? (d > 0 ? 'r' : 'l') : (d > 0 ? 'b' : 't'));
+        });
+        const xs = [].concat.apply([], g.lines.map((l) => [l.x1, l.x2])), ys = [].concat.apply([], g.lines.map((l) => [l.y1, l.y2]));
+        const midX = (Math.min.apply(null, xs) + Math.max.apply(null, xs)) / 2, midY = (Math.min.apply(null, ys) + Math.max.apply(null, ys)) / 2;
+        const drawn = g.lines.map((l) => (same(l.x1, l.x2) ? (l.x1 < midX ? 'l' : 'r') : (l.y1 < midY ? 't' : 'b')));
+        if (drawn.sort().join('') !== around.sort().join('')) bad.push(ch + ': drawn ' + drawn.join('') + ', key ' + around.join(''));
+      } else {
+        // an X letter: the two arms of the X either side of it, against the two arms drawn
+        const lines = crossing.filter((l) => between(x, l.x1, l.x2)), mx = (lines[0].x1 + lines[0].x2) / 2, my = (lines[0].y1 + lines[0].y2) / 2;
+        const arms = [].concat.apply([], lines.map((l) => [[l.x1 - mx, l.y1 - my], [l.x2 - mx, l.y2 - my]]));
+        const wedge = arms.sort((a, b) => (b[0] * (x - mx) + b[1] * (y - my)) - (a[0] * (x - mx) + a[1] * (y - my))).slice(0, 2);
+        const p = g.paths[0], drawn = [[p[0] - p[2], p[1] - p[3]], [p[4] - p[2], p[5] - p[3]]];
+        if (signs(drawn) !== signs(wedge)) bad.push(ch + ': drawn ' + signs(drawn) + ', key ' + signs(wedge));
+      }
+    });
+    eq(bad, [], 'letters that do not match the key');
+  });
+
   await test('puzzle: the same seed gives the same puzzle', () => {
     E.list().forEach((k) => {
       const a = E.build({ kind: k.id, level: 2, seed: 'same', data: k.short ? SHORT : DATA }), b = E.build({ kind: k.id, level: 2, seed: 'same', data: k.short ? SHORT : DATA });

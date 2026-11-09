@@ -51,8 +51,9 @@
     return msg.words.map(function (x, i) { return i === at ? w[0] + '_'.repeat(w.length - 1) : x; }).join(' ');
   }
 
-  function textTrap(digit) {
-    return { digit: LOOKALIKE[digit], note: 'decode the number word again, letter by letter: one slipped letter gives a different number' };
+  // The layout puts the full stop after a note.
+  function textTrap(digit, note) {
+    return { digit: LOOKALIKE[digit], note: note || 'decode the number word again, letter by letter: one slipped letter gives a different number' };
   }
 
   function caesarShift(ch, k) { return ABC[(ABC.indexOf(ch) + k + 26) % 26]; }
@@ -168,7 +169,7 @@
           'The first letters you read are ' + msg.letters.slice(0, 3) + '.',
           'The message reads: ' + masked(msg, c.digit) + '.'],
         steps: ['The holes uncover: ' + msg.plain + '.', 'It names ' + NUMS[c.digit] + ', so the digit is ' + c.digit + '.'],
-        trap: textTrap(c.digit), solved: { type: 'grille', n: n, grid: grid, card: holes }
+        trap: textTrap(c.digit, 'check that every hole sits over the right letter, then read the letters again'), solved: { type: 'grille', n: n, grid: grid, card: holes }
       };
     }
   });
@@ -237,12 +238,13 @@
       var bx = sudokuBox(n), name = n === 4 ? 'each of the four 2 × 2 boxes' : 'each of the six 2 × 3 boxes';
       var rowVals = g[mark[0]].filter(Boolean), colVals = g.map(function (x) { return x[mark[1]]; }).filter(Boolean);
       var trapD = otherOf(range(1, n), c.digit, c.rng);
+      var shownRow = mark[0] === 0 ? n - 1 : 0;   // never the row of the ringed square
       return {
         task: ['Fill the square so that every row, every column and ' + name + ' holds the numbers 1 to ' + n + ' once each.', 'Your digit is the number in the ringed square.'],
         draw: { type: 'sudoku', n: n, box: bx, grid: g, mark: mark },
         hints: ['Start with the row, column or box that is nearly full: it leaves one number to place.',
           'The ringed square’s row already holds ' + (rowVals.join(', ') || 'nothing') + ' and its column holds ' + (colVals.join(', ') || 'nothing') + '.',
-          'The top row of the finished square reads ' + full[0].join(' ') + '.'],
+          'The ' + (shownRow ? 'bottom' : 'top') + ' row of the finished square reads ' + full[shownRow].join(' ') + '.'],
         steps: ['The finished square has a single solution, shown here. The ringed square holds ' + c.digit + '.'],
         trap: { digit: trapD, note: 'check the ringed square against its row, column and box' },
         solved: { type: 'sudoku', n: n, box: bx, grid: full, given: g, mark: mark }
@@ -554,12 +556,14 @@
         if (e.side === 'right') walls.v[e.r][n] = false;
       });
       var side = exits[0].side, trapD = exits[1].label;
+      // the maze is a tree grown from the star, so no dead end also reaches a square on the true path
+      var via = pathTrue[Math.round((pathTrue.length - 1) * 2 / 3)].split(',').map(Number);
       return {
         task: ['Start at the star in the middle and draw your way through. Several exits look open, but only one can be reached.', 'Your digit is the number on that exit.'],
         draw: { type: 'maze', n: n, walls: walls, exits: exits.map(function (e) { return { r: e.r, c: e.c, side: e.side, label: e.label }; }), start: [Math.floor(n / 2), Math.floor(n / 2)] },
         hints: ['Try it backward: start at each exit and follow the path in. A wrong exit soon closes off.',
           'The open exit is not number ' + trapD + '.',
-          'The open exit is on the ' + side + ' side of the maze.'],
+          'Your line passes through the square in row ' + (via[0] + 1) + ', column ' + (via[1] + 1) + ' (counted from the top left).'],
         steps: ['Only the exit on the ' + side + ' side can be reached from the star, as the line shows. It is number ' + c.digit + '.'],
         trap: { digit: trapD, note: 'follow your line again from the star: a wall closes off that exit' },
         solved: { type: 'maze', n: n, walls: walls, exits: exits.map(function (e) { return { r: e.r, c: e.c, side: e.side, label: e.label }; }), start: [Math.floor(n / 2), Math.floor(n / 2)], path: pathTrue.map(function (k) { return k.split(',').map(Number); }) }
@@ -657,7 +661,7 @@
       var look = [8, 7, 3, 8, 1, 6, 8, 1, 0, 3];
       var inv = c.level === 2;
       return {
-        task: ['The numbers beside each row and above each column give the runs of black squares, in order, with at least one white square between runs. Shaded squares are already filled.', 'Shade the grid. The picture is your digit' + (inv ? ', left white in a black panel.' : '.')],
+        task: ['The numbers beside each row and above each column give the runs of black squares, in order, with at least one white square between runs.' + (Object.keys(given).length > 0 ? ' Shaded squares are already filled.' : ''), 'Shade the grid. The picture is your digit' + (inv ? ', left white in a black panel.' : '.')],
         draw: { type: 'picture', rows: rowClues, cols: colClues, given: Object.keys(given), R: pic.length, C: pic[0].length },
         hints: ['Start with the biggest numbers. A run longer than half a line always covers the middle of that line.',
           'The top row reads ' + pic[0].map(function (v) { return v ? 'black' : 'white'; }).join(', ') + '.',
@@ -886,7 +890,7 @@
           'The leftover letters start ' + msg.letters.slice(0, 3) + '.',
           'The leftover letters read: ' + masked(msg, c.digit) + '.'],
         steps: ['With every word crossed off, the letters left read: ' + msg.plain + '.', 'It names ' + NUMS[c.digit] + ', so the digit is ' + c.digit + '.'],
-        trap: textTrap(c.digit), solved: { type: 'search', n: n, grid: grid, placed: placed, keep: keep }
+        trap: textTrap(c.digit, 'check that every word is crossed off, then read the leftover letters again'), solved: { type: 'search', n: n, grid: grid, placed: placed, keep: keep }
       };
     }
   });
