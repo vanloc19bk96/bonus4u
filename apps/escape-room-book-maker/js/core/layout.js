@@ -573,23 +573,28 @@
 
     // the story and the task take what they need, and the drawing gets the rest
     var story = d.story.trim(), task = built.task.map(function (t) { return fillKit(L, t); }).join(' ');
+    // the gaps under the title, between story and task, and above the drawing; `a` (0 to 1) is how much air the drawing can spare.
+    // The title gets the widest gap, so the big heading never sits on the story.
+    function gaps(a) { return [sz * (0.4 + 1.0 * a), sz * (0.4 + 0.35 * a), sz * (0.55 + 0.5 * a)]; }
+    function sum(g) { return g[0] + g[1] + g[2]; }
     var minDraw = { logic: 250, search: 220, picture: 200, maze: 200, walk: 210, lock: 190, count: 190 }[slot.kind] || 150, sz = S.b, lines1, lines2, lead;
     for (;;) {
       lead = sz * 1.32;
       lines1 = wrap(story, sz, 'serif', pg.w);
       lines2 = wrap(task, sz * 0.94, 'sans', pg.w);
-      if (bottom - y - (lines1.length + lines2.length) * lead - sz <= minDraw - 1 && sz > Math.max(8.5, S.b * 0.72)) sz -= 0.25; else break;
+      if (bottom - y - (lines1.length + lines2.length) * lead - sum(gaps(0)) <= minDraw - 1 && sz > Math.max(8.5, S.b * 0.72)) sz -= 0.25; else break;
     }
     // as much space around the words as the drawing can spare: each try is drawn, checked and taken back
     var textH = (lines1.length + lines2.length) * lead, drawn = pg.items.length, air = 1;
-    function drawBox(a) { var top = y + textH + sz * (0.95 + 1.5 * a); return { x: pg.x0, y: top, w: pg.w, h: bottom - top }; }
+    function drawBox(a) { var top = y + textH + sum(gaps(a)); return { x: pg.x0, y: top, w: pg.w, h: bottom - top }; }
     while (air > 0 && !D.draw(pg, built.draw, drawBox(air), { b: S.b })) { pg.items.length = drawn; air -= 0.25; }
     pg.items.length = drawn;
-    y += sz * 0.65 * air;
+    var g = gaps(air);
+    y += g[0];
     lines1.forEach(function (l) { y += lead; pg.text(l, pg.x0, y - lead * 0.2, sz, 'serif'); });
-    y += sz * (0.4 + 0.35 * air);
+    y += g[1];
     lines2.forEach(function (l) { y += lead; pg.text(l, pg.x0, y - lead * 0.2, sz * 0.94, 'sans'); });
-    y += sz * (0.55 + 0.5 * air);
+    y += g[2];
     var fine = D.draw(pg, built.draw, { x: pg.x0, y: y, w: pg.w, h: bottom - y }, { b: S.b });
     if (!fine) pg.meta.tight = slot.key;
   }
