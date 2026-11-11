@@ -306,7 +306,7 @@
       if (rep.replaced.length) heads.push('Replaced the words of ' + rep.replaced.map(dayName).join(', ') + ' with this reply.');
       if (n) heads.push('Added ' + U.plural(n, 'word') + ': ' + plain.map(function (r) { return dayName(r.day).replace(' day', '') + ' (' + r.n + ')'; }).join(', ') + '.');
       if (rep.updated) heads.push('Updated ' + U.plural(rep.updated, 'clue') + '.');
-      if (rep.repeats) notes.push(U.plural(rep.repeats, 'word was', 'words were') + ' already on another day, so they were left out. To keep them, tick “Words may repeat on other days” in step 2 and paste again.');
+      if (rep.repeats) notes.push(U.plural(rep.repeats, 'word was', 'words were') + ' already on another day, so ' + (rep.repeats === 1 ? 'it was' : 'they were') + ' left out. To keep ' + (rep.repeats === 1 ? 'it' : 'them') + ', tick “Words may repeat on other days” in step 2 and paste again.');
       if (rep.extra) notes.push(U.plural(rep.extra, 'word was', 'words were') + ' more than a day can use, so they were left out.');
       if (rep.skipped) {
         var why = {};
