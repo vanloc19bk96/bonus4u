@@ -29,10 +29,24 @@
     return out;
   }
 
+  /*
+   * Fill-in-the-blank gaps ("Silent ___, holy night") must survive the markdown cleanup, which
+   * strips underscores. A gap is a run of three or more underscores, or one or two standing on
+   * their own ("Silent __"); __bold__ and _italic_ are not gaps. hideBlanks swaps each gap
+   * underscore for a placeholder, showBlanks brings them back (a one- or two-mark gap becomes ___).
+   */
+  var GAP = '\u0001';
+  function hideBlanks(s) {
+    return String(s || '')
+      .replace(/_{3,}/g, function (m) { return m.replace(/_/g, GAP); })
+      .replace(/(^|[\s(\[{"'“‘\/—–-])_{1,2}(?=$|[\s,.;:!?)\]}"'”’\/—–-])/g, '$1' + GAP + GAP + GAP);
+  }
+  function showBlanks(s) { return String(s || '').replace(/\u0001/g, '_'); }
+
   // Prose cleanup: strip markdown marks, fix dashes and quotes, split paragraphs.
   // Returns an array of paragraph strings.
   function cleanParagraphs(text) {
-    var t = String(text || '').replace(/\r\n?/g, '\n');
+    var t = hideBlanks(String(text || '').replace(/\r\n?/g, '\n'));
     t = t.replace(/\\n/g, '\n'); // literal "\n" left by some chat tools
     t = t.replace(/[‘’]/g, "'").replace(/[“”„«»]/g, '"');
     t = t.replace(/<\/?[a-z][^>]*>/gi, ''); // stray html tags
@@ -45,20 +59,20 @@
     t = t.replace(/\.\s?\.\s?\./g, '…');
     t = t.replace(/[ \t ]+/g, ' ');
     var paras = t.split(/\n+/).map(function (p) { return p.trim(); }).filter(Boolean);
-    return paras.map(function (p) { return smartQuotes(p); });
+    return paras.map(function (p) { return smartQuotes(showBlanks(p)); });
   }
 
   function cleanTitle(s) {
-    var t = String(s || '').replace(/[\r\n]+/g, ' ').replace(/[*#_`]/g, '');
+    var t = hideBlanks(String(s || '').replace(/[\r\n]+/g, ' ')).replace(/[*#_`]/g, '');
     t = t.replace(/^\s*(?:chapter|ch\.?)\s*\d+\s*[:.\-–—]?\s*/i, '');
     t = t.replace(/^["'“‘]+|["'”’]+$/g, '').replace(/\s+/g, ' ').trim();
-    return smartQuotes(t);
+    return smartQuotes(showBlanks(t));
   }
 
   function cleanLine(s) {
-    var t = String(s || '').replace(/[\r\n]+/g, ' ').replace(/[*#_`]/g, '').replace(/\s+/g, ' ').trim();
+    var t = hideBlanks(String(s || '').replace(/[\r\n]+/g, ' ')).replace(/[*#_`]/g, '').replace(/\s+/g, ' ').trim();
     t = t.replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
-    return smartQuotes(t);
+    return smartQuotes(showBlanks(t));
   }
 
   // Shorten to max characters at a word boundary.
@@ -71,6 +85,6 @@
 
   CX.text = {
     stripAccents: stripAccents, smartQuotes: smartQuotes, cleanParagraphs: cleanParagraphs,
-    cleanTitle: cleanTitle, cleanLine: cleanLine, shortenAtWord: shortenAtWord
+    cleanTitle: cleanTitle, cleanLine: cleanLine, hideBlanks: hideBlanks, showBlanks: showBlanks, shortenAtWord: shortenAtWord
   };
 })(typeof window !== 'undefined' ? window : globalThis);

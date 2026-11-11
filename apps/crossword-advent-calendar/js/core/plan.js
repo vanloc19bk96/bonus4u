@@ -84,6 +84,8 @@
 
   function theme(id) { return THEMES.filter(function (t) { return t.id === id; })[0] || THEMES[0]; }
   function audience(id) { return AUDIENCES.filter(function (a) { return a.id === id; })[0] || AUDIENCES[0]; }
+  // May a word come back on another day? The user's choice (plan.reuse) or the audience's default.
+  function reuse(project) { var r = project.plan.reuse; return typeof r === 'boolean' ? r : !!audience(project.plan.audience).reuse; }
   function grid(n) { return GRID_SIZES.filter(function (g) { return g.n === +n; })[0] || grid(13); }
 
   function letters(s) { return String(s || '').toUpperCase().replace(/[^A-Z]/g, ''); }
@@ -227,6 +229,7 @@
     pl.size = grid(pl.size).n;
     pl.lines = CX.util.clamp(Math.round(+pl.lines) || 0, 0, 6);
     ['bonus', 'headStart', 'stars', 'memory', 'story', 'candles'].forEach(function (k) { pl[k] = !!pl[k]; });
+    if (typeof pl.reuse !== 'boolean') delete pl.reuse; // unset: the audience decides
     ['sentence', 'bonusSentence', 'customTheme'].forEach(function (k) { if (typeof pl[k] !== 'string') pl[k] = d.plan[k]; });
     out.days = {};
     if (p.days && typeof p.days === 'object') {
@@ -246,7 +249,7 @@
 
   CX.plan = {
     THEMES: THEMES, AUDIENCES: AUDIENCES, SENTENCES: SENTENCES, NEW_YEAR: NEW_YEAR, GRID_SIZES: GRID_SIZES, MONTHS: MONTHS, PRESET_DAYS: PRESET_DAYS, MIN_DAYS: MIN_DAYS,
-    theme: theme, audience: audience, grid: grid, letters: letters, sentencesFor: sentencesFor, validDays: validDays,
+    theme: theme, audience: audience, reuse: reuse, grid: grid, letters: letters, sentencesFor: sentencesFor, validDays: validDays,
     firstDate: firstDate, lastDate: lastDate, dateOf: dateOf, dateSpan: dateSpan,
     days: days, weeks: weeks, givens: givens, stars: stars, sentenceOf: sentenceOf, sentenceWords: sentenceWords, sentenceOk: sentenceOk, letterOf: letterOf,
     titleIdeas: titleIdeas, subtitleIdea: subtitleIdea, bookTitle: bookTitle, bookSubtitle: bookSubtitle,

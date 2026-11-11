@@ -13,11 +13,12 @@
     var t = String(text || '').replace(/\r\n?/g, '\n').replace(/\\n/g, '\n');
     t = t.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/ /g, ' ');
     return t.split('\n').map(function (l) {
-      return l.replace(/^\s*```.*$/, '').replace(/^\s{0,3}#{1,6}\s*/, '').replace(/\*\*|__/g, '').replace(/^\s*>\s?/, '').trim();
+      return T.showBlanks(T.hideBlanks(l).replace(/^\s*```.*$/, '').replace(/^\s{0,3}#{1,6}\s*/, '').replace(/\*\*|__/g, '').replace(/^\s*>\s?/, '').trim());
     });
   }
 
-  function clean(s) { return T.cleanLine(String(s || '').replace(/^\s*[*_"]+|[*_"]+\s*$/g, '')); }
+  // A clue may start or end with a fill-in-the-blank gap ("___ the halls", "Silent ___").
+  function clean(s) { return T.cleanLine(T.showBlanks(T.hideBlanks(s).replace(/^\s*[*_"]+|[*_"]+\s*$/g, ''))); }
 
   var RE_DAY = /^(bonus\s*day|bonus|day)\s*(\d{1,2})\b\s*(?:\([^)]*\))?\s*(?:[:.\-–—]\s*(.*))?$/i;
   var RE_TITLE = /^(?:title|theme)\s*[:\-–—]\s*(.+)$/i;

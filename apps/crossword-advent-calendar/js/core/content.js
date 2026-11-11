@@ -1,6 +1,6 @@
 /*
  * Puts the AI's words into the book: matches each day of a reply to its day, keeps titles and
- * texts, drops words the book already has on another day (unless the audience may reuse them),
+ * texts, drops words the book already has on another day (unless words may repeat: plan.reuse or the audience),
  * takes a new clue for a word the day already has, and stops a day at the number of words a grid
  * can use. A reply that rewrites a finished day can replace its words instead of adding to them.
  */
@@ -56,7 +56,7 @@
    * Returns { added: [{ day, n }], replaced: [day], updated (clues), same, texts, repeats, extra, unplaced, skipped }.
    */
   function addReply(project, parsed, fallback, replace) {
-    var all = P.days(project), ask = P.grid(project.plan.size).ask, reuse = P.audience(project.plan.audience).reuse;
+    var all = P.days(project), ask = P.grid(project.plan.size).ask, reuse = P.reuse(project);
     var rep = { added: [], replaced: [], updated: 0, same: 0, texts: 0, repeats: 0, extra: 0, unplaced: 0, skipped: parsed.skipped.length };
     var used = {};
     all.forEach(function (d) { ((project.days[d.id] || {}).words || []).forEach(function (x) { used[x.w] = d.id; }); });

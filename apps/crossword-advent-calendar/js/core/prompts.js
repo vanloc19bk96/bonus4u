@@ -107,10 +107,11 @@
       : '- Every word belongs to the book’s theme and the day’s theme. At least two thirds of them are clearly about ' + tp.focus + '; the rest are everyday words that still fit the day. No filler words that have nothing to do with the theme, and no awkward word forced in just to stay on it.');
     if (a.words || easy) L.push('- Only ' + (a.words || 'easy, well-known words that everyone knows') + '.');
     L.push('- No two words of the same day mean nearly the same thing or could answer the same clue (not GLOVE and MITTEN; not MONEY, CASH and COIN; not SHOP and STORE). When two words are that close, keep one and choose a different word.');
-    L.push('- No brand names, no famous people, no song lyrics, no foreign words, nothing sad or scary.');
-    L.push(a.reuse ? '- Never the same word twice on one day. A good easy word may come back on another day when it fits that day too.' : '- Never use the same word twice, on the same day or on two days.');
+    L.push('- No brand names, no famous people, no lyrics from modern songs, no foreign words, nothing sad or scary.');
+    L.push(P.reuse(project) ? '- Never the same word twice on one day. A good ' + (easy ? 'easy ' : '') + 'word may come back on another day when it fits that day too, best with a different clue there.' : '- Never use the same word twice, on the same day or on two days.');
     L.push('Rules for the clues:');
-    L.push('- ' + cap(a.clue) + ': a plain definition the solver can work out. No puns, no cryptic tricks, no fill-in-the-blank song lines.');
+    L.push('- ' + cap(a.clue) + ': a plain definition the solver can work out. No puns, no cryptic tricks.');
+    L.push('- A fill-in-the-blank clue is fine for a phrase everyone knows, like a line of a traditional carol or a saying: write the missing word as ___ (three underscores), for example "___ the halls with boughs of holly" (DECK). The rest of the line must not contain the answer.');
     L.push('- The answer-first test: ' + (a.reader || 'a solver') + ' who reads the clue without seeing the answer thinks of this exact word. A clue that only makes sense once you know the answer is not good enough. Bad: "Draw this with crayons" (PICTURE: you can draw anything). Good: "A photo or a drawing in a frame" (PICTURE).');
     L.push('- A clue fits only its own answer, never another answer of the same day. "A sweet treat" could be many things; "Red and white sweet shaped like a hook" is one.');
     L.push('- ' + ((a.clueWords || 8) > 8 ? 'Clear beats short: up to ' + a.clueWords + ' simple words.' : 'Under 8 words.') + ' A clue never contains its answer, a word made from it or another answer of the same day. Do not write the letter count.');
@@ -147,7 +148,7 @@
     if (todo.some(function (d) { return needs(project, d).story; })) extra.push(easy ? 'STORY: one happy sentence (under 15 words, in words a child can read) that sets the scene for the day' : 'STORY: one warm sentence (under 25 words) that sets the scene for the day');
     if (todo.some(function (d) { return needs(project, d).question; })) extra.push('QUESTION: one friendly question that invites the solver to share a memory or a thought about the day’s theme');
     if (extra.length) { L.push('For every day also write:'); extra.forEach(function (e) { L.push('- ' + e + '.'); }); }
-    if (a.reuse) {
+    if (P.reuse(project)) {
       // other days' words may come back, so only a day's own words are off limits for it
       var own = todo.filter(function (day) { return ((project.days[day.id] || {}).words || []).length; }).map(function (day) {
         return label(day) + ': ' + project.days[day.id].words.map(function (x) { return x.w; }).join(', ');

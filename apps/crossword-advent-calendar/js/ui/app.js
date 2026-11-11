@@ -74,7 +74,7 @@
     var p = state.p, pl = p.plan, b = p.book;
     var out = [h('p', { class: 'lead' }, 'Who is the book for, how long is the countdown and what does the secret message say?')];
     out.push(h('div', { class: 'field' }, [h('div', { class: 'field-label' }, 'Who will solve it?'), h('div', { class: 'cards' }, P.AUDIENCES.map(function (a) {
-      return radio('aud', a.label, null, pl.audience === a.id, function () { pl.audience = a.id; Object.assign(pl, a.defaults); changed(true); });
+      return radio('aud', a.label, null, pl.audience === a.id, function () { if (pl.audience !== a.id) delete pl.reuse; pl.audience = a.id; Object.assign(pl, a.defaults); changed(true); });
     }))]));
     var custom = h('textarea', { class: 'textarea short', id: 'fCustom', rows: 2, maxlength: 300, placeholder: 'For example: a Christmas by the sea, with lighthouses, boats and seaside villages' });
     custom.value = pl.customTheme;
@@ -147,6 +147,7 @@
       check('Easy start', P.audience(pl.audience).more ? 'Three answers printed in each grid in the first half, two after that' : pl.days >= 20 ? 'Three answers printed in each grid on days 1 to 6, two on days 7 to 12, then none' : 'A few answers printed in the first grids, fewer as the days go on', pl.headStart, function (v) { pl.headStart = v; changed(true); }),
       pl.headStart ? check('Difficulty stars', 'One to three stars by the date: one star when three answers are printed, three when none are', pl.stars, function (v) { pl.stars = v; changed(); }) : null,
       check('A story line', 'One warm sentence that sets the scene for the day', pl.story, function (v) { pl.story = v; changed(); }),
+      check('Words may repeat on other days', 'A word can come back on another day, for example CHRISTMAS in a story title one day and in a carol another. Best with a different clue each time. Never twice on the same day.', P.reuse(p), function (v) { pl.reuse = v; changed(); }),
       check('A memory question', 'A friendly question under the clues, with lines to write on', pl.memory, function (v) { pl.memory = v; changed(true); })
     ])]));
     if (pl.memory) out.push(field('Writing lines under the question', select('fLines', [0, 2, 3, 4, 5, 6].map(function (n) { return { v: n, t: n ? n + ' lines' : 'No lines' }; }), pl.lines, function (v) { pl.lines = +v; changed(); }),
@@ -305,7 +306,7 @@
       if (rep.replaced.length) heads.push('Replaced the words of ' + rep.replaced.map(dayName).join(', ') + ' with this reply.');
       if (n) heads.push('Added ' + U.plural(n, 'word') + ': ' + plain.map(function (r) { return dayName(r.day).replace(' day', '') + ' (' + r.n + ')'; }).join(', ') + '.');
       if (rep.updated) heads.push('Updated ' + U.plural(rep.updated, 'clue') + '.');
-      if (rep.repeats) notes.push(U.plural(rep.repeats, 'word was', 'words were') + ' already on another day, so they were left out.');
+      if (rep.repeats) notes.push(U.plural(rep.repeats, 'word was', 'words were') + ' already on another day, so they were left out. To keep them, tick “Words may repeat on other days” in step 2 and paste again.');
       if (rep.extra) notes.push(U.plural(rep.extra, 'word was', 'words were') + ' more than a day can use, so they were left out.');
       if (rep.skipped) {
         var why = {};
@@ -423,7 +424,7 @@
         if (!/^[A-Z]+$/.test(w)) why = 'Type one word, letters only.';
         else if (w.length < 3 || w.length > n) why = 'The word needs 3 to ' + n + ' letters.';
         else if (d.words.some(function (x) { return x.w === w; })) why = w + ' is already on this day.';
-        else if (other && !P.audience(pl.audience).reuse) why = w + ' is already on ' + dayName(other).toLowerCase() + '.';
+        else if (other && !P.reuse(p)) why = w + ' is already on ' + dayName(other).toLowerCase() + '. To allow it, tick “Words may repeat on other days” in step 2.';
         else if (!c) why = 'Write a clue for it.';
         else if (CX.reader.givesAway(w, c)) why = 'The clue gives the answer away.';
         if (why) { err.textContent = why; return; }

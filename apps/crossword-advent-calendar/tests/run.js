@@ -95,6 +95,18 @@ function checkPage(pg) {
     ok(CX.reader.givesAway('SNOWMAN', 'A snowman made of snow') && CX.reader.givesAway('BAKING', 'The bakings of the day') && !CX.reader.givesAway('LAMP', 'It lights the corner of a room'));
   });
 
+  await test('reader: fill-in-the-blank clues keep their ___, markdown marks still go', () => {
+    const r = CX.reader.readDays('Day 1: Carols\nStory: We sing "Silent ___" by the fire.\nWords:\n' +
+      'DECK | ___ the halls with boughs of holly\nHERALD | Hark! The ___ angels sing\nWINTER | In the bleak mid-___\n' +
+      'NOEL | The first __, the angels did say\nBELLS | Jingle _____, jingle all the way\n' +
+      '**STAR** | **Bright** light on top of the tree\nSNOW | __Cold__ white flakes _falling_ down\n');
+    eq(r.days[0].words.map((x) => x.c), ['___ the halls with boughs of holly', 'Hark! The ___ angels sing', 'In the bleak mid-___',
+      'The first ___, the angels did say', 'Jingle _____, jingle all the way', 'Bright light on top of the tree', 'Cold white flakes falling down']);
+    eq(r.days[0].story, 'We sing “Silent ___” by the fire.');
+    eq(CX.text.cleanParagraphs('__Loud__ songs and ___ the halls.'), ['Loud songs and ___ the halls.']);
+    eq(CX.text.cleanTitle('O Little Town of ___'), 'O Little Town of ___');
+  });
+
   await test('reader: bonus days and the extras reply', () => {
     const r = CX.reader.readDays('BONUS DAY 2: Quiet Morning\nWORDS:\nTEAPOT | Pot for brewing a hot drink\n');
     eq([r.days[0].set, r.days[0].no, r.days[0].words.length], ['bonus', 2, 1]);
@@ -232,6 +244,25 @@ function checkPage(pg) {
     const book = fullProject((q) => { q.plan.audience = 'young'; Object.assign(q.plan, CX.plan.audience('young').defaults); });
     const items = CX.checklist.run(book, CX.layout.layoutBook(book, {}));
     ok(CX.checklist.ready(items), JSON.stringify(items.filter((i) => !i.ok)));
+  });
+
+  await test('content: “Words may repeat on other days” lets an adult book reuse a word with a new clue', () => {
+    const p = CX.plan.newProject();
+    const pr = CX.prompts.list(p)[0];
+    CX.content.addReply(p, CX.reader.readDays(S.CLEAN), pr.days);
+    eq(CX.plan.reuse(p), false, 'adults: off by default');
+    ok(/Never use the same word twice, on the same day or on two days/.test(CX.prompts.text(p, CX.prompts.list(p)[1])));
+    p.plan.reuse = true;
+    let rep = CX.content.addReply(p, CX.reader.readDays('DAY 3: Carols\nWORDS:\nLAMP | It hangs over the dining table'), pr.days);
+    eq([rep.repeats, rep.added.length], [0, 1], 'kept on another day');
+    eq(p.days.d3.words[0].c, 'It hangs over the dining table');
+    eq(p.days.d1.words.filter((x) => x.w === 'LAMP').length, 1, 'day 1 keeps its own LAMP and clue');
+    ok(/A good word may come back on another day when it fits that day too, best with a different clue there/.test(CX.prompts.text(p, CX.prompts.list(p)[1])));
+    eq(CX.plan.normalize(JSON.parse(JSON.stringify(p))).plan.reuse, true, 'saved in the project file');
+    const q = CX.plan.newProject(); q.plan.audience = 'kids';
+    eq([CX.plan.reuse(q), CX.plan.reuse(CX.plan.normalize(q))], [true, true], 'kids: on by default');
+    q.plan.reuse = false;
+    eq(CX.plan.reuse(q), false, 'and can be turned off');
   });
 
   await test('content: days by number, repeats dropped, replies without day lines fill the prompt’s days', () => {
