@@ -510,6 +510,29 @@ function clash(pg) {
     console.log('     pages: ' + counts.join(' '));
   });
 
+  // A customer had to enlarge every label and all the solutions by hand in PowerPoint.
+  await test('layout: large print keeps every letter at the text size, solutions included', () => {
+    const fits = { large: ['6x9', '7x10', '8x10', '8.5x11'], xl: ['7x10', '8x10', '8.5x11'] };
+    Object.keys(fits).forEach((pr) => fits[pr].forEach((trim) => ['5x6', '6x8'].forEach((size) => {
+      const p = fullProject((q) => { q.book.trim = trim; q.book.print = pr; q.plan.size = size; });
+      const book = CX.layout.layoutBook(p, {}), at = trim + '/' + pr + '/' + size, min = CX.layout.PRINT[pr].base;
+      eq(book.S.min, min, at + ' floor');
+      book.pages.forEach((pg) => pg.items.forEach((it) => ok(it.t !== 'text' || it.size >= min - 0.01, at + ' page ' + pg.num + ' (' + pg.label + '): "' + it.str + '" ' + it.size + ' pt')));
+      const n = CX.puzzles.printed(p).length, sol = book.pages.filter((pg) => pg.kind === 'solutions').length;
+      ok(sol <= Math.ceil(n / 4) + 1, at + ': ' + sol + ' solution pages for ' + n + ' puzzles');
+      const item = CX.checklist.run(p, book).find((i) => i.label === 'Large print');
+      ok(item && item.ok, at + ' checklist: ' + (item && item.detail));
+    })));
+    // a grid too big for the page: the checklist says so instead of printing small letters quietly
+    const tight = fullProject((q) => { q.book.trim = '5x8'; q.book.print = 'xl'; q.plan.size = '8x10'; });
+    const item = CX.checklist.run(tight, CX.layout.layoutBook(tight, {})).find((i) => i.label === 'Large print');
+    ok(item && !item.ok && /bigger trim size or a smaller grid/.test(item.detail), JSON.stringify(item));
+    // regular print has no such floor and no such check
+    const reg = fullProject((q) => { q.book.print = 'regular'; });
+    const rb = CX.layout.layoutBook(reg, {});
+    ok(!rb.S.large && !CX.checklist.run(reg, rb).some((i) => i.label === 'Large print'), 'regular print');
+  });
+
   await test('layout: book order, page references and what prints on a puzzle page', () => {
     const p = fullProject();
     const book = CX.layout.layoutBook(p, {});
@@ -556,8 +579,11 @@ function clash(pg) {
     const starCount = (pgs) => pgs.find((pg) => pg.kind === 'puzzle').items.filter((it) => it.t === 'poly' && it.closed && it.pts.length === 20).length;
     eq([starCount(off), starCount(base)], [1, 4], 'only the span word’s star without stars; three more with them');
     eq(base.filter((pg) => pg.kind === 'level').length, 0, 'no dividers in a one-level book');
-    const two = CX.layout.layoutBook(fullProject((q) => { q.plan.level = 'medium'; q.plan.perPage = 2; }), {}).pages;
+    const two = CX.layout.layoutBook(fullProject((q) => { q.plan.level = 'medium'; q.plan.perPage = 2; q.book.print = 'regular'; }), {}).pages;
     eq(two.filter((pg) => pg.kind === 'puzzle').length, Math.ceil(S.PACKS.length / 2), 'two puzzles a page on 8.5 x 11');
+    // large print: two 6 x 8 grids and their 14 pt labels do not fit a page, two 5 x 6 grids do
+    const lp = (size) => CX.layout.layoutBook(fullProject((q) => { q.plan.level = 'medium'; q.plan.perPage = 2; q.plan.size = size; }), {}).pages.filter((pg) => pg.kind === 'puzzle').length;
+    eq([lp('6x8'), lp('5x6')], [S.PACKS.length, Math.ceil(S.PACKS.length / 2)], 'large print two a page');
     two.filter((pg) => pg.kind === 'puzzle').forEach((pg) => ok(pg.meta.cell >= 26, 'squares stay big'));
     const small = CX.layout.layoutBook(fullProject((q) => { q.book.trim = '6x9'; q.plan.perPage = 2; }), {}).pages;
     eq(small.filter((pg) => pg.kind === 'puzzle').length, S.PACKS.length, 'a small page keeps one');

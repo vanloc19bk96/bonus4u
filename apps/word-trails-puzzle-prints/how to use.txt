@@ -21,6 +21,10 @@ puzzle "Word Trails"; you can choose your own name in step 1.
    not whether a child knows a word.
 2. Puzzles and pages: the grid size (6 x 8 is the classic), the level, hints, puzzle log and
    stars, the page size, one or two puzzles to a page and the text size.
+     Large print (14 pt) and Extra large (16 pt) keep every letter in the book at that size or
+     bigger: labels, page numbers, hints, and the grid letters on the puzzle and solution pages
+     (4 solutions to a page on 8.5 x 11). Many large print guides ask for 16 pt. If a grid is too
+     big for a small page size, step 4 says so: pick a bigger page or a smaller grid.
      Easy: gentle trails; the page shows each word's first letter and length.
      Medium: trails turn more; the page shows each word's length.
      Hard: trails twist at every chance; the page only says how many words to find.

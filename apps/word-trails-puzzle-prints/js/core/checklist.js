@@ -43,6 +43,21 @@
     if (!ai.closing.length) miss.push('closing note');
     if (!ai.blurb.trim()) miss.push('back cover text');
     out.push({ ok: !miss.length, step: 3, label: 'Welcome, closing and back cover', detail: miss.length ? 'Missing: ' + miss.join(', ') + ' (last prompt in step 3)' : 'All in' });
+    // large print: every letter in the book, grids included, at least the text size
+    if (book.S && book.S.large) {
+      var low = 0, at = [];
+      book.pages.forEach(function (pg) {
+        pg.items.forEach(function (it) {
+          if (it.t !== 'text' || it.size >= book.S.min - 0.01) return;
+          low = low ? Math.min(low, it.size) : it.size;
+          if (at.indexOf(pg.label) < 0) at.push(pg.label);
+        });
+      });
+      out.push({
+        ok: !low, step: 2, label: 'Large print',
+        detail: low ? 'Some letters are only ' + (Math.round(low * 10) / 10) + ' pt (' + short(at) + ') because the grid is too big for this page size. Pick a bigger trim size or a smaller grid in step 2 to keep every letter at ' + book.S.min + ' pt.' : 'Every letter in the book, grids and solutions included, is ' + book.S.min + ' pt or bigger.'
+      });
+    }
     var n = book.pages.length, max = CX.kdp.maxPages(b.trim, b.paper);
     out.push({
       ok: n >= CX.kdp.MIN_PAGES && n <= max, step: 2, label: 'Page count',

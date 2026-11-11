@@ -9,7 +9,9 @@
  *   { t:'ellipse', cx, cy, rx, ry, mode, ink?, lw? }
  *   { t:'poly', pts:[x,y,...], closed, mode, ink?, lw? }
  * ink is the gray level (1 = black, default). Nothing is lighter than 10% gray, no line is
- * thinner than 0.75 pt and no text is smaller than 7 pt: the KDP rules.
+ * thinner than 0.75 pt and no text is smaller than 7 pt: the KDP rules. A large print book goes
+ * further: no text, grid letters included, is smaller than its text size (S.min), on every page
+ * from the title to the last solution, so the buyer never has to enlarge anything by hand.
  *
  * Book order: title, copyright, welcome and how to play with a worked example, the puzzle log, the
  * puzzles (a divider before each level in a mixed book), first hints, second hints, solutions and
@@ -152,9 +154,17 @@
   }
 
   // ---------- the layout state ----------
-  function sizes(b) {
-    return { b: b, lead: b * 1.36, fact: Math.max(9, b * 0.82), h1: b * 1.85, h2: b * 1.3, small: Math.max(8, b * 0.62), folio: Math.max(8.5, b * 0.68) };
+  // large: a large print book, where the small labels, page numbers and notes are the text size too
+  function sizes(b, large) {
+    var fl = large ? b : 0;
+    return {
+      b: b, lead: b * 1.36, fact: Math.max(9, b * 0.82, fl), h1: b * 1.85, h2: b * 1.3,
+      small: Math.max(8, b * 0.62, fl), folio: Math.max(8.5, b * 0.68, fl),
+      large: !!large, min: large ? b : 7
+    };
   }
+  // Grid letters are half a square: the smallest square that keeps them readable.
+  function minCell(S) { return S.large ? S.min * 2 : 0; }
 
   function Layout(project, pages, draft, refs) {
     var t = KDP.trim(project.book.trim);
@@ -166,7 +176,7 @@
     var m = KDP.margins(pages);
     this.m = { inside: m.inside * PT, outside: m.outside * PT, top: m.top * PT, bottom: m.bottom * PT };
     this.safe = { inside: m.safe.inside * PT, outside: m.safe.outside * PT, top: m.safe.top * PT, bottom: m.safe.bottom * PT };
-    this.S = sizes(PRINT[project.book.print] ? PRINT[project.book.print].base : 14);
+    this.S = sizes(PRINT[project.book.print] ? PRINT[project.book.print].base : 14, project.book.print !== 'regular');
     this.foot = this.S.folio + 12;
     this.pages = [];
     this.flow = null;
@@ -254,8 +264,9 @@
    * Draws a grid with its top-left at x, y and squares of cs points. mode 'puzzle': a ring round
    * every letter, to draw the trails over. 'solution': each trail as a line through shaded rounds
    * (the way a solver draws it, so word ends stay clear), the span word heavier and darker.
+   * letter: the letter size, half a square unless given.
    */
-  function drawGrid(pg, g, x, y, cs, mode) {
+  function drawGrid(pg, g, x, y, cs, mode, letter) {
     function cx(c) { return x + c * cs + cs / 2; }
     function cy(r) { return y + r * cs + cs / 2; }
     if (mode === 'solution') {
@@ -266,7 +277,7 @@
         t.path.forEach(function (rc) { pg.dot(cx(rc[1]), cy(rc[0]), cs * 0.4, t.span ? 0.42 : 0.13); });
       });
     }
-    var size = cs * 0.5, lift = F.sansBold.capHeight * size / 2;
+    var size = letter || cs * 0.5, lift = F.sansBold.capHeight * size / 2;
     for (var r = 0; r < g.rows; r++) {
       for (var c = 0; c < g.cols; c++) {
         if (mode !== 'solution') pg.ring(cx(c), cy(r), cs * 0.43, 0.75, 0.45);
@@ -338,11 +349,12 @@
     pg.text(line, pg.cx, y, ls, 'sans', { align: 'center', ink: 0.85 });
     y += S.b * (compact ? 0.3 : 0.6);
     // slots first, what is left goes to the grid; the grid matters more, so slots shrink for it
-    var ss = Math.max(8, S.b * (compact ? 0.68 : 0.85)), plan = slotPlan(p, pz, res, pg.w, ss), avail, cs;
+    // large print starts the slots at the text size; on a crowded page they give way to the grid
+    var ss = Math.max(8, S.b * (compact ? 0.68 : 0.85), S.large ? S.min : 0), plan = slotPlan(p, pz, res, pg.w, ss), avail, cs;
     for (;;) {
       avail = bottom - y - plan.h - S.b * (compact ? 0.2 : 0.5);
       cs = Math.min(MAX_CELL, pg.w / g.cols, avail / g.rows);
-      if (cs >= 28 || ss <= 8) break;
+      if (cs >= Math.max(28, minCell(S)) || ss <= 8) break;
       ss = Math.max(8, ss - 0.5);
       plan = slotPlan(p, pz, res, pg.w, ss);
     }
@@ -357,7 +369,7 @@
   function perPage(L) {
     if (L.project.plan.perPage !== 2) return 1;
     var g = P.grid(L.project.plan.size), pg = L.H - L.m.top - L.m.bottom - L.foot;
-    return (pg / 2 - L.S.b * 8.5) / g.rows >= MIN_CELL_TWO ? 2 : 1;
+    return (pg / 2 - L.S.b * 8.5) / g.rows >= Math.max(MIN_CELL_TWO, minCell(L.S)) ? 2 : 1;
   }
 
   function puzzlePages(L, list) {
@@ -412,11 +424,11 @@
     t.lines.forEach(function (l) { y += t.size * 1.1; pg.text(l, pg.cx, y, t.size, 'serifBold', { align: 'center' }); });
     if (sub) {
       y += S.b * 0.7;
-      var ss = Math.max(S.b * 0.88, 11);
+      var ss = Math.max(S.b * 0.88, 11, S.min);
       wrap(sub, ss, 'serif', pg.w * 0.84).forEach(function (l) { y += ss * 1.38; pg.text(l, pg.cx, y, ss, 'serif', { align: 'center' }); });
     }
     // a little worked grid, as on the cover
-    var ex = example(), cs = Math.min(pg.w / 8, 30), gy = Math.max(y + S.b * 2.6, pg.y0 + pg.H * 0.4);
+    var ex = example(), cs = Math.min(pg.w / 8, Math.max(30, minCell(S))), gy = Math.max(y + S.b * 2.6, pg.y0 + pg.H * 0.4);
     if (gy + cs * ex.rows < pg.cb - S.b * 4) drawGrid(pg, ex, pg.cx - cs * ex.cols / 2, gy, cs, 'solution');
     else trailMark(pg, pg.cx, y + S.b * 3, 70);
     var author = (p.book.author || '').trim();
@@ -427,7 +439,7 @@
     var p = L.project, S = L.S;
     var pg = L.page('copyright', 'Copyright');
     pg.folio = false;
-    var size = Math.max(8.5, S.b * 0.66), lead = size * 1.5;
+    var size = Math.max(8.5, S.b * 0.66, S.min), lead = size * 1.5;
     var year = new Date().getFullYear(), author = (p.book.author || '').trim();
     var paras = [
       'Copyright © ' + year + (author ? ' ' + author : '') + '. All rights reserved.',
@@ -473,19 +485,29 @@
       'A star marks the span word in the writing spaces under the grid.'
     ]);
     // the worked example: the same grid unsolved and solved
-    var ex = example(), gap = S.b * 1.4, cs = Math.min(30, (L.pg.w - gap) / (ex.cols * 2));
+    // side by side; in large print on a narrow page, one above the other so the letters stay big
+    var ex = example(), gap = S.b * 1.4, top = Math.max(30, minCell(S)), cs = Math.min(top, (L.pg.w - gap) / (ex.cols * 2));
+    var stack = cs < minCell(S);
+    if (stack) cs = Math.min(top, L.pg.w / ex.cols);
     L.label('An example: Picked Fresh');
     L.para('The title hints at fruit. The span word is ORCHARD; the theme words are APPLE, PLUM, PEAR and LEMON.', 'serif', S.b, S.lead);
-    var capS = Math.max(8, S.small * 1.05), h = cs * ex.rows + capS * 2.6;
+    var capS = Math.max(8, S.small * 1.05), h = cs * ex.rows + capS * 2.6, gw = cs * ex.cols;
     L.y += S.b * 0.4;
-    L.need(h);
-    var pg = L.pg, gw = cs * ex.cols, x1 = pg.cx - gap / 2 - gw, x2 = pg.cx + gap / 2;
-    pg.text('The puzzle', x1 + gw / 2, L.y + capS, capS, 'sansBold', { align: 'center' });
-    pg.text('Solved', x2 + gw / 2, L.y + capS, capS, 'sansBold', { align: 'center' });
-    var gy = L.y + capS * 1.8;
-    drawGrid(pg, ex, x1, gy, cs, 'puzzle');
-    drawGrid(pg, ex, x2, gy, cs, 'solution');
-    L.y = gy + cs * ex.rows + capS * 0.8;
+    (stack ? [['The puzzle', 'puzzle'], ['Solved', 'solution']] : [null]).forEach(function (one) {
+      L.need(h);
+      var pg = L.pg, gy = L.y + capS * 1.8;
+      if (one) {
+        pg.text(one[0], pg.cx, L.y + capS, capS, 'sansBold', { align: 'center' });
+        drawGrid(pg, ex, pg.cx - gw / 2, gy, cs, one[1]);
+      } else {
+        var x1 = pg.cx - gap / 2 - gw, x2 = pg.cx + gap / 2;
+        pg.text('The puzzle', x1 + gw / 2, L.y + capS, capS, 'sansBold', { align: 'center' });
+        pg.text('Solved', x2 + gw / 2, L.y + capS, capS, 'sansBold', { align: 'center' });
+        drawGrid(pg, ex, x1, gy, cs, 'puzzle');
+        drawGrid(pg, ex, x2, gy, cs, 'solution');
+      }
+      L.y = gy + cs * ex.rows + capS * 0.8;
+    });
     var more = [];
     if (pl.hints && refs.hints1) more.push('Stuck? The first hints start on page ' + refs.hints1 + ': the theme in plain words and how the span word starts. The second hints, on page ' + refs.hints2 + ', give you two of the words.');
     if (refs.solutions) more.push('All the solutions start on page ' + refs.solutions + '. In the solutions the span word is the darker, heavier trail.');
@@ -519,7 +541,7 @@
 
   // ---------- the hints ----------
   function hintRow(L, no, text) {
-    var S = L.S, size = Math.max(9, S.b * 0.86), lead = size * 1.32, nw = wid('000', size, 'sansBold') + size * 0.6;
+    var S = L.S, size = Math.max(9, S.b * 0.86, S.min), lead = size * 1.32, nw = wid('000', size, 'sansBold') + size * 0.6;
     var lines = wrap(text, size, 'serif', L.pg.w - nw);
     L.need(lines.length * lead + size * 0.45);
     var pg = L.pg;
@@ -561,14 +583,16 @@
     L.heading('', 'Solutions');
     var maxR = 1, maxC = 1;
     ready.forEach(function (x) { maxR = Math.max(maxR, x.res.grid.rows); maxC = Math.max(maxC, x.res.grid.cols); });
-    var labS = Math.max(8, S.small * 1.1), labH = labS * 2.9, gapX = S.b * 1.2, gapY = S.b * 0.8;
+    var labS = Math.max(8, S.small * 1.1), labH = labS * (S.large ? 2.7 : 2.9), gapX = S.b * 1.2, gapY = S.b * 0.8;
     function cellFor(cols, rows, top) {
       var pg = L.pg, w = (pg.w - gapX * (cols - 1)) / cols, h = (pg.cb - top - gapY * (rows - 1)) / rows;
-      return Math.min(30, w / maxC, (h - labH) / maxR);
+      return Math.min(S.large ? S.min * 2.5 : 30, w / maxC, (h - labH) / maxR);
     }
-    var options = [[3, 4], [3, 3], [2, 3], [2, 2], [1, 2], [1, 1]];
+    // the most grids to a page whose squares stay readable; large print keeps letters at the text
+    // size, up to 0.57 of a square (no rings here, so a letter still sits well inside its round)
+    var LETTER = 0.57, options = [[3, 4], [3, 3], [2, 3], [2, 2], [1, 2], [1, 1]], least = S.large ? S.min / LETTER : 15;
     function pick(top) {
-      for (var i = 0; i < options.length; i++) if (cellFor(options[i][0], options[i][1], top) >= 15) return options[i];
+      for (var i = 0; i < options.length; i++) if (cellFor(options[i][0], options[i][1], top) >= least) return options[i];
       return [1, 1];
     }
     var k = 0, first = true;
@@ -581,12 +605,12 @@
         for (var c = 0; c < cols && k < ready.length; c++, k++) {
           var x = ready[k], g = x.res.grid, x0 = pg.x0 + c * (cw + gapX), y0 = top + r * (rh + Math.min(rest, gapY * 1.5));
           var d = p.puzzles[x.pz.id], title = x.pz.no + '  ' + (d.title.trim() || '');
-          var tl = fit(title.trim(), 'sansBold', cw, labS, 7.5, 1), line = tl.lines[0];
+          var tl = fit(title.trim(), 'sansBold', cw, labS, Math.max(7.5, S.min), 1), line = tl.lines[0];
           while (wid(line, tl.size, 'sansBold') > cw && line.length > 4) line = line.slice(0, -2).trim() + '…';
           pg.text(line, x0 + cw / 2, y0 + tl.size, tl.size, 'sansBold', { align: 'center' });
-          var sw = fit(x.res.span, 'sans', cw, labS * 0.95, 7, 1);
+          var sw = fit(x.res.span, 'sans', cw, labS * 0.95, S.min, 1);
           pg.text(sw.lines[0], x0 + cw / 2, y0 + labS * 2.2, sw.size, 'sans', { align: 'center', ls: 0 });
-          drawGrid(pg, g, x0 + (cw - g.cols * cs) / 2, y0 + labH + (maxR - g.rows) * cs / 2, cs, 'solution');
+          drawGrid(pg, g, x0 + (cw - g.cols * cs) / 2, y0 + labH + (maxR - g.rows) * cs / 2, cs, 'solution', S.large ? Math.min(cs * LETTER, Math.max(cs * 0.5, S.min)) : 0);
           pg.meta.solCell = cs;
         }
       }

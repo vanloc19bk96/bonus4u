@@ -127,9 +127,9 @@
     out.push(field('Page size', select('fTrim', CX.kdp.TRIMS.map(function (t) { return { v: t.id, t: t.label + ' – ' + t.hint }; }), b.trim, function (v) { b.trim = v; changed(true); }), null, 'fTrim'));
     var tall = CX.kdp.trim(b.trim).h >= 10;
     out.push(field('Puzzles on a page', select('fPer', [{ v: 1, t: 'One puzzle a page: big letters' }, { v: 2, t: 'Two puzzles a page: more puzzles, fewer pages' }], pl.perPage, function (v) { pl.perPage = +v; changed(); }),
-      tall ? 'Two to a page is used only when the letters stay easy to read.' : 'Two to a page needs a taller page (7 x 10 in or more), so this size keeps one.', 'fPer'));
-    out.push(field('Text size', select('fPrint', Object.keys(CX.layout.PRINT).map(function (k) { return { v: k, t: CX.layout.PRINT[k].label }; }), b.print, function (v) { b.print = v; changed(); }),
-      'For the titles, hints and notes. The grid letters are always as big as the page allows.', 'fPrint'));
+      tall ? (b.print === 'regular' ? 'Two to a page is used only when the letters stay easy to read.' : 'Two to a page is used only when every letter stays at the large print size: with large print that is the 5 x 6 grid.') : 'Two to a page needs a taller page (7 x 10 in or more), so this size keeps one.', 'fPer'));
+    out.push(field('Text size', select('fPrint', Object.keys(CX.layout.PRINT).map(function (k) { return { v: k, t: CX.layout.PRINT[k].label }; }), b.print, function (v) { b.print = v; changed(true); }),
+      b.print === 'regular' ? 'For the titles, hints and notes. The grid letters are always as big as the page allows.' : 'Every letter in the book is this size or bigger: titles, labels, page numbers, hints, and the grid letters on the puzzle and solution pages.', 'fPrint'));
     out.push(field('Paper', select('fPaper', CX.kdp.PAPERS.map(function (x) { return { v: x.id, t: x.label }; }), b.paper, function (v) { b.paper = v; changed(); }), null, 'fPaper'));
     var est = h('p', { class: 'derived' });
     live.push(function () { est.textContent = 'When every puzzle is in, the book has about ' + estimatePages() + ' pages.'; });
@@ -142,7 +142,8 @@
   // A rough page count for a finished book (without building every grid).
   function estimatePages() {
     var p = state.p, n = p.plan.count, t = CX.kdp.trim(p.book.trim);
-    var perSol = t.w >= 7.5 ? 9 : t.w >= 6.5 ? 6 : 4, per = p.plan.perPage === 2 && t.h >= 10 ? 2 : 1;
+    // large print solutions keep their letters at the text size: 4 to a page, 1 on the small trims
+    var pr = p.book.print, perSol = pr === 'regular' ? (t.w >= 7.5 ? 9 : t.w >= 6.5 ? 6 : 4) : t.w >= 6.5 || (t.w >= 6 && pr === 'large') ? 4 : 1, per = p.plan.perPage === 2 && t.h >= 10 && (pr === 'regular' || p.plan.size === '5x6') ? 2 : 1;
     return 5 + (p.plan.log ? 1 : 0) + (p.plan.level === 'mixed' ? 3 : 0) + Math.ceil(n / per) + (p.plan.hints ? Math.ceil(n / 12) + Math.ceil(n / 24) : 0) + Math.ceil(n / perSol);
   }
 
