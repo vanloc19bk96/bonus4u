@@ -19,3 +19,6 @@ npm-debug.log*
 dist/
 .wrangler/
 .dev.vars*
+
+# A buyer-facing book used as a local test fixture (not public)
+apps/connection-puzzle-prints/tests/word-links-ai-generated-content.json
