@@ -1,0 +1,51 @@
+OCCUPATION TRIVIA BOOK MAKER
+============================
+
+Double-click index.html. It opens in your web browser (Chrome, Edge, Firefox or Safari)
+and works without the internet. Nothing to install. ChatGPT in step 3 is the only part
+that needs the internet, and you open that yourself.
+
+1. The job: pick the job the book is about (nurse, teacher, firefighter, trucker,
+   electrician ... 35 jobs), or "Jobs & careers of every kind", or "Another job" to type
+   any job yourself. Pick who reads it (people in the job, students, or family and fans)
+   and the country. Type your pen name. Leave the title empty to use the suggestion,
+   or click one of the title ideas. "Big word on the cover" is the job word printed huge
+   on the front (NURSE, TRUCKER ...).
+2. Chapters and pages: pick the chapters (history, famous people, tools, lingo, pop
+   culture ...), how many questions each chapter has, multiple choice only or mixed with
+   true-or-false, where the answers go, the extra pages (Did You Know? fun facts, score
+   card with ranks, stories from the job, certificate of achievement), the page size and
+   the text size.
+3. Write the questions with ChatGPT:
+     - click "Copy prompt",
+     - click "Open ChatGPT", paste (Ctrl+V) and press Enter,
+     - when it has finished, click "Copy code" on its reply,
+     - paste it into the box and click "Add to book".
+   Do the same for every prompt ("Prompt 2 of 6" ...). Green numbers are done.
+   The last prompt writes the welcome letter, the fun facts, the ranks and the back cover text.
+   If a chapter is still short, copy its prompt again: it only asks for the missing questions.
+   Claude, Gemini or Copilot work the same way.
+4. Check and download: when every item is green, click "Download book PDF".
+
+COVER: click "Book cover" at the top of the left panel (the panel and the preview switch to
+the cover). Pick one of the 44 templates (filter them by group: On the job, Bold & bright,
+Quiz & game, Elegant, Retro & gift). Each starts in its own colors; pick other colors if you
+like. Check the words on the cover, then click "Download cover PDF".
+Click "Book pages" to go back to the inside of the book.
+
+Upload to KDP: paperback, black & white interior, no bleed, the same trim size you picked.
+The book PDF is the manuscript; the cover PDF is "a cover you already have".
+Download the cover again whenever the page count changes (the spine width follows it).
+
+The app shuffles the answer choices so A, B, C and D are each right about as often.
+Read the questions once before you publish: AI facts are usually right, but not always,
+and rules, ranks and licenses differ between countries. Do not put brand names, logos or
+the names of professional associations in your title.
+
+One job, many books: keep the same chapters and change the job in step 1, or keep the job
+and change the readers (students, family and fans) for a second edition.
+
+The app does not keep your work in the browser: closing or reloading the tab clears it.
+Click "Save project file" to keep your work; open it later with "Open project file".
+
+If you have any questions, feel free to let me know.

@@ -120,6 +120,11 @@
       "description": "Build Amazon KDP listings for NAZO BOX murder mystery nonogram books."
     },
     {
+      "slug": "nostalgia-trivia-book-maker",
+      "title": "Nostalgia Trivia Book Maker",
+      "description": "Decade-by-decade nostalgia trivia books for seniors (1940s to 2000s), with questions written by any AI chat."
+    },
+    {
       "slug": "number-code-breaker-generator",
       "title": "Number Code Breaker",
       "description": "Number code breaker puzzle books, ready for KDP."
@@ -140,6 +145,11 @@
           "description": "Break down the titles that work for Numbrix books."
         }
       ]
+    },
+    {
+      "slug": "occupation-trivia-book-maker",
+      "title": "Occupation Trivia Book Maker",
+      "description": "Job and career trivia books (nurses, teachers, truckers or any job), with questions written by any AI chat."
     },
     {
       "slug": "samurai-sudoku",

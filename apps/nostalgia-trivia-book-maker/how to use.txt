@@ -1,0 +1,65 @@
+NOSTALGIA TRIVIA BOOK MAKER
+===========================
+
+Double-click index.html. It opens in your web browser (Chrome, Edge, Firefox or Safari)
+and works without the internet. Nothing to install. ChatGPT in step 3 is the only part
+that needs the internet, and you open that yourself.
+
+The books it makes look like the bestselling nostalgia trivia books on Amazon: one part per
+decade (1940s to 2000s), each with an opener page (a short intro, the decade "at a glance"
+year by year, and fun facts), themed rounds of multiple-choice questions, a "Remember When?"
+page to write memories on, and the answers with a fun fact for every question.
+
+1. Decades and title: tick the decades the book visits (or click a quick pick such as
+   "1950s to 1990s"). Pick who reads it (seniors, adults who lived it, or the whole family)
+   and the country they grew up in: the music, TV, brands and prices follow it. Type your
+   pen name. Leave the title empty to use the suggestion, or click one of the title ideas.
+   "Big word on the cover" is printed huge on the front (NOSTALGIA, RETRO, 1980s ...).
+2. Rounds and pages: tick the rounds every decade has (Music & Dance, At the Movies,
+   TV & Radio, Toys, Food, Everyday Life, Cars, Prices ... 15 themes), how many questions
+   each round has, multiple choice only or mixed with true-or-false, where the answers go
+   (after each decade or all at the back), the extra pages (decade openers, Remember When?
+   pages, "This book belongs to" gift page, score card with ranks, certificate), the page
+   size and the text size.
+   "Total questions in the book": pick 300, 500, 600 ... and the app works out how many
+   questions each round gets (every round gets the same number, so 500 over 30 rounds
+   becomes 17 each = 510). Pick "Pick per round myself" to set the number per round by hand.
+3. Write the questions with ChatGPT:
+     - click "Copy prompt",
+     - click "Open ChatGPT", paste (Ctrl+V) and press Enter,
+     - when it has finished, click "Copy code" on its reply,
+     - paste it into the box and click "Add to book".
+   Do the same for every prompt ("Prompt 2 of 12" ...). Green numbers are done.
+   Each decade's questions come first, then the "Decade pages" prompt (intro, at a glance,
+   fun facts and memory prompts for every decade), then the last prompt (welcome letter,
+   ranks and back cover text).
+   If a round is still short, copy its prompt again: it only asks for the missing questions.
+   Claude, Gemini or Copilot work the same way.
+4. Check and download: when every item is green, click "Download book PDF".
+
+COVER: click "Book cover" at the top of the left panel (the panel and the preview switch to
+the cover). Pick one of the 44 templates (filter them by group: Retro, Bold & bright,
+Quiz & game, Elegant, Memory lane). Each starts in its own colors; pick other colors if you
+like. Check the words on the cover, then click "Download cover PDF".
+Click "Book pages" to go back to the inside of the book.
+
+Upload to KDP: paperback, black & white interior, no bleed, the same trim size you picked.
+The book PDF is the manuscript; the cover PDF is "a cover you already have".
+Download the cover again whenever the page count changes (the spine width follows it).
+
+Large print: KDP lets you call a book "Large Print" only when the text is 16 pt or bigger.
+The app starts at 8.5 x 11 in with 16 pt text, the size most senior trivia books use.
+
+The app shuffles the answer choices so A, B, C and D are each right about as often.
+Read the questions once before you publish: AI facts are usually right, but not always,
+and years and prices are easy to mix up. Do not put band, show, movie, toy or brand names,
+or celebrity names, in your title or keywords.
+
+One app, many books: change the decades (a 1980s & 1990s book, a 1950s to 1970s book for
+boomers), the readers (seniors, the whole family) or the country (United Kingdom, Canada,
+Australia) for a whole series.
+
+The app does not keep your work in the browser: closing or reloading the tab clears it.
+Click "Save project file" to keep your work; open it later with "Open project file".
+
+If you have any questions, feel free to let me know.
