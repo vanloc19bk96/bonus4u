@@ -1,3 +1,65 @@
-Click index.html, then enter the key to get started.
+COLOR BY LINE GENERATOR
+=======================
 
-If you cannot find the key, please email me at: david@fastaifactory.com
+Make a whole "Color By Line" coloring book for Amazon KDP: every picture is drawn with
+colored outlines and white insides, and the app builds the print-ready interior PDF.
+
+Double-click index.html (Chrome or Edge recommended). Nothing to install. Drawing the
+pictures needs the internet; everything else works offline.
+
+
+1. YOUR ACCESS KEY
+   The first time, paste the access key you received and click "Save and continue".
+   It is kept only in this browser on this computer. Change it any time with the key
+   button at the top right.
+
+2. SET UP THE BOOK (left side)
+   - Your book: title, subtitle and your pen name (shown on the title and copyright pages).
+   - Look of the pictures: who it is for, the art style, the line colors, line weight and
+     detail. The defaults copy the best-selling Color By Line books: cozy style, natural
+     colors, medium lines.
+   - Print: book size (8.5 x 8.5 in is what most bestsellers use), the frame around each
+     picture, and which extra pages to include.
+
+3. ADD PICTURES
+   Click "Add pictures":
+   - Idea packs: 10 ready packs of 30 pictures each (Cozy Moments, Cute Animal Friends,
+     Hello Autumn, Cute Halloween, Cozy Christmas, Spring Garden, Summer by the Sea,
+     Little Shops and Houses, Sweet Treats, Flowers and Bouquets).
+   - Paste my ideas: one picture per line.
+   - Get ideas from an AI chat: copy the prompt, paste it into ChatGPT, Claude or Gemini,
+     then paste its list back.
+
+4. DRAW
+   Click "Draw ... pictures". Several pictures are drawn at the same time; you can keep
+   working, and "Stop" takes the waiting ones off the list.
+   - Click a picture to see it large, change its text, redraw it (old versions are kept,
+     pick the one you like) or download it.
+   - When one picture looks just right, click its star. Every new picture then matches its
+     line weight, colors and detail, so the whole book looks drawn by one artist.
+   - The quality check marks pictures with black lines, colored-in areas, a blank page or a
+     single color. See them under "Needs a look" and redraw them.
+
+5. COLOR GUIDE
+   Buyers love a colored example of every picture at the back of the book. Click
+   "Color guide" to make them (one extra image per picture).
+
+6. EXPORT
+   Click "Export book" and "Download book PDF". The PDF has the title page, copyright,
+   "This book belongs to", how to color, a "Try your colors" page in the book's own line
+   colors, every picture on its own right-hand page with a blank back (so markers do not
+   bleed into the next picture), and the color guide. Fonts are embedded for KDP.
+   On KDP choose: Paperback, Standard color interior (the lines are in color), white paper,
+   No bleed, and the same trim size.
+   "Download pictures (.zip)" saves every PNG if you want to build the book elsewhere.
+
+7. SAVE YOUR WORK
+   The book stays in this browser between visits. "Save project" makes one file with every
+   picture inside; "Open project" loads it again, on any computer.
+
+SETTINGS (gear icon)
+   Image server (Global or China), drawing quality (Draft, Standard, Best), picture size
+   (2K is about 280 DPI on 8.5 x 8.5 in; 4K is sharper but slower), how many pictures to
+   draw at the same time, and "make the paper pure white".
+
+Questions or no key? Email david@fastaifactory.com

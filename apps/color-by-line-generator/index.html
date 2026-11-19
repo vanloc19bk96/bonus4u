@@ -1,179 +1,391 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Color By Line Generator</title>
-<script src="a4e2/7c91"></script>
+<script src="lib/style.bin.js"></script>
 </head>
 <body>
+<noscript><p class="noscript">This app needs JavaScript. Please allow scripts for this page and reload it.</p></noscript>
 
-<!-- Amber banner, shown only when localStorage is unavailable (spec 9.3) -->
 <div id="storageBanner" class="banner" hidden>
-  This browser cannot save data when you open the file directly. The key will be lost when you close the tab.
-  Use Chrome or open via localhost to keep it.
+  This browser is not saving your work when the file is opened directly. Use Chrome or Edge to keep your book between visits.
 </div>
 
-<!-- ================= Screen 1: access key gate ================= -->
-<div id="keyGate" class="overlay" hidden>
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="keyGateTitle">
-    <h2 id="keyGateTitle">Enter access key</h2>
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+      <path d="M8 28c5-14 11-14 14-6s9 8 11-8" fill="none" stroke="#ff5a5f" stroke-width="3.2" stroke-linecap="round"/>
+      <path d="M8 33c5-14 11-14 14-6s9 8 11-8" fill="none" stroke="#ffb400" stroke-width="3.2" stroke-linecap="round" opacity=".95"/>
+      <path d="M8 23c5-14 11-14 14-6s9 8 11-8" fill="none" stroke="#2bb673" stroke-width="3.2" stroke-linecap="round"/>
+      <path d="M8 18c5-14 11-14 14-6s9 8 11-8" fill="none" stroke="#3a7bfd" stroke-width="3.2" stroke-linecap="round"/>
+    </svg>
+    <div class="brand-text">
+      <h1>Color By Line Generator</h1>
+      <p id="bookTitleShort" class="brand-sub">Coloring books with colored outlines, ready for Amazon KDP</p>
+    </div>
+  </div>
+  <nav class="top-actions" aria-label="Project">
+    <button type="button" class="btn btn-quiet" id="btnSaveProject" title="Save the whole book, pictures included, to one file">Save project</button>
+    <button type="button" class="btn btn-quiet" id="btnOpenProject" title="Open a project file you saved before">Open project</button>
+    <button type="button" class="btn btn-quiet" id="btnNewBook">New book</button>
+    <input type="file" id="fileProject" accept=".zip,.cblbook,application/zip" hidden>
+    <span class="top-sep" aria-hidden="true"></span>
+    <button type="button" class="key-chip" id="btnKeyChip" title="Access key and image settings">
+      <span class="dot" aria-hidden="true"></span><span id="keyChipText">No key</span>
+    </button>
+    <button type="button" class="btn btn-icon" id="btnSettings" aria-label="Settings" title="Settings">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 13.5a7.7 7.7 0 0 0 0-3l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5A7.6 7.6 0 0 0 7 6.5l-2.4-1-2 3.4 2 1.6a7.7 7.7 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 2.6-1.5l2.4 1 2-3.4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+    </button>
+  </nav>
+</header>
 
-    <label class="field">
-      <span class="field-label">Access key</span>
+<div class="shell">
+  <!-- ======================= left: the book ======================= -->
+  <aside class="side" aria-label="Book settings">
+
+    <section class="panel" aria-labelledby="hBook">
+      <h2 id="hBook"><span class="step">1</span> Your book</h2>
+      <label class="field"><span class="label">Title</span>
+        <input id="bookTitle" type="text" maxlength="120" autocomplete="off">
+      </label>
+      <label class="field"><span class="label">Subtitle</span>
+        <input id="bookSubtitle" type="text" maxlength="200" autocomplete="off">
+      </label>
+      <label class="field"><span class="label">Author or pen name</span>
+        <input id="bookAuthor" type="text" maxlength="80" autocomplete="off" placeholder="Shown on the title and copyright pages">
+      </label>
+    </section>
+
+    <section class="panel" aria-labelledby="hLook">
+      <h2 id="hLook"><span class="step">2</span> Look of the pictures</h2>
+      <p class="panel-note">Applies to pictures you draw from now on.</p>
+
+      <div class="field"><span class="label" id="lblAudience">Made for</span>
+        <div class="chips" id="audienceChips" role="radiogroup" aria-labelledby="lblAudience"></div>
+      </div>
+
+      <div class="field"><span class="label" id="lblStyle">Art style</span>
+        <div class="option-list" id="styleList" role="radiogroup" aria-labelledby="lblStyle"></div>
+      </div>
+
+      <div class="field"><span class="label" id="lblPalette">Line colors</span>
+        <div class="palette-list" id="paletteList" role="radiogroup" aria-labelledby="lblPalette"></div>
+        <label class="field sub" id="paletteCustomField" hidden><span class="label">Your colors</span>
+          <input id="paletteCustom" type="text" maxlength="300" placeholder="teal, mustard, coral and plum">
+        </label>
+      </div>
+
+      <div class="field"><span class="label" id="lblWeight">Line weight</span>
+        <div class="segmented" id="weightSeg" role="radiogroup" aria-labelledby="lblWeight"></div>
+        <p class="hint" id="weightHint"></p>
+      </div>
+
+      <div class="field"><span class="label" id="lblDetail">Detail</span>
+        <div class="segmented" id="detailSeg" role="radiogroup" aria-labelledby="lblDetail"></div>
+        <p class="hint" id="detailHint"></p>
+      </div>
+
+      <div class="field"><span class="label" id="lblLineStyle">Lines</span>
+        <div class="segmented" id="lineStyleSeg" role="radiogroup" aria-labelledby="lblLineStyle"></div>
+      </div>
+
+      <label class="field"><span class="label">Extra style notes <span class="opt">optional</span></span>
+        <textarea id="styleNote" rows="2" maxlength="400" placeholder="e.g. a ginger cat appears in every picture"></textarea>
+      </label>
+    </section>
+
+    <section class="panel" aria-labelledby="hPrint">
+      <h2 id="hPrint"><span class="step">3</span> Print</h2>
+      <div class="field"><span class="label" id="lblTrim">Book size</span>
+        <div class="trim-list" id="trimList" role="radiogroup" aria-labelledby="lblTrim"></div>
+      </div>
+      <div class="field"><span class="label" id="lblFrame">Frame</span>
+        <div class="segmented" id="frameSeg" role="radiogroup" aria-labelledby="lblFrame"></div>
+      </div>
+      <fieldset class="field checks">
+        <legend class="label">Pages in the book</legend>
+        <label class="check"><input type="checkbox" data-extra="titlePage"> Title page</label>
+        <label class="check"><input type="checkbox" data-extra="copyright"> Copyright page</label>
+        <label class="check"><input type="checkbox" data-extra="belongsTo"> "This book belongs to"</label>
+        <label class="check"><input type="checkbox" data-extra="howTo"> How to use</label>
+        <label class="check"><input type="checkbox" data-extra="testPage"> "Try your colors" test page</label>
+        <label class="check"><input type="checkbox" data-extra="singleSided"> One picture per sheet (blank backs)</label>
+        <label class="check"><input type="checkbox" data-extra="numbers"> Number the pictures</label>
+        <label class="check"><input type="checkbox" data-extra="colorGuide"> Color guide at the back</label>
+      </fieldset>
+    </section>
+  </aside>
+
+  <!-- ======================= right: the pictures ======================= -->
+  <main class="main" aria-label="Pictures">
+    <div class="toolbar">
+      <div class="tb-title">
+        <h2>Pictures</h2>
+        <p class="tb-count" id="countText" aria-live="polite"></p>
+      </div>
+      <div class="tb-actions">
+        <button type="button" class="btn" id="btnAdd"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>Add pictures</button>
+        <button type="button" class="btn btn-primary" id="btnDraw"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4-1 10-10-3-3L5 16zM14 7l3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span id="btnDrawText">Draw pictures</span></button>
+        <button type="button" class="btn" id="btnGuides" title="Colored examples for the color guide at the back of the book"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.6-.8 1.6-1.6 0-1-.8-1.4-.8-2.3 0-.9.7-1.6 1.6-1.6H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="7.5" cy="11" r="1.4" fill="currentColor"/><circle cx="10" cy="7" r="1.4" fill="currentColor"/><circle cx="15" cy="7.5" r="1.4" fill="currentColor"/></svg><span id="btnGuidesText">Color guide</span></button>
+        <button type="button" class="btn btn-dark" id="btnExport"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Export book</button>
+      </div>
+    </div>
+
+    <div class="runbar" id="runbar" hidden>
+      <div class="runbar-text"><span class="spinner" aria-hidden="true"></span><span id="runText" aria-live="polite"></span></div>
+      <div class="runbar-track" aria-hidden="true"><div class="runbar-fill" id="runFill"></div></div>
+      <button type="button" class="btn btn-sm" id="btnStop">Stop</button>
+    </div>
+
+    <div class="filters" id="filters" role="tablist" aria-label="Show">
+      <button type="button" role="tab" data-filter="all" aria-selected="true">All <span class="n" id="nAll"></span></button>
+      <button type="button" role="tab" data-filter="look" aria-selected="false">Needs a look <span class="n" id="nLook"></span></button>
+      <button type="button" role="tab" data-filter="todo" aria-selected="false">Not drawn <span class="n" id="nTodo"></span></button>
+      <span class="filters-spacer"></span>
+      <span class="anchor-note" id="anchorNote"></span>
+    </div>
+
+    <div class="tip" id="tipAnchor" hidden>
+      <strong>Keep every page in one style.</strong>
+      When a picture looks just right, click its <span class="star-inline" aria-hidden="true">&#9733;</span> star. Every new picture will then match its line weight, colors and detail.
+      <button type="button" class="link" id="btnTipClose">Got it</button>
+    </div>
+
+    <div class="grid" id="grid" aria-label="Pictures in book order"></div>
+
+    <div class="empty" id="emptyState" hidden>
+      <div class="empty-art" aria-hidden="true">
+        <svg viewBox="0 0 220 150">
+          <rect x="30" y="12" width="160" height="126" rx="14" fill="#fff" stroke="#2b2b2e" stroke-width="2.2"/>
+          <path d="M60 112c10-30 26-44 44-40 16 3 20 22 38 20 12-1 18-12 20-22" fill="none" stroke="#2bb673" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="152" cy="46" r="13" fill="none" stroke="#ffb400" stroke-width="4"/>
+          <path d="M70 60c6-12 18-12 24 0-6 12-18 12-24 0z" fill="none" stroke="#ff5a5f" stroke-width="4"/>
+          <path d="M96 118h70" stroke="#3a7bfd" stroke-width="4" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h3>Start your Color By Line book</h3>
+      <p>Pick a ready idea pack of 30 pictures, or paste your own ideas. The app draws every page with colored outlines and white insides, then builds the KDP interior.</p>
+      <div class="empty-actions">
+        <button type="button" class="btn btn-primary" id="btnEmptyPacks">Choose an idea pack</button>
+        <button type="button" class="btn" id="btnEmptyPaste">Paste my own ideas</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ======================= dialogs ======================= -->
+
+<div class="overlay" id="dlgKey" hidden>
+  <div class="dialog dialog-sm" role="dialog" aria-modal="true" aria-labelledby="dlgKeyTitle">
+    <h2 id="dlgKeyTitle">Enter your access key</h2>
+    <p class="muted">Paste the key you received with the app. It starts with <code>CBL1.</code> or <code>sk-</code>.</p>
+    <label class="field"><span class="label">Access key</span>
       <span class="key-row">
-        <input id="apiKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="CBL1....">
-        <button id="btnToggleKey" type="button" class="btn btn-ghost" aria-label="Show or hide key">Show</button>
+        <input id="keyInput" type="password" autocomplete="off" spellcheck="false" placeholder="CBL1....">
+        <button type="button" class="btn btn-quiet" id="btnKeyShow" aria-pressed="false">Show</button>
       </span>
     </label>
-
-    <label class="check">
-      <input id="rememberKey" type="checkbox" checked>
-      <span>Remember on this computer</span>
-    </label>
-
-    <p class="hint">Paste the key you received, then click Save and continue.</p>
-    <p class="warn-text">
-      The key is stored in this browser on this computer.
-      Anyone with access to the machine and this browser profile can read it.
-    </p>
-
-    <p id="keyError" class="field-error" hidden></p>
-
-    <div class="modal-actions">
-      <button id="btnClearKey" type="button" class="btn btn-ghost" hidden>Clear access key</button>
-      <button id="btnCancelKey" type="button" class="btn btn-ghost" hidden>Cancel</button>
-      <button id="btnSaveKey" type="button" class="btn btn-primary">Save and continue</button>
+    <label class="check"><input id="keyRemember" type="checkbox" checked> Remember on this computer</label>
+    <p class="field-error" id="keyError" role="alert" hidden></p>
+    <p class="fine">The key is kept only in this browser on this computer. It is never written into project files.</p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-quiet danger-text" id="btnKeyClear" hidden>Remove key</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-quiet" id="btnKeyCancel" hidden>Cancel</button>
+      <button type="button" class="btn btn-primary" id="btnKeySave">Save and continue</button>
     </div>
   </div>
 </div>
 
-<!-- ================= Screen 2: Generator (spec 7.2) ================= -->
-<div id="app" class="app" hidden>
-
-  <header class="app-header">
-    <h1>Color By Line Generator</h1>
-    <p class="subtitle">Colouring pages with coloured outlines &middot; nano-banana-2</p>
-  </header>
-
-  <main class="columns">
-
-    <!-- ---------------- Left: controls ---------------- -->
-    <section class="col col-left" id="controls">
-
-      <div class="segmented" role="tablist" aria-label="Prompt mode">
-        <label class="seg">
-          <input type="radio" name="mode" value="guided" id="modeGuided" checked>
-          <span>Guided</span>
-        </label>
-        <label class="seg">
-          <input type="radio" name="mode" value="custom" id="modeCustom">
-          <span>Custom prompt</span>
-        </label>
+<div class="overlay" id="dlgSettings" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgSettingsTitle">
+    <div class="dialog-head">
+      <h2 id="dlgSettingsTitle">Settings</h2>
+      <button type="button" class="btn btn-icon" data-close aria-label="Close">&times;</button>
+    </div>
+    <div class="settings-grid">
+      <div class="field"><span class="label">Access key</span>
+        <div class="key-row"><span class="key-mask" id="setKeyMask"></span><button type="button" class="btn btn-sm" id="btnSetChangeKey">Change key</button></div>
       </div>
-
-      <div id="guidedFields">
-        <label class="field">
-          <span class="field-label">Subject <span class="req">*</span></span>
-          <input id="subject" type="text" placeholder="a cat sleeping on a stack of books next to a mug of cocoa">
-        </label>
-        <p id="subjectError" class="field-error" hidden></p>
-
-        <label class="field">
-          <span class="field-label">Theme</span>
-          <select id="themeId"></select>
-        </label>
-        <label class="field field-custom" id="themeCustomField" hidden>
-          <span class="field-label">Your theme</span>
-          <input id="themeCustom" type="text" placeholder="a rainy Tokyo street at night with paper lanterns">
-        </label>
-
-        <label class="field">
-          <span class="field-label">Style</span>
-          <select id="styleId"></select>
-        </label>
-        <label class="field field-custom" id="styleCustomField" hidden>
-          <span class="field-label">Your style</span>
-          <input id="styleCustom" type="text" placeholder="retro 1970s poster illustration with chunky shapes">
-        </label>
-
-        <label class="field">
-          <span class="field-label">Line colours</span>
-          <select id="lineModeId"></select>
-        </label>
-        <label class="field field-custom" id="lineModeCustomField" hidden>
-          <span class="field-label">Your line colours</span>
-          <input id="lineModeCustom" type="text" placeholder="only teal, mustard and burnt orange outlines">
-        </label>
-
-        <label class="field">
-          <span class="field-label">Complexity</span>
-          <select id="complexityId"></select>
-        </label>
+      <div class="field"><span class="label" id="lblServer">Image server</span>
+        <div class="segmented" id="setServer" role="radiogroup" aria-labelledby="lblServer"></div>
+        <p class="hint">Use China if the Global server is slow or blocked where you are.</p>
       </div>
-
-      <div id="customFields" hidden>
-        <label class="field">
-          <span class="field-label">Custom prompt <span class="req">*</span></span>
-          <textarea id="customPrompt" rows="7" placeholder="Describe the scene you want to draw..."></textarea>
-        </label>
-        <p class="hint">The Color By Line contract is always appended to the end of your prompt.</p>
-        <p id="customPromptError" class="field-error" hidden></p>
+      <div class="field"><span class="label" id="lblQuality">Drawing quality</span>
+        <div class="segmented" id="setQuality" role="radiogroup" aria-labelledby="lblQuality"></div>
+        <p class="hint" id="setQualityHint"></p>
       </div>
+      <div class="field"><span class="label" id="lblRes">Picture size</span>
+        <div class="segmented" id="setRes" role="radiogroup" aria-labelledby="lblRes"></div>
+        <p class="hint" id="setResHint"></p>
+      </div>
+      <div class="field"><span class="label" id="lblPar">Pictures at the same time</span>
+        <div class="segmented" id="setPar" role="radiogroup" aria-labelledby="lblPar"></div>
+        <p class="hint">More is faster. Lower it if you see "server busy".</p>
+      </div>
+      <label class="check"><input type="checkbox" id="setClean"> Make the paper pure white (recommended for print)</label>
+      <p class="fine">Model: <code id="setModel"></code>. Stored pictures: <span id="setUsage">checking...</span></p>
+    </div>
+    <div class="dialog-actions">
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-primary" data-close>Done</button>
+    </div>
+  </div>
+</div>
 
-      <label class="field">
-        <span class="field-label">Line weight</span>
-        <select id="strokeWeightId"></select>
+<div class="overlay" id="dlgAdd" hidden>
+  <div class="dialog dialog-lg" role="dialog" aria-modal="true" aria-labelledby="dlgAddTitle">
+    <div class="dialog-head">
+      <h2 id="dlgAddTitle">Add pictures</h2>
+      <button type="button" class="btn btn-icon" data-close aria-label="Close">&times;</button>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Where the ideas come from">
+      <button type="button" role="tab" id="tabPacks" aria-controls="panePacks" aria-selected="true">Idea packs</button>
+      <button type="button" role="tab" id="tabPaste" aria-controls="panePaste" aria-selected="false">Paste my ideas</button>
+      <button type="button" role="tab" id="tabAi" aria-controls="paneAi" aria-selected="false">Get ideas from an AI chat</button>
+    </div>
+
+    <div class="tab-pane" id="panePacks" role="tabpanel" aria-labelledby="tabPacks">
+      <div class="packs" id="packList"></div>
+      <div class="pack-detail" id="packDetail" hidden>
+        <div class="pack-detail-head">
+          <button type="button" class="btn btn-quiet btn-sm" id="btnPackBack">&larr; All packs</button>
+          <h3 id="packName"></h3>
+          <span class="spacer"></span>
+          <button type="button" class="link" id="btnPackAll">Select all</button>
+          <button type="button" class="link" id="btnPackNone">Select none</button>
+        </div>
+        <ol class="idea-list" id="packIdeas"></ol>
+        <label class="check" id="packStyleRow"><input type="checkbox" id="packUseStyle" checked> <span id="packStyleText"></span></label>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="panePaste" role="tabpanel" aria-labelledby="tabPaste" hidden>
+      <label class="field"><span class="label">One picture per line</span>
+        <textarea id="pasteText" rows="11" placeholder="a cat asleep on a window seat with plants and a mug&#10;a bakery shop front with bread in the window&#10;a fox reading under an autumn tree"></textarea>
       </label>
-      <p class="hint">How thick the coloured outlines are. Extra thick works best with markers.</p>
+      <p class="hint" id="pasteCount" aria-live="polite">No ideas yet.</p>
+    </div>
 
-      <label class="field">
-        <span class="field-label">Aspect ratio</span>
-        <select id="aspectRatio"></select>
-      </label>
-      <p id="ratioNote" class="hint"></p>
-
-      <button id="btnGenerate" type="button" class="btn btn-primary btn-block">Generate</button>
-
-    </section>
-
-    <!-- ---------------- Right: output ---------------- -->
-    <section class="col col-right">
-      <div id="status" class="status status-idle">Ready.</div>
-      <div id="corsHelp" class="cors-help" hidden>
-        <p><strong>If the browser blocks the connection:</strong></p>
-        <ol>
-          <li>Open Command Prompt in this folder and run: <code>py -m http.server 8000</code></li>
-          <li>Open <code>http://localhost:8000</code> in Chrome or Edge.</li>
-          <li>Enter your access key again and try Generate.</li>
-        </ol>
+    <div class="tab-pane" id="paneAi" role="tabpanel" aria-labelledby="tabAi" hidden>
+      <div class="ai-row">
+        <label class="field grow"><span class="label">Theme of the book</span>
+          <input id="aiTheme" type="text" maxlength="200" placeholder="cozy autumn cottage life">
+        </label>
+        <label class="field"><span class="label">How many</span>
+          <select id="aiCount"><option>10</option><option>20</option><option selected>30</option><option>40</option><option>50</option></select>
+        </label>
       </div>
-      <div id="results" class="results"></div>
-      <p id="emptyState" class="meta">No images yet. Enter a subject and click Generate.</p>
-    </section>
+      <label class="field"><span class="label">Prompt</span>
+        <textarea id="aiPrompt" rows="8" readonly></textarea>
+      </label>
+      <div class="ai-actions">
+        <button type="button" class="btn btn-primary" id="btnAiCopy">Copy prompt</button>
+        <a class="btn" href="https://chatgpt.com/" target="_blank" rel="noopener">Open ChatGPT</a>
+        <a class="btn" href="https://claude.ai/new" target="_blank" rel="noopener">Open Claude</a>
+        <a class="btn" href="https://gemini.google.com/app" target="_blank" rel="noopener">Open Gemini</a>
+      </div>
+      <p class="hint">Paste the prompt in the chat, copy its list, then paste the list in <button type="button" class="link" id="btnAiToPaste">Paste my ideas</button>.</p>
+    </div>
 
-  </main>
+    <div class="dialog-actions">
+      <span class="muted" id="addSummary"></span>
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-quiet" data-close>Cancel</button>
+      <button type="button" class="btn btn-primary" id="btnAddConfirm" disabled>Add pictures</button>
+    </div>
+  </div>
+</div>
 
-  <footer class="app-footer">
-    <span id="historyCount" class="meta"></span>
-    <span class="spacer"></span>
-    <button id="btnClearHistory" type="button" class="btn btn-ghost">Clear history</button>
-    <button id="btnChangeKey" type="button" class="btn btn-ghost">Change key</button>
-    <span class="meta">Chrome or Edge recommended.</span>
-  </footer>
-
-  <!-- In-page confirm, never alert() / confirm() (spec 7.3) -->
-  <div id="confirmPanel" class="overlay" hidden>
-    <div class="modal modal-sm" role="dialog" aria-modal="true">
-      <p id="confirmText"></p>
-      <div class="modal-actions">
-        <button id="btnConfirmNo" type="button" class="btn btn-ghost">Cancel</button>
-        <button id="btnConfirmYes" type="button" class="btn btn-danger">Confirm</button>
+<div class="overlay" id="dlgView" hidden>
+  <div class="dialog dialog-view" role="dialog" aria-modal="true" aria-labelledby="viewTitle">
+    <div class="view-stage">
+      <div class="view-tabs" role="tablist" aria-label="Which picture">
+        <button type="button" role="tab" id="viewTabLine" aria-selected="true">Coloring page</button>
+        <button type="button" role="tab" id="viewTabGuide" aria-selected="false">Colored example</button>
+      </div>
+      <div class="view-img" id="viewImgWrap"><img id="viewImg" alt=""></div>
+      <div class="view-versions" id="viewVersions" aria-label="Versions"></div>
+      <button type="button" class="view-nav prev" id="viewPrev" aria-label="Previous picture">&#8249;</button>
+      <button type="button" class="view-nav next" id="viewNext" aria-label="Next picture">&#8250;</button>
+    </div>
+    <div class="view-side">
+      <div class="dialog-head">
+        <h2 id="viewTitle">Picture</h2>
+        <button type="button" class="btn btn-icon" data-close aria-label="Close">&times;</button>
+      </div>
+      <label class="field"><span class="label">What to draw</span>
+        <textarea id="viewSubject" rows="4" maxlength="500"></textarea>
+      </label>
+      <div class="view-actions">
+        <button type="button" class="btn btn-primary" id="viewDraw">Redraw</button>
+        <button type="button" class="btn" id="viewGuide">Make colored example</button>
+        <button type="button" class="btn" id="viewAnchor" aria-pressed="false">&#9733; Style reference</button>
+        <button type="button" class="btn" id="viewDownload">Download PNG</button>
+      </div>
+      <div class="view-status" id="viewStatus" aria-live="polite"></div>
+      <ul class="flag-list" id="viewFlags"></ul>
+      <dl class="view-meta" id="viewMeta"></dl>
+      <details class="view-prompt">
+        <summary>Prompt sent to the image model</summary>
+        <pre id="viewPrompt"></pre>
+      </details>
+      <div class="view-foot">
+        <button type="button" class="btn btn-quiet danger-text btn-sm" id="viewDeleteVersion">Delete this version</button>
+        <button type="button" class="btn btn-quiet danger-text btn-sm" id="viewDeletePage">Remove picture</button>
       </div>
     </div>
   </div>
-
 </div>
 
+<div class="overlay" id="dlgExport" hidden>
+  <div class="dialog dialog-lg" role="dialog" aria-modal="true" aria-labelledby="dlgExportTitle">
+    <div class="dialog-head">
+      <h2 id="dlgExportTitle">Export the book</h2>
+      <button type="button" class="btn btn-icon" data-close aria-label="Close">&times;</button>
+    </div>
+    <div class="export-sum" id="exportSummary"></div>
+    <ul class="export-warn" id="exportWarnings"></ul>
+    <h3 class="mini-h">Page order</h3>
+    <div class="page-strip" id="pageStrip" aria-label="Every page of the book"></div>
+    <div class="kdp-box">
+      <h3 class="mini-h">Upload to KDP</h3>
+      <ul>
+        <li><strong>Interior:</strong> the lines are in color, so pick <strong>Standard color</strong> ink (most Color By Line books do) or Premium color, on white paper.</li>
+        <li><strong>Bleed:</strong> No bleed. <strong>Trim:</strong> <span id="kdpTrim"></span>.</li>
+        <li><strong>AI disclosure:</strong> KDP asks whether images were made with AI. Answer yes for these pictures.</li>
+      </ul>
+    </div>
+    <div class="export-progress" id="exportProgress" hidden>
+      <div class="runbar-track"><div class="runbar-fill" id="exportFill"></div></div>
+      <span id="exportProgressText" aria-live="polite"></span>
+    </div>
+    <div class="dialog-actions">
+      <button type="button" class="btn" id="btnExportZip">Download pictures (.zip)</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-primary" id="btnExportPdf">Download book PDF</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="dlgConfirm" hidden>
+  <div class="dialog dialog-sm" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmText">
+    <h2 id="confirmTitle">Are you sure?</h2>
+    <p id="confirmText"></p>
+    <div class="dialog-actions">
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-quiet" id="btnConfirmNo">Cancel</button>
+      <button type="button" class="btn btn-danger" id="btnConfirmYes">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+
+<script src="lib/jspdf.umd.min.js"></script>
+<script src="lib/fonts.js"></script>
+<script src="lib/app.bin.js"></script>
 </body>
 </html>
