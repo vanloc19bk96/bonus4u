@@ -1,0 +1,86 @@
+CRYPTOGRAM PRINTS
+=================
+
+Double-click index.html. It opens in your web browser (Chrome, Edge, Firefox or Safari)
+and works without the internet. Nothing to install. ChatGPT in step 3 is the only part
+that needs the internet, and you open that yourself.
+(If you still have a shortcut to cryptogram-prints.html, it simply opens index.html.)
+
+The book: each puzzle is a sentence (a famous quote, a Bible verse, a fun fact, a joke...)
+written in a secret code: every letter is swapped for another letter, or for a number from
+1 to 26. The solver cracks the code one letter at a time. Under each puzzle there is a line
+for every letter, and a letter tracker with a box for each code. At the back come the hints
+(one more letter for each puzzle) and the full solutions.
+
+1. The book: who will solve it (adults, the whole family, or kids 8 to 12), what the hidden
+   sentences are (famous quotes, inspiring quotes, funny quotes, proverbs, Bible verses,
+   fun facts, jokes and riddles, holidays, for kids, or your own theme), how many puzzles
+   (10 to 500), the title and your pen name.
+2. Puzzles and pages: the level, the code (letters or numbers), how the name under a quote
+   is shown, what goes in the book, the page size, puzzles a page (1 to 4) and the text size.
+     Easy: short sentences, three letters given (four for kids).
+     Medium: longer sentences, two letters given.
+     Hard: the longest sentences, no letters given.
+     Mixed: easy, then medium, then hard, each with its own opening page.
+   The name under a quote can be in code with the quote (part of the puzzle), shown plainly
+   under it (a clue), or only in the solutions. Bible references are always shown plainly.
+   Text size: Regular (12 pt), Easy to read (14 pt) or Large print (16 pt).
+   Only 16 pt is called "Large Print" on the title page and cover: that is the size KDP counts
+   as large print. 14 and 16 pt keep every letter in the book at that size or bigger.
+   Step 2 shows how many characters fit each puzzle at your settings. If you ask for more
+   puzzles a page than fit, the app uses fewer and says so.
+3. Write the puzzles. Two ways, and you can mix them:
+     a) Quick start (famous quotes, inspiring quotes, proverbs): click "Fill from the library".
+        The app has 180 famous quotes and proverbs from public-domain books, each checked
+        against its source. A big book needs more than the library has: write the rest with
+        ChatGPT.
+     b) ChatGPT:
+        - click "Copy prompt",
+        - click "Open ChatGPT", paste (Ctrl+V) and press Enter,
+        - when it has finished, click "Copy code" on its reply,
+        - paste it into the box and click "Add to book".
+        Do the same for every prompt ("Prompt 2 of 5" ...). Green ticks are done.
+   Each prompt asks for 25 puzzles, and for sentences no longer than the room a puzzle has on
+   the page at your settings, so whatever comes back fits. The app makes a new code for every
+   puzzle (no letter ever stands for itself), picks the given letters and the hint, and lays
+   out the pages. A sentence a little too long simply gets a page of its own.
+   If ChatGPT leaves a puzzle out, copy the same prompt again: it now asks only for what is
+   missing. A reply that numbers the next batch from 1 again still lands in the right puzzles.
+   A plain list of quotes, one a line ("quote | name"), can be pasted too.
+   The last prompt writes the welcome, the closing note and the back cover text. You can change
+   the welcome and closing notes in the boxes under "Your puzzles".
+   Claude, Gemini or Copilot work the same way.
+
+   CHECK THE QUOTES: chat models sometimes put a famous name on a line that person never said.
+   The prompts tell ChatGPT to use only real quotes it is sure of, and the check prompt asks it
+   to check every quote and name again. Look up any quote you are unsure of before you publish.
+
+   FIXING A PUZZLE:
+     - Click "Edit" next to a puzzle: change the sentence or the name right there. You see the
+       coded sentence as the page prints it. "New code" gives it a different code.
+     - Or let ChatGPT check it: click "Copy check prompt", paste the reply as usual and choose
+       "Replace".
+     - Or start over: click "Write these puzzles again", copy the prompt again and paste the reply.
+   A puzzle that is not ready (no sentence, fewer than 15 letters, or far too long for a page) is
+   left out of the PDF and the rest are numbered without a gap; the title page and cover say the
+   real number. No page is ever blank. Use the same number on KDP.
+4. Check and download: when every item is green, click "Download book PDF".
+   "Book for Canva (.pptx)" gives an editable copy of the same pages for Canva.
+
+COVER: click "Book cover" at the top of the left panel. Pick one of the 19 templates (Bright,
+Bold, Calm). Each starts in its own colors; pick other colors if you like. Check the words on
+the cover, then click "Download cover PDF". The coded phrase on the cover is decoration and
+never comes from your book. Click "Book pages" to go back to the inside of the book.
+
+Upload to KDP: paperback, black & white interior, no bleed, the same trim size you picked.
+The book PDF is the manuscript; the cover PDF is "a cover you already have".
+Download the cover again whenever the page count changes (the spine width follows it).
+KDP asks whether AI helped make the book: if ChatGPT wrote the sentences, answer yes for the
+text. Quotes from the app's library are public domain and were not written by AI.
+
+The app does not keep your work in the browser: closing or reloading the tab clears it.
+Click "Save project file" to keep your work; open it later with "Open project file".
+A settings file saved by the first version of Cryptogram Prints opens too: its settings come
+across and its puzzles are filled from the library.
+
+If you have any questions, feel free to let me know.
