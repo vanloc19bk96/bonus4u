@@ -193,6 +193,29 @@ details.help p { margin: 8px 0 0; }
 .step-head p { margin: 4px 0 0; color: var(--muted); }
 .step-locked { color: var(--muted); background: var(--surface-alt); border-radius: var(--radius-sm); padding: 14px 16px; }
 
+/* ---------- Stepper ---------- */
+.stepper { max-width: 1080px; margin: 0 auto; padding: 20px 16px 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; list-style: none; }
+.stepper button {
+  width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 14px; text-align: left;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.stepper button:hover:not(:disabled) { border-color: var(--primary); }
+.stepper button:disabled { cursor: not-allowed; opacity: 0.55; }
+.stepper .n {
+  flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--surface-alt); color: var(--muted); font-family: var(--font-display); font-weight: 700;
+}
+.stepper .t { min-width: 0; font-weight: 700; color: var(--ink); font-size: 15px; line-height: 1.25; }
+.stepper .t small { display: block; font-weight: 400; font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stepper button.active { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+.stepper button.active .n { background: var(--header); color: var(--accent); }
+.stepper button.done .n { background: var(--ok); color: #fff; font-size: 0; }
+.stepper button.done .n::after { content: '✓'; font-size: 15px; font-family: var(--font-body); }
+.step-nav { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--border); }
+.step-nav .notice { flex: 1 1 260px; }
+.step-nav .btn-primary { margin-left: auto; min-width: 200px; }
+
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; }
 .stack { display: grid; gap: 22px; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
@@ -321,6 +344,11 @@ details.explain li { margin-bottom: 4px; }
   .settings { grid-template-columns: 1fr; gap: 2px 0; }
   .settings dd { margin-bottom: 10px; }
   .global-actions { grid-template-columns: 1fr; }
+  .stepper { gap: 6px; padding-top: 14px; }
+  .stepper button { flex-direction: column; gap: 4px; padding: 8px 6px; text-align: center; }
+  .stepper .t { font-size: 13px; }
+  .stepper .t small { display: none; }
+  .step-nav .btn-primary { min-width: 0; flex: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
@@ -376,6 +404,12 @@ details.explain li { margin-bottom: 4px; }
     <span id="key-banner-text">Your activate key isn't responding. Email <a href="mailto:david@fastaifactory.com">david@fastaifactory.com</a> for an updated key. Keyword research still works without it.</span>
     <button type="button" id="banner-key-btn" class="btn btn-secondary btn-sm">Enter a key</button>
   </div>
+
+  <ol class="stepper" aria-label="Steps">
+    <li><button type="button" data-goto="1"><span class="n">1</span><span class="t">Your book<small>Describe what you built</small></span></button></li>
+    <li><button type="button" data-goto="2"><span class="n">2</span><span class="t">Keywords<small>Pick your 7 boxes</small></span></button></li>
+    <li><button type="button" data-goto="3"><span class="n">3</span><span class="t">Listing<small>Title, description, checks</small></span></button></li>
+  </ol>
 
   <main class="container">
 
@@ -472,6 +506,11 @@ details.explain li { margin-bottom: 4px; }
         <label class="field"><span>Anything else the AI should know? <span class="opt">Optional</span></span>
           <textarea id="f-notes" class="input" maxlength="600" placeholder="e.g. Each case is set in a different decade; the final case reveals who links all twelve murders"></textarea></label>
       </div>
+
+      <div class="step-nav">
+        <p id="s1-error" class="notice notice-warn" role="alert" hidden></p>
+        <button type="button" id="next-1" class="btn btn-primary">Next: pick keywords →</button>
+      </div>
     </section>
 
     <!-- ============ STEP 2: KEYWORDS ============ -->
@@ -557,6 +596,12 @@ details.explain li { margin-bottom: 4px; }
         <h3>Ideas for your next edition</h3>
         <p class="small" style="margin:0">Keywords this book can't honestly use, but a new edition from the same NAZO BOX project could. Change the setting, rebuild, and publish it as the next volume of your series.</p>
         <ul id="ideas-list"></ul>
+      </div>
+
+      <div class="step-nav">
+        <button type="button" class="btn btn-secondary" data-goto="1">← Back</button>
+        <p id="s2-error" class="notice notice-warn" role="alert" hidden></p>
+        <button type="button" id="next-2" class="btn btn-primary">Next: write my listing →</button>
       </div>
     </section>
 
@@ -655,6 +700,10 @@ details.explain li { margin-bottom: 4px; }
             <button type="button" id="download-btn" class="btn btn-secondary">Download listing (.txt)</button>
           </div>
         </div>
+      </div>
+
+      <div class="step-nav">
+        <button type="button" class="btn btn-secondary" data-goto="2">← Back to keywords</button>
       </div>
     </section>
   </main>
@@ -924,6 +973,7 @@ Return strict JSON only, no preamble: {"html": "<p>...</p>", "back_headline": ".
     pairs: [], pairIdx: 0, finalTitle: '', finalSubtitle: '',
     descHtml: '', backHeadline: '', backText: '',
     generatedFor: '',   // signature of inputs the current listing was written from
+    step: 1,            // which step is on screen
   });
   let state = defaultState();
 
@@ -984,6 +1034,7 @@ Return strict JSON only, no preamble: {"html": "<p>...</p>", "back_headline": ".
     if (!Array.isArray(state.pairs)) state.pairs = [];
     state.slots = (Array.isArray(state.slots) ? state.slots : []).filter((id) => byId.has(id)).slice(0, SLOTS);
     if (!state.slots.includes(state.main)) state.main = null;
+    if (![1, 2, 3].includes(state.step)) state.step = 1;
   }
 
   /* =======================================================================
@@ -1447,6 +1498,8 @@ Return strict JSON only, no preamble: {"html": "<p>...</p>", "back_headline": ".
     renderSlots();
     renderTable();
     renderStep3();
+    renderStepper();
+    if (state.slots.length) $('s2-error').hidden = true;
   }
 
   function showPickStatus(message, kind) {
@@ -1992,6 +2045,50 @@ Return strict JSON only, no preamble: {"html": "<p>...</p>", "back_headline": ".
   }
 
   /* =======================================================================
+     STEPS: one step on screen at a time
+     ======================================================================= */
+  function stepAllowed(n) {
+    if (n <= 1) return true;
+    if (stepOneMissing().length) return false;
+    return n === 2 || (state.slots.length > 0 && state.main != null);
+  }
+
+  function renderStepper() {
+    const finished = { 1: stepAllowed(2), 2: stepAllowed(3), 3: !!(state.pairs.length || state.descHtml) };
+    document.querySelectorAll('.stepper [data-goto]').forEach((btn) => {
+      const n = Number(btn.dataset.goto);
+      btn.classList.toggle('active', n === state.step);
+      btn.classList.toggle('done', n !== state.step && finished[n]);
+      btn.disabled = !stepAllowed(n);
+      if (n === state.step) btn.setAttribute('aria-current', 'step'); else btn.removeAttribute('aria-current');
+    });
+  }
+
+  function showStep(n, scroll) {
+    n = Math.max(1, Math.min(3, Number(n) || 1));
+    while (n > 1 && !stepAllowed(n)) n--;
+    state.step = n;
+    saveState();
+    [1, 2, 3].forEach((i) => { $('step-' + i).hidden = i !== n; });
+    $('s1-error').hidden = true;
+    $('s2-error').hidden = true;
+    renderStepper();
+    if (scroll !== false) window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function goNext(from) {
+    readBookForm();
+    const problem = from === 1
+      ? (stepOneMissing().length ? 'First tell us ' + stepOneMissing().join(' and ') + '.' : '')
+      : (!state.slots.length ? 'Add at least one keyword first, or click "Suggest 7 for me".'
+        : state.main == null ? 'Mark one keyword as your main keyword.' : '');
+    const box = $('s' + from + '-error');
+    box.textContent = problem;
+    box.hidden = !problem;
+    if (!problem) showStep(from + 1);
+  }
+
+  /* =======================================================================
      COPY + DOWNLOAD
      ======================================================================= */
   async function copyText(text, label) {
@@ -2106,14 +2203,21 @@ Return strict JSON only, no preamble: {"html": "<p>...</p>", "back_headline": ".
       saveState();
       showPickStatus('');
       renderBookForm(); renderSlots(); renderTable(); renderStep3();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      showStep(1);
     });
+
+    // Steps
+    document.querySelectorAll('[data-goto]').forEach((btn) =>
+      btn.addEventListener('click', () => showStep(btn.dataset.goto)));
+    $('next-1').addEventListener('click', () => goNext(1));
+    $('next-2').addEventListener('click', () => goNext(2));
 
     // Step 1: any change re-ranks the table and marks the listing stale.
     const step1 = $('step-1');
     const onBookChange = (e) => {
       if (e) syncNoneChip(e.target);
-      readBookForm(); saveState(); renderSlots(); renderTable(); renderStep3();
+      readBookForm(); saveState(); renderSlots(); renderTable(); renderStep3(); renderStepper();
+      if (!stepOneMissing().length) $('s1-error').hidden = true;
     };
     step1.addEventListener('change', onBookChange);
     step1.addEventListener('input', (e) => { if (e.target.matches('input[type="text"], input[type="number"], textarea')) { readBookForm(); saveState(); renderStep3(); } });
@@ -2201,6 +2305,7 @@ Return strict JSON only, no preamble: {"html": "<p>...</p>", "back_headline": ".
     renderSlots();
     renderTable();
     renderStep3();
+    showStep(state.step, false);
     if (!data.keywords.length) showPickStatus('Couldn\'t load the keyword list. Check your internet connection and reload the page. If it keeps happening, email ' + SUPPORT_EMAIL + '.', 'error');
   }
 

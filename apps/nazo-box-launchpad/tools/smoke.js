@@ -211,11 +211,35 @@ async function main() {
   ok($('screen-app').classList.contains('active'), 'app opens without a key');
   ok($('ai-badge').textContent === 'AI locked' && !$('key-banner').hidden, 'badge and banner say AI is locked');
   ok(doc.querySelectorAll('.req').length === 2, 'two required fields');
+
+  // ------------------------------------------------------------ UI: one step at a time
+  const shown = () => [1, 2, 3].filter((i) => !$('step-' + i).hidden);
+  const stepBtn = (n) => doc.querySelector('.stepper [data-goto="' + n + '"]');
+  ok(shown().join() === '1', 'only step 1 is on screen at first');
+  ok(stepBtn(1).classList.contains('active') && stepBtn(3).disabled, 'stepper: step 1 active, step 3 locked');
+  doc.querySelector('input[name="audience"][value="adults"]').click();   // untick the only audience
+  $('next-1').click();
+  ok(shown().join() === '1' && !$('s1-error').hidden && /who the book is for/.test($('s1-error').textContent), 'Next on step 1 explains what is missing');
+  ok(stepBtn(2).disabled, 'stepper: step 2 locked while step 1 is incomplete');
+  doc.querySelector('input[name="audience"][value="adults"]').click();
+  ok($('s1-error').hidden && !stepBtn(2).disabled, 'fixing step 1 clears the message and unlocks step 2');
+  $('next-1').click();
+  ok(shown().join() === '2' && stepBtn(1).classList.contains('done'), 'Next goes to step 2 and ticks step 1');
+  $('next-2').click();
+  ok(shown().join() === '2' && /Add at least one keyword/.test($('s2-error').textContent), 'Next on step 2 needs keywords');
+  doc.querySelector('#step-2 [data-goto="1"]').click();
+  ok(shown().join() === '1', 'Back returns to step 1');
+  stepBtn(2).click();
+  ok(shown().join() === '2', 'stepper jumps to an unlocked step');
   ok(doc.querySelectorAll('input[name="inside"]:checked').length === 12, 'standard NAZO BOX extras are ticked by default');
   $('ai-pick-btn').click();
   ok(/activate key/.test($('pick-status').textContent), 'AI pick without a key asks for the key');
   $('quick-btn').click();
   ok(doc.querySelectorAll('#slots .slot:not(.empty)').length === 7, 'Suggest 7 works without a key');
+  ok($('s2-error').hidden && !stepBtn(3).disabled, 'picking keywords clears the message and unlocks step 3');
+  $('next-2').click();
+  ok(shown().join() === '3', 'Next goes to step 3');
+  ok(JSON.parse(window.localStorage.getItem('nzb_launchpad_state_v1')).step === 3, 'the current step is remembered');
   ok(!$('ideas').hidden && $('ideas-list').children.length > 0, 'edition ideas shown');
   $('csv-btn').click();
   ok(window.__downloaded === 'nazo-box-keywords.csv', 'CSV download offered');
