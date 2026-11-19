@@ -1,0 +1,16 @@
+{
+  "name": "nazo-box-launchpad-dev",
+  "private": true,
+  "description": "Build + test harness for the NAZO BOX Listing Launchpad. Edit ../src/launchpad.html, then `npm test` writes the protected ../index.html.",
+  "scripts": {
+    "keywords": "python build-keywords.py",
+    "smoke": "node smoke.js ../src/launchpad.html",
+    "verify": "node protect.js --test-build && node smoke.js build-test/launchpad.html",
+    "build": "node protect.js",
+    "test": "npm run smoke && npm run verify && npm run build"
+  },
+  "devDependencies": {
+    "javascript-obfuscator": "^4.1.1",
+    "jsdom": "^24.0.0"
+  }
+}
