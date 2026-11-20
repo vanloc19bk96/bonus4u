@@ -102,6 +102,19 @@ function strings(pages) { return [].concat(...pages.map((pg) => pg.items.filter(
     eq(r.skipped.map((s) => s.why), ['it had no ANSWER line']);
   });
 
+  await test('reader: a letter and a dot inside a choice ("Johnny B. Goode") is not a new choice', () => {
+    const one = CX.reader.readQuestions(['Q: Which Chuck Berry hit is about a country boy?', 'A) Maybellene', 'B) Roll Over Beethoven',
+      'C) Johnny B. Goode', 'D) Sweet Little Sixteen', 'ANSWER: C', 'FACT: It came out in 1958.'].join('\n')).groups[0].questions[0];
+    eq(one.o, ['Maybellene', 'Roll Over Beethoven', 'Johnny B. Goode', 'Sweet Little Sixteen']);
+    eq(one.a, 2);
+    const first = CX.reader.readQuestions(['Q: Who sang it?', 'A) Johnny B. Goode', 'B) Chuck Berry', 'C) Elvis', 'D) Pat Boone', 'ANSWER: B'].join('\n')).groups[0].questions[0];
+    eq(first.o, ['Johnny B. Goode', 'Chuck Berry', 'Elvis', 'Pat Boone'], 'choice A with "B." inside');
+    const inline = CX.reader.readQuestions(['Q: Pick one.', 'A) Johnny B. Goode  B) Peggy Sue  C) Donna  D) Diana', 'ANSWER: A'].join('\n')).groups[0].questions[0];
+    eq(inline.o, ['Johnny B. Goode', 'Peggy Sue', 'Donna', 'Diana'], 'inline choices still split');
+    const pairs = CX.reader.readQuestions(['Q: Pick one.', 'A) Bing  B) Perry', 'C) Frank  D) Dean', 'ANSWER: C'].join('\n')).groups[0].questions[0];
+    eq(pairs.o, ['Bing', 'Perry', 'Frank', 'Dean'], 'two choices per line');
+  });
+
   await test('reader: answer letters in every common shape', () => {
     const o = ['Jukebox', 'Radio', 'Record player', 'Eight-track'];
     ['B', 'b)', '(B)', 'B) Radio', 'B - Radio', 'Radio', '**B**', 'B.'].forEach((s) => eq(CX.reader.answerIndex(s, o), 1, s));

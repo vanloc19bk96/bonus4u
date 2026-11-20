@@ -26,10 +26,23 @@
   var RE_ANSWER = /^(?:correct\s+)?(?:answer|ans|solution|correct)\s*(?:is)?\s*[:\-–=]\s*(.*)$/i;
   var RE_FACT = /^(?:fun\s+fact|fact|did\s+you\s+know\??|note|explanation)\s*[:\-–]\s*(.*)$/i;
 
-  // "A) Bing  B) Perry  C) Frank  D) Dean" on one line.
+  // "A) Bing  B) Perry  C) Frank  D) Dean" on one line. A split needs the next letter in order
+  // (after C comes D) written with the same mark as the line's own letter, so a letter inside
+  // an answer is left alone: "C) Johnny B. Goode" stays one choice.
   function splitInline(s) {
-    var parts = s.split(/\s+(?=\(?[B-F]\s*[).:]\s)/);
-    return parts.length > 1 ? parts : null;
+    var head = /^\(?([A-Fa-f])\s*([).:\]])/.exec(s);
+    if (!head) return null;
+    var expect = head[1].toUpperCase().charCodeAt(0) + 1, cuts = [], m;
+    var re = /\s+(?=\(?([B-F])\s*([).:])\s)/g;
+    while ((m = re.exec(s))) {
+      if (m[1].charCodeAt(0) === expect && m[2] === head[2]) { cuts.push(m.index); expect++; }
+      re.lastIndex = m.index + m[0].length;
+    }
+    if (!cuts.length) return null;
+    var parts = [], from = 0;
+    cuts.forEach(function (c) { parts.push(s.slice(from, c)); from = c; });
+    parts.push(s.slice(from));
+    return parts.map(function (p) { return p.trim(); });
   }
 
   function answerIndex(raw, options) {
