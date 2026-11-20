@@ -8,7 +8,7 @@
 </head>
 <body>
 <noscript><p class="noscript">This app needs JavaScript. Please allow scripts for this page and reload it.</p></noscript>
-<div class="app" id="app" aria-busy="true">
+<div class="app" id="app" aria-busy="true" hidden>
   <aside class="sidebar" aria-label="Book steps">
     <header class="brand">
       <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="20" cy="15.5" r="5.5" fill="currentColor"/><path d="M17 18.5h6l2.6 11.5h-11.2z" fill="currentColor"/></svg>
@@ -68,6 +68,18 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="loading" id="loading">Locking the doors&hellip;</div>
 
+<div class="gate" id="gate" hidden>
+  <form class="gate-card" id="gateForm" novalidate>
+    <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="20" cy="15.5" r="5.5" fill="currentColor"/><path d="M17 18.5h6l2.6 11.5h-11.2z" fill="currentColor"/></svg>
+    <h1>Escape Room Book Maker</h1>
+    <p class="lead">Type the access key that came with your purchase. You only need to do this once on each computer.</p>
+    <label class="field-label" for="gateKey">Access key</label>
+    <input class="input" id="gateKey" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="KDP-XXXX-XXXX-XXXX-XXXX" aria-describedby="gateError">
+    <p class="gate-error" id="gateError" role="alert"></p>
+    <button type="submit" class="btn btn-primary block" id="gateSubmit">Open the app</button>
+  </form>
+</div>
+
 <script src="js/vendor/jspdf.umd.min.js"></script>
 <script src="js/fonts.js"></script>
 <script src="js/core/util.js"></script>
@@ -88,6 +100,7 @@
 <script src="js/render/svg.js"></script>
 <script src="js/render/pdf.js"></script>
 <script src="js/render/pptx.js"></script>
+<script src="js/ui/gate.js"></script>
 <script src="js/ui/dom.js"></script>
 <script src="js/ui/preview.js"></script>
 <script src="js/ui/app.js"></script>

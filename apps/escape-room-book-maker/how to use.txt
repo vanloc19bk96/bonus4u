@@ -5,6 +5,11 @@ Double-click index.html. It opens in your web browser (Chrome, Edge, Firefox or 
 and works without the internet. Nothing to install. The AI chat in step 3 (ChatGPT, Claude or
 Gemini) is the only part that needs the internet, and you open that yourself.
 
+The first time it opens, type the access key that came with your purchase and click
+"Open the app". It is remembered on that computer, so you only type it once.
+The same key opens all three makers: Escape Room Book Maker, Birthday Trivia Book Maker
+and Cross It Out Puzzle Prints.
+
 The book: a story in locked rooms, played with only a pencil. No QR codes, no app, no scissors.
 Each room holds 3 or 4 puzzles and every puzzle gives one digit. The digits make the room's door
 code. The reader looks the code up in the door's table and turns to the page it names: the next

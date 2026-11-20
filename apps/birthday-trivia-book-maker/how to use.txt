@@ -7,6 +7,8 @@ that needs the internet, and you open that yourself.
 
 The first time it opens, type the access key that came with your purchase and click
 "Open the app". It is remembered on that computer, so you only type it once.
+The same key opens all three makers: Escape Room Book Maker, Birthday Trivia Book Maker
+and Cross It Out Puzzle Prints.
 
 1. The birthday: pick the age (50th, 60th ... 100th or any age), the year of the birthday
    and the country they grew up in. Type your pen name. Leave the title empty to use the

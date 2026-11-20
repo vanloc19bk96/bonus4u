@@ -2,18 +2,33 @@
  * The access key: the app opens only after a valid key is typed. Only salted, stretched SHA-256
  * hashes of the keys live in this file, never the keys themselves. A key that worked is
  * remembered on this computer (as its hash) so it is asked for once.
- * New key: node tools/make-key.js, then add the printed hash to KEY_HASHES.
+ *
+ * One key opens all three makers: Escape Room Book Maker, Birthday Trivia Book Maker and
+ * Cross It Out Puzzle Prints. SHARED is the same in each app's gate.js, and so is where the
+ * key is remembered, so a key typed in one app also opens the others in the same browser.
+ * OWN holds the keys this app had before the shared one; they still open this app only.
+ * New shared key: node tools/make-key.js, then add the printed hash to SHARED.hashes in all
+ * three gate.js files.
  */
 (function (root) {
   'use strict';
   var CX = root.CX = root.CX || {};
 
-  var SALT = 'cxo-gate-v1:4c92c914f4b1e047404a3558124ec327';
+  var SHARED = {
+    salt: 'kdp-bonus-gate-v1:e83925faa2478e1eaaef4397320c502b',
+    hashes: [
+      'dcf2d7fe1a389032765252e768f53ec3fd8fb712ddf973c3823e000a014a85a3'
+    ],
+    store: 'kdpBonus.accessKey'
+  };
+  var OWN = {
+    salt: 'cxo-gate-v1:4c92c914f4b1e047404a3558124ec327',
+    hashes: [
+      'dd32d5755cb0d237ddc567aba361c78c98c57ffe9a92581f5619f9f60e76cb71'
+    ],
+    store: 'cxo.accessKey'
+  };
   var ROUNDS = 20000;
-  var KEY_HASHES = [
-    'dd32d5755cb0d237ddc567aba361c78c98c57ffe9a92581f5619f9f60e76cb71'
-  ];
-  var STORE = 'cxo.accessKey';
 
   // ---------- SHA-256 (plain JavaScript: crypto.subtle is missing on file:// in some browsers) ----------
   var K = [
@@ -66,22 +81,36 @@
   }
 
   // ---------- keys ----------
-  // Case, spaces and dashes do not matter: "cxo abcd-efgh" is the same key as "CXO-ABCD-EFGH".
+  // Case, spaces and dashes do not matter: "kdp abcd-efgh" is the same key as "KDP-ABCD-EFGH".
   function normalize(key) { return String(key || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
 
-  function hashKey(key) {
-    var h = sha256(SALT + normalize(key));
-    for (var i = 0; i < ROUNDS; i++) h = sha256(h + SALT);
+  function stretch(key, salt) {
+    var h = sha256(salt + normalize(key));
+    for (var i = 0; i < ROUNDS; i++) h = sha256(h + salt);
     return h;
   }
+  function hashKey(key) { return stretch(key, SHARED.salt); }      // the shared key
+  function hashOwnKey(key) { return stretch(key, OWN.salt); }      // this app's older keys
 
-  function isKnownHash(h) { return KEY_HASHES.indexOf(h) !== -1; }
+  function isKnownHash(h) { return SHARED.hashes.indexOf(h) !== -1 || OWN.hashes.indexOf(h) !== -1; }
 
-  function remembered() {
-    try { return root.localStorage.getItem(STORE) || ''; } catch (e) { return ''; }
+  // The set (SHARED or OWN) the typed key belongs to, with its hash, or null.
+  function check(key) {
+    var h = hashKey(key);
+    if (SHARED.hashes.indexOf(h) !== -1) return { set: SHARED, hash: h };
+    if (!OWN.hashes.length) return null;
+    h = hashOwnKey(key);
+    return OWN.hashes.indexOf(h) !== -1 ? { set: OWN, hash: h } : null;
   }
-  function remember(h) {
-    try { root.localStorage.setItem(STORE, h); } catch (e) { /* private window: asked again next time */ }
+
+  function read(store) {
+    try { return root.localStorage.getItem(store) || ''; } catch (e) { return ''; }
+  }
+  function isRemembered() {
+    return SHARED.hashes.indexOf(read(SHARED.store)) !== -1 || OWN.hashes.indexOf(read(OWN.store)) !== -1;
+  }
+  function remember(found) {
+    try { root.localStorage.setItem(found.set.store, found.hash); } catch (e) { /* private window: asked again next time */ }
   }
 
   // ---------- the gate screen ----------
@@ -93,7 +122,7 @@
       document.getElementById('loading').hidden = false;
       onOpen();
     };
-    if (isKnownHash(remembered())) { unlock(); return; }
+    if (isRemembered()) { unlock(); return; }
 
     var form = document.getElementById('gateForm'), input = document.getElementById('gateKey');
     var error = document.getElementById('gateError'), btn = document.getElementById('gateSubmit');
@@ -106,19 +135,22 @@
       if (!normalize(input.value)) { error.textContent = 'Type your access key first.'; input.focus(); return; }
       btn.disabled = true;
       setTimeout(function () {   // let the button show it is busy before hashing
-        var h = hashKey(input.value);
+        var found = check(input.value);
         btn.disabled = false;
-        if (!isKnownHash(h)) {
+        if (!found) {
           error.textContent = 'That key does not work. Check it against your purchase email and try again.';
           input.classList.add('invalid');
           input.select();
           return;
         }
-        remember(h);
+        remember(found);
         unlock();
       }, 30);
     });
   }
 
-  CX.gate = { open: open, hashKey: hashKey, sha256: sha256, normalize: normalize, isKnownHash: isKnownHash, KEY_HASHES: KEY_HASHES };
+  CX.gate = {
+    open: open, check: check, hashKey: hashKey, hashOwnKey: hashOwnKey, sha256: sha256, normalize: normalize,
+    isKnownHash: isKnownHash, SHARED_HASHES: SHARED.hashes, KEY_HASHES: OWN.hashes
+  };
 })(window);

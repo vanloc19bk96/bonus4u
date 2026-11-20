@@ -767,5 +767,5 @@
   function boot() { dom.registerFonts().then(start, start); }
 
   CX.app = { state: state, openStep: openStep, setMode: setMode, addReply: addReply, renderPreview: renderPreview, viewRoom: viewRoom, viewStory: viewStory, changed: changed };
-  boot();
+  CX.gate.open(boot);
 })(window);
