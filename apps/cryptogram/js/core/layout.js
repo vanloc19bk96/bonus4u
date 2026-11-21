@@ -18,7 +18,8 @@
  * A page holds up to the chosen number of puzzles, as many as fit; a sentence too long to share a
  * page gets a page of its own. Book order: title, copyright, how to solve with a worked example,
  * the puzzle log, the puzzles (a divider before each level in a mixed book), hints, solutions and
- * the closing note. Page numbers that point forward come from the previous pass.
+ * the closing note. Page numbers that point forward come from the previous pass. A book can have a
+ * heading: one line (two when it is long) at the top or the bottom of every puzzle page.
  */
 (function (root) {
   'use strict';
@@ -410,15 +411,63 @@
     pg.meta.cell = Math.min(pg.meta.cell || 99, g.cs);
   }
 
+  // ---------- the heading of the puzzle pages ----------
+  /*
+   * The heading in width w: { lines, size, h (the room it takes, with the rule and the gap to the
+   * puzzles) }, or null when the book has none. It is the text size of the book, smaller only when
+   * it would need more than two lines.
+   */
+  function headingPlan(project, S, w) {
+    var str = txt(P.heading(project), 'serifBold');
+    if (!str.trim()) return null;
+    var max = S.large ? S.b : Math.max(10, S.b * 0.9), min = S.large ? S.min : 8.5;
+    var t = fit(str, 'serifBold', w, max, min, 2), size = t.size;
+    // one word wider than the page: smaller still, so nothing leaves the margins
+    var widest = Math.max.apply(null, t.lines.map(function (l) { return wid(l, size, 'serifBold'); }));
+    if (widest > w) size = Math.max(KDP.MIN_FONT_PT, Math.floor(size * w / widest * 10) / 10);
+    return { lines: t.lines, size: size, h: t.lines.length * size * 1.25 + S.b * 1.3 };
+  }
+  function drawHeading(pg, hp, bottom) {
+    var lead = hp.size * 1.25, n = hp.lines.length;
+    var y = bottom ? pg.cb - hp.size * 0.25 - (n - 1) * lead : pg.y0 + hp.size * 0.8;
+    var rule = bottom ? pg.cb - n * lead - hp.size * 0.15 : y + (n - 1) * lead + hp.size * 0.5;
+    hp.lines.forEach(function (l, i) { pg.text(l, pg.cx, y + i * lead, hp.size, 'serifBold', { align: 'center' }); });
+    pg.line(pg.x0, rule, pg.x1, rule, 0.75, 0.55);
+  }
+
   // ---------- the room a puzzle gets ----------
   function gapH(S) { return S.b * 1.7; }
 
-  // Width and height of the puzzle area on the narrowest page this book can have.
-  function area(project) {
-    var t = KDP.trim(project.book.trim), m = KDP.margins(KDP.maxPages(t.id, project.book.paper)), S = printSizes(project);
-    var mm = KDP.margins(24), foot = S.folio + 12;
-    return { w: (t.w - m.inside - m.outside) * PT, h: (t.h - mm.top - mm.bottom) * PT - foot, S: S };
+  // Does a short sentence (the shortest the prompts ask for, and a little more) fit height h?
+  function roomFor(project, S, w, h) {
+    var mode = CX.puzzles.byMode(project);
+    var res = { text: FILLER.slice(0, 47), by: mode === 'code' ? 'RALPH WALDO EMERSON' : mode === 'plain' ? 'Ralph Waldo Emerson' : '', code: project.plan.code, key: {}, given: [] };
+    for (var cs = S.b; cs >= floorSize(S) - 0.001; cs -= 0.5) {
+      var bp = blockPlan(project, S, res, cs, w);
+      if (bp && bp.h <= h) return true;
+    }
+    return false;
   }
+
+  /*
+   * Width and height of the puzzle area on the narrowest page this book can have. head: the room
+   * the heading takes. A heading that would leave a short sentence no room (a pocket page in large
+   * print with the tracker) is left off: head is 0, and the checklist says so.
+   */
+  var areaMemo = { key: '', a: null };
+  function area(project) {
+    var b = project.book, pl = project.plan, key = [b.trim, b.paper, b.print, P.heading(project), pl.tracker, pl.code, CX.puzzles.byMode(project)].join('|');
+    if (areaMemo.key === key) return areaMemo.a;
+    var t = KDP.trim(b.trim), m = KDP.margins(KDP.maxPages(t.id, b.paper)), S = printSizes(project);
+    var mm = KDP.margins(24), foot = S.folio + 12, w = (t.w - m.inside - m.outside) * PT, h = (t.h - mm.top - mm.bottom) * PT - foot;
+    var hp = headingPlan(project, S, w);
+    if (hp && !roomFor(project, S, w, h - hp.h)) hp = null;
+    areaMemo = { key: key, a: { w: w, h: h - (hp ? hp.h : 0), S: S, head: hp ? Math.round(hp.h * 10) / 10 : 0 } };
+    return areaMemo.a;
+  }
+
+  // The room the heading takes on a puzzle page, in points (0: no heading, or no room for one).
+  function headingRoom(project) { return area(project).head; }
 
   // A stand-in sentence for measuring: everyday English word lengths.
   var FILLER = 'THE BEST THING ABOUT A GOOD BOOK IS THAT IT CAN TAKE YOU FAR AWAY WHILE YOU SIT STILL IN YOUR FAVORITE CHAIR, AND WHEN YOU COME BACK THE WORLD LOOKS A LITTLE KINDER THAN BEFORE. EVERY DAY BRINGS SOMETHING NEW TO LEARN AND SOMEONE DEAR TO THANK FOR IT, SO KEEP YOUR HEART OPEN AND YOUR PENCIL SHARP, BECAUSE THE NEXT GREAT IDEA MAY BE WAITING ON THE VERY NEXT PAGE OF THE STORY THAT YOU ARE WRITING WITH YOUR OWN LIFE. '.repeat(3);
@@ -430,7 +479,7 @@
   var capCache = {};
   function capacity(project, per) {
     var a = area(project), pl = project.plan, mode = CX.puzzles.byMode(project);
-    var key = [project.book.trim, project.book.paper, project.book.print, pl.tracker, pl.code, mode, per].join('|');
+    var key = [project.book.trim, project.book.paper, project.book.print, pl.tracker, pl.code, mode, per, Math.round(a.h)].join('|');
     if (capCache[key] != null) return capCache[key];
     var slot = (a.h - (per - 1) * gapH(a.S)) / per, words = FILLER.trim().split(' '), lo = 1, hi = words.length;
     var by = mode === 'code' ? 'RALPH WALDO EMERSON' : mode === 'plain' ? 'Ralph Waldo Emerson' : '';
@@ -459,12 +508,15 @@
 
   // ---------- the puzzle pages ----------
   function puzzlePages(L, list) {
-    var p = L.project, S = L.S, per = perPage(p), mixed = p.plan.level === 'mixed', prev = '', i = 0;
+    var p = L.project, S = L.S, per = perPage(p), mixed = P.levelsIn(p).length > 1, prev = '', i = 0;
+    var bottom = p.plan.headingAt === 'bottom', headed = headingRoom(p) > 0;
     while (i < list.length) {
       var lvl = P.levelOf(p, list[i].pz);
       if (mixed && lvl !== prev) levelPage(L, lvl);
       prev = lvl;
-      var pg = L.page('puzzle', 'Puzzle ' + list[i].pz.no), avail = pg.cb - pg.y0, w = pg.w, slot = (avail - (per - 1) * gapH(S)) / per;
+      var pg = L.page('puzzle', 'Puzzle ' + list[i].pz.no), w = pg.w, hp = headed ? headingPlan(p, S, w) : null;
+      var avail = pg.cb - pg.y0 - (hp ? hp.h : 0), slot = (avail - (per - 1) * gapH(S)) / per;
+      if (hp) drawHeading(pg, hp, bottom);
       var group = [], used = 0;
       while (group.length < per && i < list.length && P.levelOf(p, list[i].pz) === lvl) {
         var x = list[i], ok = x.res && x.res.ok, bp = ok ? planIn(p, S, x.res, w, avail, false) : null;
@@ -485,7 +537,7 @@
       }
       if (group.length > 1) pg.label = 'Puzzles ' + group[0].pz.no + '–' + group[group.length - 1].pz.no;
       L.out.pages = L.out.pages || {};
-      var extra = Math.max(0, (avail - used) / group.length), y = pg.y0;
+      var extra = Math.max(0, (avail - used) / group.length), y = pg.y0 + (hp && !bottom ? hp.h : 0);
       group.forEach(function (it, k) {
         L.out.pages[it.pz.id] = pg.num;
         if (k) {
@@ -619,9 +671,10 @@
     if (pl.hints && refs.hints) more.push('Stuck? The hints start on page ' + refs.hints + ': each gives one more letter of a puzzle.');
     if (refs.solutions) more.push('All the solutions start on page ' + refs.solutions + '.');
     more.forEach(function (t) { L.y += S.b * 0.4; L.para(t, 'serif', S.b, S.lead); });
-    if (pl.level === 'mixed') {
-      L.label('Three levels');
-      L.bullets(P.LEVELS.map(function (lv) { return lv.label + ': ' + levelHelp(p, lv.id); }));
+    var lvls = P.levelsIn(p);
+    if (lvls.length > 1) {
+      L.label(lvls.length === 2 ? 'Two levels' : 'Three levels');
+      L.bullets(lvls.map(function (id) { return P.level(id).label + ': ' + levelHelp(p, id); }));
     }
   }
 
@@ -765,6 +818,6 @@
 
   CX.layout = {
     PRINT: PRINT, MIN_CHARS: MIN_CHARS, layoutBook: layoutBook, wrap: wrap, fit: fit, sizes: sizes, printSizes: printSizes, rrectPts: rrectPts,
-    capacity: capacity, perPage: perPage, fitsPage: fitsPage, geom: geom, rowsOf: rowsOf, blockPlan: blockPlan
+    capacity: capacity, perPage: perPage, fitsPage: fitsPage, geom: geom, rowsOf: rowsOf, blockPlan: blockPlan, headingPlan: headingPlan, headingRoom: headingRoom
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -55,6 +55,10 @@
         detail: low ? 'Some letters are only ' + (Math.round(low * 10) / 10) + ' pt (' + short(at) + ') because the sentence is too long for a page at this size. Click Edit to shorten it, or copy its prompt again.' : 'Every letter in the book, the codes and solutions included, is ' + book.S.min + ' pt or bigger.' + (P.largePrint(project) ? ' KDP counts 16 pt as large print.' : '')
       });
     }
+    // a heading the pages have no room for is left off, so say so
+    if (P.heading(project) && !CX.layout.headingRoom(project)) {
+      out.push({ ok: false, step: 2, label: 'Heading', detail: 'There is no room for the heading at this page size and text size, so the puzzle pages print without it. Choose a bigger page or a smaller text size, turn off the letter tracker, or clear the heading.' });
+    }
     var n = book.pages.length, max = CX.kdp.maxPages(b.trim, b.paper);
     out.push({
       ok: n >= CX.kdp.MIN_PAGES && n <= max, step: 2, label: 'Page count',

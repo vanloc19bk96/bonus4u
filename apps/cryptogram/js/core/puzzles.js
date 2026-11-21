@@ -34,7 +34,7 @@
     var d = project.puzzles[pz.id];
     if (!d || !String(d.text || '').trim()) return null;
     var b = project.book, pl = project.plan, lvl = P.levelOf(project, pz);
-    var k = [project.seed, pz.id, d.v || 0, b.trim, b.print, b.paper, pl.perPage, pl.tracker, pl.code, pl.by, pl.theme, pl.audience, lvl, d.text, d.by].join('~');
+    var k = [project.seed, pz.id, d.v || 0, b.trim, b.print, b.paper, pl.perPage, pl.tracker, pl.code, pl.by, pl.theme, pl.audience, lvl, d.text, d.by, CX.layout ? CX.layout.headingRoom(project) : 0].join('~');
     if (cache[k] !== undefined) return cache[k];
     var text = E.clean(d.text), by = E.cleanBy(d.by);
     var res = { text: text, by: by, level: lvl, code: pl.code, key: null, given: [], hint: null, coded: '', problems: E.problems({ text: text }), warnings: [], ok: false };

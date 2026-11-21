@@ -1,5 +1,5 @@
 /*
- * Editable copy for Canva (and PowerPoint, Google Slides, Keynote): the same laid-out pages as the
+ * Editable copy for PowerPoint and Canva (and Google Slides, Keynote): the same laid-out pages as the
  * PDF, written as a .pptx with one slide per page at the trim size. Every line of text is a real
  * text box (lines of one paragraph share a box), and boxes, lines, circles and shapes stay vector
  * shapes, so nothing is merged or re-flowed on import the way Canva does with a PDF.
@@ -244,5 +244,5 @@
     return zip(parts([cv], cv.W, cv.H, CX.metrics.load()));
   }
 
-  CX.pptx = { build: build, buildCover: buildCover };
+  CX.pptx = { build: build, buildCover: buildCover, crc32: crc32 };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -89,7 +89,7 @@
     var a = P.audience(project.plan.audience), t = topic(project), L = [];
     L.push('Rules for every puzzle:');
     L.push('- TEXT: one complete sentence or two, in plain English with American spelling. Its length depends on its level (count the characters, spaces included):');
-    P.LEVELS.forEach(function (lv) { L.push('    ' + lv.label.toUpperCase() + ': ' + lengthText(length(project, lv.id)) + '.'); });
+    P.levelsIn(project).forEach(function (id) { L.push('    ' + P.level(id).label.toUpperCase() + ': ' + lengthText(length(project, id)) + '.'); });
     L.push('  Never go over the most for its level: the page has room for no more.');
     if (t.own) {
       L.push('- A quote must be real and word for word, by someone who lived long ago (who died before 1955): never invent a quote or put a famous name on a line that person did not say. A fact must be true and widely known. A saying or joke needs no name.');

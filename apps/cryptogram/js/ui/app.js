@@ -8,7 +8,7 @@
   var CX = root.CX, U = CX.util, P = CX.plan, dom = CX.dom, h = dom.h;
   var CHATGPT = 'https://chatgpt.com/';
 
-  var state = { p: null, mode: 'book', open: 1, sel: null, result: null, printPages: 0, busy: false, otherCount: false };
+  var state = { p: null, mode: 'book', open: 1, sel: null, result: null, printPages: 0, busy: false, otherCount: false, dpi: 300 };
   var live = [];          // small updaters for the open step (derived text that follows typing)
   var thumbs = {};        // cover template thumbnails (SVG) by words, size, page count and template
 
@@ -64,7 +64,7 @@
       th.library ? 'ChatGPT writes them in step 3, or fill the book from the app\'s own library of checked public-domain quotes.' : 'ChatGPT writes them in step 3, every one a different sentence.', 'fTheme'));
     if (pl.theme === 'custom') out.push(field('Your theme', custom, 'ChatGPT writes every sentence around it.', 'fCustom'));
     var other = state.otherCount || P.COUNTS.indexOf(pl.count) === -1;
-    out.push(h('div', { class: 'field' }, [h('div', { class: 'field-label' }, 'How many puzzles?'), h('div', { class: 'cards' }, P.COUNTS.map(function (n) {
+    out.push(h('div', { class: 'field' }, [h('div', { class: 'field-label' }, 'How many puzzles?'), h('div', { class: 'cards four' }, P.COUNTS.map(function (n) {
       return radio('count', String(n), null, !other && pl.count === n, function () { setCount(n); });
     }).concat([radio('count', 'Other', P.MIN_COUNT + ' to ' + P.MAX_COUNT, other, function () { setCount(pl.count, true); })]))]));
     if (other) {
@@ -109,10 +109,11 @@
   function body2() {
     var p = state.p, pl = p.plan, b = p.book;
     var out = [h('p', { class: 'lead' }, 'How hard the puzzles get, what goes in the book and how it is printed.')];
-    var levels = [{ id: 'mixed', label: 'Mixed', help: 'Easy first, then medium, then hard, each with its own opening page.' }].concat(P.LEVELS);
+    var levels = [{ id: 'mixed', label: 'Mixed', help: 'The easier puzzles first, then the harder ones. Each level has its own opening page.' }].concat(P.LEVELS);
     out.push(h('div', { class: 'field' }, [h('div', { class: 'field-label' }, 'Level'), h('div', { class: 'cards' }, levels.map(function (l) {
       return radio('level', l.label, l.help, pl.level === l.id, function () { pl.level = l.id; changed(true); });
     })), h('div', { class: 'hint' }, 'Easy puzzles have short sentences and three letters given' + (P.audience(pl.audience).kid ? ' (four for kids)' : '') + '; medium ones two letters; hard ones none.')]));
+    if (pl.level === 'mixed') out.push(mixField());
     out.push(h('div', { class: 'field' }, [h('div', { class: 'field-label' }, 'The code'), h('div', { class: 'cards' }, P.CODES.map(function (c) {
       return radio('code', c.label, c.help, pl.code === c.id, function () { pl.code = c.id; changed(true); });
     }))]));
@@ -128,18 +129,35 @@
       check('Puzzle log', 'A page to tick off each puzzle', pl.log, function (v) { pl.log = v; changed(); }),
       check('Difficulty stars', 'One to three stars by each puzzle number', pl.stars, function (v) { pl.stars = v; changed(); })
     ])]));
+    var head = h('input', { class: 'input', id: 'fHeading', value: pl.heading, maxlength: P.HEADING_MAX, placeholder: 'For example: ' + P.bookTitle(p, true) });
+    head.addEventListener('input', function () { pl.heading = head.value; changed(); });
+    var headNote = h('div', { class: 'hint' });
+    live.push(function () {
+      var none = P.heading(p) && !CX.layout.headingRoom(p);
+      headNote.textContent = none ? 'There is no room for a heading at this page size and text size, so the puzzle pages print without it. Choose a bigger page or a smaller text size, or turn off the letter tracker.'
+        : 'A line of your own on each puzzle page: the book title, the volume, a theme. Leave it empty for no heading.';
+      headNote.classList.toggle('warn-text', !!none);
+    });
+    live[live.length - 1]();
+    out.push(h('div', { class: 'field' }, [h('label', { for: 'fHeading' }, 'Heading on every puzzle page'), head, headNote,
+      h('div', { class: 'chips ideas' }, h('button', { type: 'button', class: 'chip-btn small', onclick: function () { pl.heading = P.bookTitle(p, true).slice(0, P.HEADING_MAX); head.value = pl.heading; changed(); } }, 'Use the book title'))]));
+    out.push(field('Where the heading goes', select('fHeadAt', [{ v: 'top', t: 'At the top of the page' }, { v: 'bottom', t: 'At the bottom of the page, above the page number' }], pl.headingAt, function (v) { pl.headingAt = v; changed(); }), null, 'fHeadAt'));
     out.push(h('h3', { class: 'sub-head' }, 'Page size and print'));
     out.push(field('Page size', select('fTrim', CX.kdp.TRIMS.map(function (t) { return { v: t.id, t: t.label + ' – ' + (t.id === '8.5x11' ? 'Big letters, room for several puzzles' : t.hint) }; }), b.trim, function (v) { b.trim = v; changed(true); }), null, 'fTrim'));
     out.push(field('Puzzles on a page', select('fPer', [1, 2, 3, 4].map(function (n) { return { v: n, t: n === 1 ? 'One puzzle a page: the most room to write' : n + ' puzzles a page' }; }), pl.perPage, function (v) { pl.perPage = +v; changed(true); }),
       'A page only takes as many as fit: a long sentence gets a page of its own.', 'fPer'));
-    out.push(field('Text size', select('fPrint', Object.keys(CX.layout.PRINT).map(function (k) { return { v: k, t: CX.layout.PRINT[k].label }; }), b.print, function (v) { b.print = v; changed(true); }),
-      b.print === 'regular' ? 'For the titles, notes and code letters (11 or 10 pt with three or four puzzles a page).' : 'Every letter in the book is this size or bigger: titles, code letters, the tracker, hints and solutions.', 'fPrint'));
+    out.push(field('Text size and large print', select('fPrint', Object.keys(CX.layout.PRINT).map(function (k) { return { v: k, t: CX.layout.PRINT[k].label }; }), b.print, function (v) { b.print = v; changed(true); }),
+      b.print === 'regular' ? 'For the titles, notes and code letters (11 or 10 pt with three or four puzzles a page). For a large print book, choose Large print (16 pt).'
+        : 'Every letter in the book is this size or bigger: titles, code letters, the tracker, hints and solutions.' + (P.largePrint(p) ? ' KDP counts 16 pt as large print, so the title ideas say "Large Print".' : ' For a book sold as large print, choose Large print (16 pt).'), 'fPrint'));
     out.push(field('Paper', select('fPaper', CX.kdp.PAPERS.map(function (x) { return { v: x.id, t: x.label }; }), b.paper, function (v) { b.paper = v; changed(); }), null, 'fPaper'));
     var est = h('p', { class: 'derived' });
     live.push(function () {
-      var per = CX.layout.perPage(p), room = CX.layout.capacity(p, per), lv = CX.prompts.length(p, 'hard');
+      var per = CX.layout.perPage(p), room = CX.layout.capacity(p, per), lv = CX.prompts.length(p, P.levelsIn(p).slice(-1)[0]);
+      var pages = estimatePages(), max = CX.kdp.maxPages(b.trim, b.paper);
       est.textContent = (per < pl.perPage ? 'Only ' + per + ' puzzle' + (per > 1 ? 's fit' : ' fits') + ' a page at this page and text size, so the book uses ' + per + '. ' : '') +
-        'Each puzzle has room for about ' + room + ' characters, so ChatGPT is asked for ' + lv.hi + ' at most. When every puzzle is in, the book has about ' + estimatePages() + ' pages.';
+        'Each puzzle has room for about ' + room + ' characters, so ChatGPT is asked for ' + lv.hi + ' at most. When every puzzle is in, the book has about ' + pages + ' pages.' +
+        (pages > max ? ' That is more than the ' + max + ' pages KDP prints at this page size: put more puzzles on a page, pick a smaller text size or make fewer puzzles.' : '');
+      est.classList.toggle('warn', pages > max);
     });
     live[live.length - 1]();
     out.push(est);
@@ -147,10 +165,53 @@
     return out;
   }
 
+  /*
+   * The shares of a mixed book: three ready-made mixes, or any percentages. Typing never rebuilds
+   * the step, so the boxes keep the cursor.
+   */
+  function mixField() {
+    var p = state.p, pl = p.plan, boxes = {}, chips = [], note = h('div', { class: 'hint' });
+    function show() {
+      var m = P.mixOf(pl), n = P.levelCounts(p);
+      chips.forEach(function (c) { c.el.setAttribute('aria-pressed', String(P.LEVELS.every(function (l) { return c.mix[l.id] === m[l.id]; }))); });
+      note.textContent = 'In this book: ' + P.LEVELS.filter(function (l) { return n[l.id]; }).map(function (l) { return n[l.id] + ' ' + l.label.toLowerCase(); }).join(', ') + ' puzzles.';
+    }
+    var row = h('div', { class: 'mix-row' }, P.LEVELS.map(function (l) {
+      var i = h('input', { class: 'input', id: 'fMix-' + l.id, type: 'number', min: 0, max: 100, step: 5, value: P.mixOf(pl)[l.id] });
+      i.addEventListener('input', function () {
+        var m = P.mixOf(pl);
+        m[l.id] = U.clamp(Math.round(+i.value) || 0, 0, 100);
+        pl.mix = m;
+        changed();
+      });
+      boxes[l.id] = i;
+      return h('label', { for: 'fMix-' + l.id }, [h('span', null, l.label + ' %'), i]);
+    }));
+    var presets = h('div', { class: 'chips' }, P.MIXES.map(function (x) {
+      var bt = h('button', { type: 'button', class: 'chip-btn small', 'aria-pressed': 'false', onclick: function () {
+        pl.mix = Object.assign({}, x.mix);
+        P.LEVELS.forEach(function (l) { boxes[l.id].value = x.mix[l.id]; });
+        changed();
+      } }, x.label);
+      chips.push({ el: bt, mix: x.mix });
+      return bt;
+    }));
+    live.push(show);
+    show();
+    return h('div', { class: 'field' }, [h('div', { class: 'field-label' }, 'The mix'), presets, row, note]);
+  }
+
+  // The level of the book in a few words.
+  function levelName(p) {
+    if (p.plan.level !== 'mixed') return P.level(p.plan.level).label;
+    var l = P.levelsIn(p);
+    return l.length === 3 ? 'Mixed' : l.map(function (id, i) { var t = P.level(id).label; return i ? t.toLowerCase() : t; }).join(' + ');
+  }
+
   // A rough page count for a finished book: a stand-in puzzle in every slot, laid out for real.
   var estimate = { key: '', pages: 0 };
   function estimatePages() {
-    var b = state.p.book, pl = state.p.plan, key = JSON.stringify([b.trim, b.print, b.paper, pl.count, pl.perPage, pl.level, pl.hints, pl.log, pl.tracker, pl.code, pl.by, pl.theme, pl.audience, state.p.ai.welcome.length]);
+    var b = state.p.book, pl = state.p.plan, key = JSON.stringify([b.trim, b.print, b.paper, pl.count, pl.perPage, pl.level, pl.level === 'mixed' ? P.mixOf(pl) : 0, CX.layout.headingRoom(state.p), pl.hints, pl.log, pl.tracker, pl.code, pl.by, pl.theme, pl.audience, state.p.ai.welcome.length]);
     if (estimate.key === key) return estimate.pages;
     var p = U.clone(state.p), stand = 'Every day brings something new to learn and someone dear to thank for it, so keep your heart open and your pencil sharp for the next good idea.';
     P.puzzles(p).forEach(function (x) {
@@ -523,7 +584,8 @@
     out.push(h('p', { class: 'hint' }, 'Download the cover again whenever the page count changes: the spine width follows it.'));
     out.push(h('div', { class: 'actions' }, [
       h('button', { type: 'button', class: 'btn btn-primary', onclick: downloadCover }, 'Download cover PDF'),
-      h('button', { type: 'button', class: 'btn', onclick: function () { downloadCanva('cover'); } }, 'Cover for Canva (.pptx)'),
+      h('button', { type: 'button', class: 'btn', onclick: function () { downloadCanva('cover'); } }, 'Cover for PowerPoint or Canva (.pptx)'),
+      h('button', { type: 'button', class: 'btn', onclick: function () { downloadPng('cover'); } }, 'Cover as a picture (.png)'),
       h('button', { type: 'button', class: 'btn', onclick: function () { openStep(4); } }, 'Back to the book pages')
     ]));
     return out;
@@ -556,14 +618,23 @@
         h('li', null, 'Chat models sometimes put a famous name on a line that person never said. Use the check prompt in step 3, and look up any quote you are unsure of before you publish.'),
         h('li', null, 'Solve a few puzzles from each level before you publish: the app proves every code, but only a reader can tell whether a sentence is fun to crack.')
       ]),
-      h('h3', { class: 'sub-head' }, 'Edit in Canva'),
+      h('h3', { class: 'sub-head' }, 'Edit in PowerPoint or Canva'),
       h('div', { class: 'actions first' }, [
-        h('button', { type: 'button', class: 'btn', onclick: function () { downloadCanva('book'); } }, 'Book for Canva (.pptx)')
+        h('button', { type: 'button', class: 'btn', onclick: function () { downloadCanva('book'); } }, 'Book for PowerPoint or Canva (.pptx)')
       ]),
       h('ul', { class: 'safety' }, [
-        h('li', null, 'Canva turns an uploaded PDF into its own text boxes and often jumbles them. Upload this .pptx instead: every page comes in at the trim size with each line of text editable and the writing lines as shapes.'),
-        h('li', null, 'The book uses the fonts Source Serif 4 and Source Sans 3. If Canva says a font is missing, pick it (or a close one) in the font list.'),
-        h('li', null, 'From Canva, download as "PDF Print" for KDP. The PDF from this app stays the safest file to upload.')
+        h('li', null, 'A PowerPoint file of the same pages: one slide for each page at the trim size, with every line of text editable and the writing lines as shapes. Open it in PowerPoint, or in Canva with Create a design > Import file.'),
+        h('li', null, 'The book uses the free fonts Source Serif 4 and Source Sans 3 (fonts.google.com). Install them for the same look, or pick a close font if PowerPoint or Canva says one is missing.'),
+        h('li', null, 'Save as PDF from PowerPoint, or download "PDF Print" from Canva, for KDP. The PDF from this app stays the safest file to upload.')
+      ]),
+      h('h3', { class: 'sub-head' }, 'Pages as pictures'),
+      field('Picture quality', select('fDpi', CX.png.DPIS.map(function (d) { return { v: d.id, t: d.label }; }), state.dpi, function (v) { state.dpi = +v; }), null, 'fDpi'),
+      h('div', { class: 'actions first' }, [
+        h('button', { type: 'button', class: 'btn', onclick: function () { downloadPng('book'); } }, 'Pages as pictures (.zip of PNG)')
+      ]),
+      h('ul', { class: 'safety' }, [
+        h('li', null, 'One PNG picture for each of the ' + book.pages.length + ' pages, in one .zip file, numbered in page order. Each picture is the whole page at its real size, with the fonts of the book, ready to place on a slide or in an image editor.'),
+        h('li', null, 'A big book takes a minute or two and makes a big file. The blue button at the top shows how far it is.')
       ])
     ];
   }
@@ -571,7 +642,7 @@
   // ---------- steps ----------
   var STEPS = [
     { n: 1, title: 'The book', body: body1, chip: function (p) { return { t: p.plan.count + ' puzzles · ' + P.audience(p.plan.audience).label, ok: !!p.book.author.trim() }; } },
-    { n: 2, title: 'Puzzles and pages', body: body2, chip: function (p) { return { t: (p.plan.level === 'mixed' ? 'Mixed' : P.level(p.plan.level).label) + ' · ' + (p.plan.code === 'numbers' ? 'Numbers' : 'Letters') + ' · ' + CX.kdp.trim(p.book.trim).label, ok: true }; } },
+    { n: 2, title: 'Puzzles and pages', body: body2, chip: function (p) { return { t: levelName(p) + ' · ' + (p.plan.code === 'numbers' ? 'Numbers' : 'Letters') + ' · ' + CX.kdp.trim(p.book.trim).label, ok: true }; } },
     { n: 3, title: 'Write the puzzles', body: body3, chip: function (p) { var l = CX.prompts.list(p), d = l.filter(function (x) { return x.done; }).length; return { t: d + ' of ' + l.length + ' prompts', ok: d === l.length }; } },
     { n: 4, title: 'Check and download', body: body4, chip: function (p) { var it = CX.checklist.run(p, { pages: { length: state.printPages } }), bad = it.filter(function (x) { return !x.ok; }).length; return { t: bad ? bad + ' to fix' : 'Ready', ok: !bad }; } }
   ];
@@ -716,7 +787,28 @@
     } finally { state.busy = false; }
   }
 
-  // An editable copy of the same pages for Canva (a .pptx, which Canva imports box by box).
+  // The pages (one .zip of PNG pictures) or the cover (one PNG) at the chosen resolution.
+  async function downloadPng(kind) {
+    if (state.busy) return;
+    var p = state.p, book = CX.layout.layoutBook(p, {}), n = book.pages.length;
+    if (kind === 'cover' && n < CX.kdp.MIN_PAGES) { dom.toast('Add the puzzles first: the cover needs the final page count (at least ' + CX.kdp.MIN_PAGES + ' pages).'); return; }
+    state.busy = true;
+    try {
+      if (kind === 'cover') {
+        dom.download(await CX.png.one(CX.cover.build(p, n), state.dpi), slug() + '-cover.png', 'image/png');
+        dom.toast('Cover picture saved at ' + state.dpi + ' dpi.');
+      } else {
+        dom.toast('Making ' + n + ' pictures…');
+        progress(0);
+        dom.download(await CX.png.zip(book, { dpi: state.dpi, name: slug() }, progress), slug() + '-pages-png.zip', 'application/zip');
+        dom.toast('Saved ' + n + ' page pictures at ' + state.dpi + ' dpi in one .zip file.');
+      }
+    } catch (e) {
+      dom.toast('The pictures could not be made: ' + e.message + '.');
+    } finally { state.busy = false; progress(null); }
+  }
+
+  // An editable copy of the same pages for PowerPoint and Canva (a .pptx, which Canva imports box by box).
   async function downloadCanva(kind) {
     if (state.busy) return;
     var p = state.p, book = CX.layout.layoutBook(p, {}), PPTX = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
@@ -724,14 +816,14 @@
     state.busy = true;
     try {
       if (kind === 'cover') {
-        dom.download(await CX.pptx.buildCover(CX.cover.build(p, book.pages.length)), slug() + '-cover-canva.pptx', PPTX);
-        dom.toast('Cover saved for Canva. In Canva: Create a design > Import file.');
+        dom.download(await CX.pptx.buildCover(CX.cover.build(p, book.pages.length)), slug() + '-cover.pptx', PPTX);
+        dom.toast('Cover saved as a PowerPoint file. In Canva: Create a design > Import file.');
       } else {
-        dom.download(await CX.pptx.build(book, progress), slug() + '-interior-canva.pptx', PPTX);
-        dom.toast('Book saved for Canva: ' + book.pages.length + ' pages. In Canva: Create a design > Import file.');
+        dom.download(await CX.pptx.build(book, progress), slug() + '-interior.pptx', PPTX);
+        dom.toast('Book saved as a PowerPoint file: ' + book.pages.length + ' slides. In Canva: Create a design > Import file.');
       }
     } catch (e) {
-      dom.toast('The Canva file could not be made: ' + e.message);
+      dom.toast('The PowerPoint file could not be made: ' + e.message);
     } finally { state.busy = false; progress(null); }
   }
 

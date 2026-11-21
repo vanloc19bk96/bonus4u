@@ -3,8 +3,9 @@
  * Reader, the code rules (no letter on itself, no swaps, given letters, hints), the old "Letter E >
  * 22%" failure, prompts that ask for what fits, adding replies, the library, every trim x text size
  * x puzzles a page x code x name style against the KDP margins and minimums with no text on text,
- * page references, every cover template, and real PDFs (checked with PyMuPDF through
- * tests/verify-pdf.py when Python has it).
+ * the mix of levels, the heading on the puzzle pages, 700 puzzles, page references, every cover
+ * template, real PDFs (checked with PyMuPDF through tests/verify-pdf.py when Python has it) and the
+ * parts of the PNG export that need no browser.
  */
 'use strict';
 const fs = require('fs');
@@ -369,6 +370,122 @@ function clash(pg) {
     ok(book.pages.length <= CX.kdp.maxPages(p.book.trim, p.book.paper), book.pages.length + ' pages');
     eq(CX.puzzles.printed(p).length, 500);
     ok(Date.now() - t0 < 8000, 'took ' + (Date.now() - t0) + ' ms');
+  });
+
+  await test('mix: 30/40/30 as before by default; medium and hard only; any shares; a broken mix is repaired', () => {
+    // the default mix gives every puzzle the level it had before the mix could be changed
+    [10, 24, 33, 60, 100, 147, 500, 700].forEach((n) => {
+      const p = P.newProject();
+      p.plan.count = n;
+      P.puzzles(p).forEach((x) => { const part = x.index / n; eq(P.levelOf(p, x), part < 0.3 ? 'easy' : part < 0.7 ? 'medium' : 'hard', n + ' puzzles, puzzle ' + x.no); });
+    });
+    const p = fullProject((x) => { x.plan.mix = { easy: 0, medium: 50, hard: 50 }; }, 40);
+    eq(P.levelsIn(p), ['medium', 'hard']);
+    eq(P.levelCounts(p), { easy: 0, medium: 20, hard: 20 });
+    eq(CX.puzzles.printed(p).length, 40);
+    const book = CX.layout.layoutBook(p, {});
+    eq(book.pages.filter((pg) => pg.kind === 'level').map((pg) => pg.label), ['Thinking Cap', 'Brain Benders']);
+    const how = texts(book.pages.filter((pg) => pg.kind === 'how')[0]) + texts(book.pages[3]);
+    ok(/TWO LEVELS/.test(how) && !/Easy: /.test(how), 'How to Solve names the two levels');
+    const t = CX.prompts.text(p, CX.prompts.list(p)[0]);
+    ok(/MEDIUM: /.test(t) && /HARD: /.test(t) && !/EASY: /.test(t), 'the prompt gives the lengths of the levels in the book');
+    book.pages.forEach(checkPage);
+    const back = CX.cover.build(p, book.pages.length).items.filter((it) => it.t === 'text').map((it) => it.str).join(' ');
+    ok(/Two levels: medium and hard puzzles/.test(back) && !/Three levels/.test(back), 'the back cover names the two levels');
+    const q = P.newProject();
+    q.plan.count = 200; q.plan.mix = { easy: 10, medium: 20, hard: 70 };
+    eq(P.levelCounts(q), { easy: 20, medium: 40, hard: 140 });
+    q.plan.mix = { easy: 0, medium: 0, hard: 100 };
+    eq(P.levelsIn(q), ['hard']);
+    eq(CX.layout.layoutBook(fullProject((x) => { x.plan.mix = { easy: 0, medium: 0, hard: 100 }; }, 12), {}).pages.filter((pg) => pg.kind === 'level').length, 0, 'one level: no opening page');
+    eq(P.normalize({ app: 'cryptogram', plan: { mix: { easy: 'x', medium: -5, hard: 900 } }, puzzles: {} }).plan.mix, { easy: 0, medium: 0, hard: 100 });
+    eq(P.normalize({ app: 'cryptogram', plan: { mix: { easy: 0, medium: 0, hard: 0 } }, puzzles: {} }).plan.mix, P.MIX);
+    eq(P.normalize({ app: 'cryptogram', plan: {}, puzzles: {} }).plan.mix, P.MIX, 'a project file from before the mix');
+  });
+
+  await test('heading: on every puzzle page and no other, top or bottom, inside the margins at every size', () => {
+    const long = 'Bible Verse Cryptograms for Adults and Seniors: Volume Ten';
+    eq(long.length <= P.HEADING_MAX, true);
+    let n = 0;
+    const dropped = [];
+    CX.kdp.TRIMS.forEach((t) => ['regular', 'large', 'xl'].forEach((pr) => ['top', 'bottom'].forEach((at, k) => {
+      const head = k ? long : 'Cryptogram Quotes · Volume 2';
+      const mut = (x) => { x.book.trim = t.id; x.book.print = pr; x.plan.perPage = k ? 3 : 2; x.plan.code = k ? 'numbers' : 'letters'; };
+      const plain = fullProject(mut, 12);
+      const p = fullProject((x) => { mut(x); x.plan.heading = head; x.plan.headingAt = at; }, 12);
+      eq(CX.puzzles.printed(p).length, 12, t.id + ' ' + pr + ' ' + at + ' every puzzle prints');
+      ok(CX.layout.capacity(p, 1) <= CX.layout.capacity(plain, 1) && CX.layout.perPage(p) <= CX.layout.perPage(plain), 'a heading takes room from the puzzles');
+      const book = CX.layout.layoutBook(p, {}), shown = CX.layout.headingRoom(p) > 0;
+      // a pocket page in large print has no room for a heading: it is left off, and the checklist says so
+      eq(CX.checklist.run(p, book).some((i) => i.label === 'Heading' && !i.ok), !shown, t.id + ' ' + pr + ' ' + at + ' checklist');
+      if (!shown) { dropped.push(t.id + ' ' + pr); eq(book.pages.length, CX.layout.layoutBook(plain, {}).pages.length); }
+      book.pages.forEach((pg) => {
+        checkPage(pg);
+        const c = clash(pg);
+        ok(!c, 'heading ' + at + ' ' + t.id + ' ' + pr + ' page ' + pg.num + ' (' + pg.label + '): ' + c);
+        const own = pg.items.filter((it) => it.t === 'text' && it.font === 'serifBold' && head.indexOf(it.str) === 0 || it.t === 'text' && it.font === 'serifBold' && head.slice(-it.str.length) === it.str);
+        const said = own.map((it) => it.str).join(' ');
+        if (pg.kind === 'puzzle' && !shown) eq(said, '', 'no heading where there is no room');
+        else if (pg.kind === 'puzzle') {
+          eq(said, head, 'the heading on page ' + pg.num);
+          const first = pg.items.filter((it) => it.t === 'text' && /^PUZZLE \d+$/.test(it.str))[0];
+          own.forEach((it) => ok(at === 'top' ? it.y < first.y : it.y > first.y, 'the heading is at the ' + at));
+          if (book.S.large) own.forEach((it) => ok(it.size >= book.S.min - 0.01, 'large print heading ' + it.size));
+          n++;
+        } else ok(pg.kind === 'title' || !said, 'no heading on ' + pg.label);
+      });
+    })));
+    ok(n > 150, 'puzzle pages checked: ' + n);
+    eq(dropped, ['5x8 xl'], 'only the pocket size in large print with the number code has no room');
+    // no heading: the pages are what they were
+    const a = fullProject(null, 12), b = fullProject((x) => { x.plan.heading = '   '; }, 12);
+    eq(CX.layout.layoutBook(a, {}).pages.length, CX.layout.layoutBook(b, {}).pages.length);
+    eq(P.heading(b), '');
+    eq(P.normalize({ app: 'cryptogram', plan: { heading: 5, headingAt: 'side' }, puzzles: {} }).plan.heading, '');
+    eq(P.normalize({ app: 'cryptogram', plan: { heading: 'x'.repeat(200), headingAt: 'bottom' }, puzzles: {} }).plan.headingAt, 'bottom');
+  });
+
+  await test('700 puzzles: the most a book takes; inside the KDP page limit at 2 a page; 16 pt is large print', () => {
+    eq([P.validCount(700), P.validCount(701), P.MAX_COUNT], [700, 0, 700]);
+    const p = fullProject((x) => { x.plan.perPage = 2; x.plan.heading = 'Cryptogram Puzzles'; }, 700);
+    const t0 = Date.now(), book = CX.layout.layoutBook(p, {});
+    eq(CX.puzzles.printed(p).length, 700);
+    ok(book.pages.length <= CX.kdp.maxPages(p.book.trim, p.book.paper), book.pages.length + ' pages');
+    ok(Date.now() - t0 < 12000, 'took ' + (Date.now() - t0) + ' ms');
+    eq(CX.prompts.list(p).length, 29);
+    ok(/PUZZLE 700 /.test(texts(book.pages.filter((pg) => pg.kind === 'puzzle').pop())), 'puzzle 700 is in the book');
+    const one = fullProject((x) => { x.plan.perPage = 1; }, 700), big = CX.layout.layoutBook(one, {});
+    ok(CX.checklist.run(one, big).some((i) => i.label === 'Page count' && !i.ok), 'one a page is over the limit, and the checklist says so');
+    const q = P.newProject();
+    q.book.print = 'xl';
+    ok(P.largePrint(q) && /Large Print/.test(P.titleIdeas(q).join(' ')), 'large print in the title ideas');
+  });
+
+  await test('png: the resolution goes into the picture, and the .zip holds every file as it is', () => {
+    // a 1 x 1 PNG
+    const png = Uint8Array.from(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64'));
+    const out = CX.png.setDpi(png, 300), dv = new DataView(out.buffer);
+    eq(out.length, png.length + 21);
+    eq(Buffer.from(out.slice(37, 41)).toString('latin1'), 'pHYs');
+    eq([dv.getUint32(41), dv.getUint32(45), out[49]], [11811, 11811, 1]);
+    eq(dv.getUint32(50), CX.pptx.crc32(out.subarray(37, 50)), 'the chunk checksum');
+    eq(CX.png.setDpi(out, 150).length, out.length, 'a second time replaces the first');
+    eq(new DataView(CX.png.setDpi(out, 150).buffer).getUint32(41), 5906);
+    eq(Buffer.from(out.slice(out.length - 12, out.length - 8)).toString('hex'), '00000000', 'the end of the picture is untouched');
+    const files = [{ name: 'book-page-001.png', bytes: out }, { name: 'book-page-002.png', bytes: png }];
+    const zip = Buffer.concat(CX.png.zipParts(files).map((x) => Buffer.from(x)));
+    eq(zip.readUInt32LE(0), 0x04034b50);
+    const end = zip.length - 22;
+    eq([zip.readUInt32LE(end), zip.readUInt16LE(end + 10)], [0x06054b50, 2]);
+    const cd = zip.readUInt32LE(end + 16);
+    eq(zip.readUInt32LE(cd), 0x02014b50);
+    eq(zip.readUInt32LE(cd + 16), CX.pptx.crc32(out));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cgz-')), f = path.join(dir, 'pages.zip');
+    fs.writeFileSync(f, zip);
+    let res = '';
+    try { res = execFileSync('python', ['-c', 'import zipfile,sys; z=zipfile.ZipFile(sys.argv[1]); print(z.testzip(), len(z.namelist()), len(z.read("book-page-001.png")))', f], { encoding: 'utf8' }).trim(); }
+    catch (e) { res = 'skip'; }
+    ok(res === 'skip' || res === 'None 2 ' + out.length, 'python reads the zip: ' + res);
   });
 
   await test('fuzz: odd replies never break the book (emoji, accents, digits, empty lines, huge, tiny)', () => {

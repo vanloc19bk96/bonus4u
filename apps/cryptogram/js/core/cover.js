@@ -392,7 +392,9 @@
     });
     var n = P.bookCount(project), what = { quotes: 'famous quotes', inspire: 'inspiring quotes', funny: 'funny quotes', proverbs: 'proverbs and sayings', bible: 'Bible verses', facts: 'fun facts', jokes: 'jokes and riddles', seasons: 'holiday quotes', kids: 'fun facts and jokes' }[pl.theme];
     var items = [n + ' ' + (P.largePrint(project) ? 'large print ' : '') + 'cryptograms' + (what ? ' of ' + what : '')];
-    if (pl.level === 'mixed') items.push('Three levels, from gentle warm-ups to brain benders');
+    var lvls = P.levelsIn(project);
+    if (lvls.length === 3) items.push('Three levels, from gentle warm-ups to brain benders');
+    else if (lvls.length === 2) items.push('Two levels: ' + lvls.map(function (id) { return P.level(id).label.toLowerCase(); }).join(' and ') + ' puzzles');
     else items.push(P.level(pl.level).label + ' level from start to finish');
     items.push(pl.code === 'numbers' ? 'Number codes: every letter is a number from 1 to 26' : 'A new code for every puzzle');
     if (pl.tracker) items.push('A letter tracker under every puzzle');

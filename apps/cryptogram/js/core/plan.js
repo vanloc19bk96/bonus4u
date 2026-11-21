@@ -80,7 +80,16 @@
     { id: 'hard', label: 'Hard', stars: 3, section: 'Brain Benders', given: 0, len: [100, 150], help: 'The longest sentences, and no letters given. Just you and the code.' }
   ];
 
-  var COUNTS = [50, 100, 150, 200, 300], MIN_COUNT = 10, MAX_COUNT = 500;
+  var COUNTS = [50, 100, 150, 200, 300, 500, 700], MIN_COUNT = 10, MAX_COUNT = 700;
+
+  // A mixed book: the share of each level, in percent (they need not add up to 100).
+  var MIX = { easy: 30, medium: 40, hard: 30 };
+  var MIXES = [
+    { label: 'Easy, medium and hard', mix: { easy: 30, medium: 40, hard: 30 } },
+    { label: 'Medium and hard', mix: { easy: 0, medium: 50, hard: 50 } },
+    { label: 'Easy and medium', mix: { easy: 50, medium: 50, hard: 0 } }
+  ];
+  var HEADING_MAX = 60;
 
   // Worked examples for the How to Solve page (never in a prompt): the book uses one that is not in it.
   var EXAMPLES = [
@@ -118,13 +127,39 @@
     return out;
   }
 
-  // A puzzle's level: the book's one, or in a mixed book the first 30% easy, the last 30% hard.
+  // The shares of a mixed book as whole numbers from 0 to 100; all three when none is left.
+  function mixOf(plan) {
+    var m = plan.mix && typeof plan.mix === 'object' ? plan.mix : MIX, out = {}, sum = 0;
+    LEVELS.forEach(function (l) { var v = Math.round(+m[l.id]); out[l.id] = v > 0 ? Math.min(100, v) : 0; sum += out[l.id]; });
+    return sum ? out : Object.assign({}, MIX);
+  }
+
+  // The levels a book has, easiest first: one, or the ones of the mix that have a share.
+  function levelsIn(project) {
+    if (project.plan.level !== 'mixed') return [level(project.plan.level).id];
+    var m = mixOf(project.plan);
+    return LEVELS.map(function (l) { return l.id; }).filter(function (id) { return m[id] > 0; });
+  }
+
+  // A puzzle's level: the book's one, or in a mixed book easy first, then medium, then hard, each
+  // with its share of the puzzles (30%, 40% and 30% unless the mix says otherwise).
   function levelOf(project, pz) {
     var l = project.plan.level;
     if (l !== 'mixed') return level(l).id;
+    var m = mixOf(project.plan), sum = m.easy + m.medium + m.hard;
     var part = pz.index / Math.max(1, project.plan.count);
-    return part < 0.3 ? 'easy' : part < 0.7 ? 'medium' : 'hard';
+    return part < m.easy / sum ? 'easy' : part < (m.easy + m.medium) / sum ? 'medium' : 'hard';
   }
+
+  // How many puzzles each level has: { easy, medium, hard }.
+  function levelCounts(project) {
+    var out = { easy: 0, medium: 0, hard: 0 };
+    puzzles(project).forEach(function (x) { out[levelOf(project, x)]++; });
+    return out;
+  }
+
+  // The line printed on every puzzle page ('' for none).
+  function heading(project) { return String(project.plan.heading || '').replace(/\s+/g, ' ').trim().slice(0, HEADING_MAX); }
 
   // Letters given at the start of a puzzle of this level.
   function givenCount(project, lvl) { return level(lvl).given + (lvl === 'hard' ? 0 : audience(project.plan.audience).extraGiven); }
@@ -173,7 +208,7 @@
       app: 'cryptogram',
       seed: CX.util.randomSeed(),
       book: { title: '', subtitle: '', author: '', trim: '8.5x11', paper: 'white', print: 'large' },
-      plan: { count: 100, theme: 'quotes', customTheme: '', audience: 'adults', level: 'mixed', code: 'letters', by: 'code', perPage: 2, tracker: true, stars: true, hints: true, log: true },
+      plan: { count: 100, theme: 'quotes', customTheme: '', audience: 'adults', level: 'mixed', mix: Object.assign({}, MIX), code: 'letters', by: 'code', perPage: 2, tracker: true, stars: true, hints: true, log: true, heading: '', headingAt: 'top' },
       puzzles: {},           // puzzle id -> { text, by, v (a new code when it changes) }
       ai: { welcome: [], closing: [], blurb: '' },
       cover: { design: 'cipher', palette: '' }
@@ -195,6 +230,9 @@
     pl.count = validCount(pl.count) || 100;
     pl.perPage = Math.max(1, Math.min(4, Math.round(+pl.perPage) || 1));
     if (pl.level !== 'mixed') pl.level = level(pl.level).id;
+    pl.mix = mixOf(pl);
+    pl.heading = typeof pl.heading === 'string' ? pl.heading.slice(0, HEADING_MAX) : '';
+    pl.headingAt = pl.headingAt === 'bottom' ? 'bottom' : 'top';
     pl.audience = audience(pl.audience).id;
     pl.theme = theme(pl.theme).id;
     pl.code = code(pl.code).id;
@@ -242,7 +280,8 @@
   function isOldConfig(c) { return !!(c && c.format && c.puzzles && typeof c.puzzles.count !== 'undefined' && !c.plan); }
 
   CX.plan = {
-    THEMES: THEMES, AUDIENCES: AUDIENCES, LEVELS: LEVELS, ATTRIBUTION: ATTRIBUTION, CODES: CODES, COUNTS: COUNTS, MIN_COUNT: MIN_COUNT, MAX_COUNT: MAX_COUNT, EXAMPLES: EXAMPLES,
+    THEMES: THEMES, AUDIENCES: AUDIENCES, LEVELS: LEVELS, ATTRIBUTION: ATTRIBUTION, CODES: CODES, COUNTS: COUNTS, MIN_COUNT: MIN_COUNT, MAX_COUNT: MAX_COUNT, EXAMPLES: EXAMPLES, MIX: MIX, MIXES: MIXES, HEADING_MAX: HEADING_MAX,
+    mixOf: mixOf, levelsIn: levelsIn, levelCounts: levelCounts, heading: heading,
     largePrint: largePrint, theme: theme, audience: audience, setAudience: setAudience, level: level, attribution: attribution, code: code, validCount: validCount, byKind: byKind,
     puzzles: puzzles, levelOf: levelOf, givenCount: givenCount, titleIdeas: titleIdeas, subtitleIdea: subtitleIdea, bookTitle: bookTitle, bookSubtitle: bookSubtitle, bookCount: bookCount, countText: countText,
     newProject: newProject, normalize: normalize, puzzle: puzzle, emptyPuzzle: emptyPuzzle, fromOldConfig: fromOldConfig, isOldConfig: isOldConfig
