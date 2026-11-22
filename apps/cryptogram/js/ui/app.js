@@ -133,15 +133,16 @@
     head.addEventListener('input', function () { pl.heading = head.value; changed(); });
     var headNote = h('div', { class: 'hint' });
     live.push(function () {
-      var none = P.heading(p) && !CX.layout.headingRoom(p);
+      var parts = P.sections(p).length > 0, none = (P.heading(p) || parts) && !CX.layout.headingRoom(p);
       headNote.textContent = none ? 'There is no room for a heading at this page size and text size, so the puzzle pages print without it. Choose a bigger page or a smaller text size, or turn off the letter tracker.'
-        : 'A line of your own on each puzzle page: the book title, the volume, a theme. Leave it empty for no heading.';
+        : 'A line of your own on each puzzle page: the book title, the volume, a theme. Leave it empty for no heading.' + (parts ? ' In a book with sections it is printed small above the section title.' : '');
       headNote.classList.toggle('warn-text', !!none);
     });
     live[live.length - 1]();
     out.push(h('div', { class: 'field' }, [h('label', { for: 'fHeading' }, 'Heading on every puzzle page'), head, headNote,
       h('div', { class: 'chips ideas' }, h('button', { type: 'button', class: 'chip-btn small', onclick: function () { pl.heading = P.bookTitle(p, true).slice(0, P.HEADING_MAX); head.value = pl.heading; changed(); } }, 'Use the book title'))]));
     out.push(field('Where the heading goes', select('fHeadAt', [{ v: 'top', t: 'At the top of the page' }, { v: 'bottom', t: 'At the bottom of the page, above the page number' }], pl.headingAt, function (v) { pl.headingAt = v; changed(); }), null, 'fHeadAt'));
+    out.push(sectionsField());
     out.push(h('h3', { class: 'sub-head' }, 'Page size and print'));
     out.push(field('Page size', select('fTrim', CX.kdp.TRIMS.map(function (t) { return { v: t.id, t: t.label + ' – ' + (t.id === '8.5x11' ? 'Big letters, room for several puzzles' : t.hint) }; }), b.trim, function (v) { b.trim = v; changed(true); }), null, 'fTrim'));
     out.push(field('Puzzles on a page', select('fPer', [1, 2, 3, 4].map(function (n) { return { v: n, t: n === 1 ? 'One puzzle a page: the most room to write' : n + ' puzzles a page' }; }), pl.perPage, function (v) { pl.perPage = +v; changed(true); }),
@@ -166,6 +167,32 @@
   }
 
   /*
+   * A book in sections: one title a line, each with its share of the puzzles. Typing never rebuilds
+   * the step; the note under the box says which puzzles each section got.
+   */
+  function sectionsField() {
+    var p = state.p, pl = p.plan, note = h('div', { class: 'hint' });
+    var box = h('textarea', { class: 'textarea short', id: 'fSections', rows: 4, maxlength: P.SECTIONS_MAX, placeholder: 'Food\nChores\nPhones', spellcheck: 'true' });
+    box.value = pl.sections;
+    box.addEventListener('input', function () { pl.sections = box.value; changed(); });
+    function range(s) { return s.count === 1 ? 'puzzle ' + (s.from + 1) : 'puzzles ' + (s.from + 1) + '–' + (s.from + s.count); }
+    live.push(function () {
+      var sp = P.sectionPlan(p), l = sp.list, size = ' To give a section its own number of puzzles, add it after a bar: Phones | 12.';
+      var t = 'For a book in parts (chapters, subjects): type one title on each line. Every section starts on a new page with its title on its puzzle pages, and ChatGPT writes its puzzles about that subject. The puzzles are shared evenly.' + size + ' Leave the box empty for a book without sections.';
+      if (l.length) {
+        t = U.plural(l.length, 'section') + ': ' + l.slice(0, 4).map(function (s) { return s.title + ' (' + range(s) + ')'; }).join(', ') + (l.length > 4 ? ' and ' + (l.length - 4) + ' more' : '') + '.';
+        if (sp.rest) t += ' The sections ask for ' + (pl.count - sp.rest) + ' of the ' + pl.count + ' puzzles, so the last one takes the other ' + sp.rest + '.';
+        if (sp.empty.length) t += ' The book has too few puzzles for every section: ' + sp.empty.slice(0, 3).join(', ') + (sp.empty.length > 3 ? ' and ' + (sp.empty.length - 3) + ' more' : '') + (sp.empty.length > 1 ? ' have' : ' has') + ' no puzzle. Make more puzzles in step 1 or take a section out.';
+        else t += size;
+      }
+      note.textContent = t;
+      note.classList.toggle('warn-text', sp.empty.length > 0);
+    });
+    live[live.length - 1]();
+    return h('div', { class: 'field' }, [h('label', { for: 'fSections' }, 'Sections with their own heading'), box, note]);
+  }
+
+  /*
    * The shares of a mixed book: three ready-made mixes, or any percentages. Typing never rebuilds
    * the step, so the boxes keep the cursor.
    */
@@ -174,7 +201,8 @@
     function show() {
       var m = P.mixOf(pl), n = P.levelCounts(p);
       chips.forEach(function (c) { c.el.setAttribute('aria-pressed', String(P.LEVELS.every(function (l) { return c.mix[l.id] === m[l.id]; }))); });
-      note.textContent = 'In this book: ' + P.LEVELS.filter(function (l) { return n[l.id]; }).map(function (l) { return n[l.id] + ' ' + l.label.toLowerCase(); }).join(', ') + ' puzzles.';
+      note.textContent = 'In this book: ' + P.LEVELS.filter(function (l) { return n[l.id]; }).map(function (l) { return n[l.id] + ' ' + l.label.toLowerCase(); }).join(', ') + ' puzzles.' +
+        (P.sections(p).length ? ' With sections, every section runs from its easier puzzles to its harder ones, and the levels have no opening pages.' : '');
     }
     var row = h('div', { class: 'mix-row' }, P.LEVELS.map(function (l) {
       var i = h('input', { class: 'input', id: 'fMix-' + l.id, type: 'number', min: 0, max: 100, step: 5, value: P.mixOf(pl)[l.id] });
@@ -211,7 +239,7 @@
   // A rough page count for a finished book: a stand-in puzzle in every slot, laid out for real.
   var estimate = { key: '', pages: 0 };
   function estimatePages() {
-    var b = state.p.book, pl = state.p.plan, key = JSON.stringify([b.trim, b.print, b.paper, pl.count, pl.perPage, pl.level, pl.level === 'mixed' ? P.mixOf(pl) : 0, CX.layout.headingRoom(state.p), pl.hints, pl.log, pl.tracker, pl.code, pl.by, pl.theme, pl.audience, state.p.ai.welcome.length]);
+    var b = state.p.book, pl = state.p.plan, key = JSON.stringify([b.trim, b.print, b.paper, pl.count, pl.perPage, pl.level, pl.level === 'mixed' ? P.mixOf(pl) : 0, CX.layout.headingRoom(state.p), P.sections(state.p).map(function (s) { return s.count; }).join(','), pl.hints, pl.log, pl.tracker, pl.code, pl.by, pl.theme, pl.audience, state.p.ai.welcome.length]);
     if (estimate.key === key) return estimate.pages;
     var p = U.clone(state.p), stand = 'Every day brings something new to learn and someone dear to thank for it, so keep your heart open and your pencil sharp for the next good idea.';
     P.puzzles(p).forEach(function (x) {
@@ -299,9 +327,10 @@
     out.push(h('p', { class: 'hint' }, 'Claude, Gemini or Copilot work the same way. The app reads the puzzle numbers in any reply, so a reply can go in while another prompt is selected. A plain list of quotes, one a line (quote | name), works too.'));
 
     out.push(h('h3', { class: 'sub-head' }, 'Your puzzles'));
-    var rows = h('ul', { class: 'ch-list days-list' });
+    var rows = h('ul', { class: 'ch-list days-list' }), part = null;
     P.puzzles(p).forEach(function (x) {
-      var st = CX.puzzles.status(p, x), d = p.puzzles[x.id];
+      var st = CX.puzzles.status(p, x), d = p.puzzles[x.id], sec = P.sectionOf(p, x);
+      if (sec && sec !== part) { part = sec; rows.appendChild(h('li', { class: 'sec' }, sec.title)); }
       var cls = st.state === 'ok' ? (st.pz.warnings.length ? 'full look' : 'full') : st.state === 'weak' ? 'weak' : 'empty';
       rows.appendChild(h('li', { class: cls }, [
         h('span', { class: 'no' }, String(x.no)),
@@ -464,7 +493,7 @@
     }
     body.appendChild(h('div', { class: 'words-head' }, [dom.copyButton('Copy check prompt', function () { return CX.prompts.checkText(p, [x]); }, 'mini')]));
     draw();
-    openModal(pzName(x) + ' · ' + P.level(P.levelOf(p, x)).label, body, [
+    openModal(pzName(x) + ' · ' + P.level(P.levelOf(p, x)).label + (P.sectionOf(p, x) ? ' · ' + P.sectionOf(p, x).title : ''), body, [
       { label: 'Clear this puzzle', danger: true, run: function () { d.text = ''; d.by = ''; text.value = ''; if (body.querySelector('#pz-by')) body.querySelector('#pz-by').value = ''; draw(); changed(); } },
       { label: 'New code', run: function () { d.v = (d.v || 0) + 1; draw(); changed(); } },
       { label: 'Close', primary: true }

@@ -89,7 +89,7 @@
     { label: 'Medium and hard', mix: { easy: 0, medium: 50, hard: 50 } },
     { label: 'Easy and medium', mix: { easy: 50, medium: 50, hard: 0 } }
   ];
-  var HEADING_MAX = 60;
+  var HEADING_MAX = 60, SECTIONS_MAX = 8000;
 
   // Worked examples for the How to Solve page (never in a prompt): the book uses one that is not in it.
   var EXAMPLES = [
@@ -141,13 +141,54 @@
     return LEVELS.map(function (l) { return l.id; }).filter(function (id) { return m[id] > 0; });
   }
 
-  // A puzzle's level: the book's one, or in a mixed book easy first, then medium, then hard, each
-  // with its share of the puzzles (30%, 40% and 30% unless the mix says otherwise).
+  function cleanTitle(s) { return String(s || '').replace(/\s+/g, ' ').trim().slice(0, HEADING_MAX); }
+
+  /*
+   * The sections of the book: parts with a title of their own, printed on their puzzle pages.
+   * plan.sections is what the buyer typed, one title a line, with its number of puzzles after a
+   * bar when it has its own size ("Phones | 12"). Sections without a number share the puzzles that
+   * are left evenly; the last section takes any that remain. Returns
+   * { list: [{ i, title, from (first puzzle index), count }], empty: [titles that got no puzzle],
+   *   rest (puzzles the last section took over), of: [section of each puzzle index] }.
+   */
+  var secMemo = { key: null, v: null };
+  function sectionPlan(project) {
+    var text = typeof project.plan.sections === 'string' ? project.plan.sections : '', total = project.plan.count, key = total + '|' + text;
+    if (secMemo.key === key) return secMemo.v;
+    var rows = [];
+    text.slice(0, SECTIONS_MAX).split(/\r?\n/).forEach(function (line) {
+      var m = /^(.*?)\s*\|\s*(\d{1,4})\s*$/.exec(line), title = cleanTitle(m ? m[1] : line);
+      if (title && rows.length < 200) rows.push({ title: title, want: m ? Math.max(1, +m[2]) : 0 });
+    });
+    var asked = rows.reduce(function (s, r) { return s + r.want; }, 0), open = rows.filter(function (r) { return !r.want; }).length;
+    var free = Math.max(0, total - asked), share = open ? Math.floor(free / open) : 0, extra = open ? free % open : 0;
+    var out = { list: [], empty: [], rest: 0, of: [] }, at = 0;
+    rows.forEach(function (r) {
+      var n = r.want || share + (extra-- > 0 ? 1 : 0);
+      n = Math.min(n, total - at);
+      if (n <= 0) { out.empty.push(r.title); return; }
+      out.list.push({ i: out.list.length, title: r.title, from: at, count: n });
+      at += n;
+    });
+    if (out.list.length && at < total) { out.rest = total - at; out.list[out.list.length - 1].count += out.rest; }
+    out.list.forEach(function (s) { for (var k = 0; k < s.count; k++) out.of.push(s); });
+    secMemo = { key: key, v: out };
+    return out;
+  }
+  function sections(project) { return sectionPlan(project).list; }
+  // The section a puzzle is in (null in a book without sections).
+  function sectionOf(project, pz) { return sectionPlan(project).of[pz.index] || null; }
+
+  /*
+   * A puzzle's level: the book's one, or in a mixed book easy first, then medium, then hard, each
+   * with its share of the puzzles (30%, 40% and 30% unless the mix says otherwise). In a book with
+   * sections every section runs from its easier puzzles to its harder ones.
+   */
   function levelOf(project, pz) {
     var l = project.plan.level;
     if (l !== 'mixed') return level(l).id;
-    var m = mixOf(project.plan), sum = m.easy + m.medium + m.hard;
-    var part = pz.index / Math.max(1, project.plan.count);
+    var m = mixOf(project.plan), sum = m.easy + m.medium + m.hard, sec = sectionOf(project, pz);
+    var part = sec ? (pz.index - sec.from) / sec.count : pz.index / Math.max(1, project.plan.count);
     return part < m.easy / sum ? 'easy' : part < (m.easy + m.medium) / sum ? 'medium' : 'hard';
   }
 
@@ -159,7 +200,7 @@
   }
 
   // The line printed on every puzzle page ('' for none).
-  function heading(project) { return String(project.plan.heading || '').replace(/\s+/g, ' ').trim().slice(0, HEADING_MAX); }
+  function heading(project) { return cleanTitle(project.plan.heading); }
 
   // Letters given at the start of a puzzle of this level.
   function givenCount(project, lvl) { return level(lvl).given + (lvl === 'hard' ? 0 : audience(project.plan.audience).extraGiven); }
@@ -208,7 +249,7 @@
       app: 'cryptogram',
       seed: CX.util.randomSeed(),
       book: { title: '', subtitle: '', author: '', trim: '8.5x11', paper: 'white', print: 'large' },
-      plan: { count: 100, theme: 'quotes', customTheme: '', audience: 'adults', level: 'mixed', mix: Object.assign({}, MIX), code: 'letters', by: 'code', perPage: 2, tracker: true, stars: true, hints: true, log: true, heading: '', headingAt: 'top' },
+      plan: { count: 100, theme: 'quotes', customTheme: '', audience: 'adults', level: 'mixed', mix: Object.assign({}, MIX), code: 'letters', by: 'code', perPage: 2, tracker: true, stars: true, hints: true, log: true, heading: '', headingAt: 'top', sections: '' },
       puzzles: {},           // puzzle id -> { text, by, v (a new code when it changes) }
       ai: { welcome: [], closing: [], blurb: '' },
       cover: { design: 'cipher', palette: '' }
@@ -233,6 +274,7 @@
     pl.mix = mixOf(pl);
     pl.heading = typeof pl.heading === 'string' ? pl.heading.slice(0, HEADING_MAX) : '';
     pl.headingAt = pl.headingAt === 'bottom' ? 'bottom' : 'top';
+    pl.sections = typeof pl.sections === 'string' ? pl.sections.slice(0, SECTIONS_MAX) : '';
     pl.audience = audience(pl.audience).id;
     pl.theme = theme(pl.theme).id;
     pl.code = code(pl.code).id;
@@ -281,7 +323,7 @@
 
   CX.plan = {
     THEMES: THEMES, AUDIENCES: AUDIENCES, LEVELS: LEVELS, ATTRIBUTION: ATTRIBUTION, CODES: CODES, COUNTS: COUNTS, MIN_COUNT: MIN_COUNT, MAX_COUNT: MAX_COUNT, EXAMPLES: EXAMPLES, MIX: MIX, MIXES: MIXES, HEADING_MAX: HEADING_MAX,
-    mixOf: mixOf, levelsIn: levelsIn, levelCounts: levelCounts, heading: heading,
+    mixOf: mixOf, levelsIn: levelsIn, levelCounts: levelCounts, heading: heading, SECTIONS_MAX: SECTIONS_MAX, sectionPlan: sectionPlan, sections: sections, sectionOf: sectionOf,
     largePrint: largePrint, theme: theme, audience: audience, setAudience: setAudience, level: level, attribution: attribution, code: code, validCount: validCount, byKind: byKind,
     puzzles: puzzles, levelOf: levelOf, givenCount: givenCount, titleIdeas: titleIdeas, subtitleIdea: subtitleIdea, bookTitle: bookTitle, bookSubtitle: bookSubtitle, bookCount: bookCount, countText: countText,
     newProject: newProject, normalize: normalize, puzzle: puzzle, emptyPuzzle: emptyPuzzle, fromOldConfig: fromOldConfig, isOldConfig: isOldConfig

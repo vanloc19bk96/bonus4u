@@ -28,6 +28,15 @@ for every letter, and a letter tracker with a box for each code. At the back com
    under it (a clue), or only in the solutions. Bible references are always shown plainly.
    Heading on every puzzle page: a line of your own (the book title, the volume, a theme) at
    the top of each puzzle page, or at the bottom above the page number. Leave it empty for none.
+   Sections with their own heading: for a book in parts (chapters, subjects such as Food,
+   Chores, Phones), type one title on each line. Every section starts on a new page, its title
+   is printed on its puzzle pages, and the prompts in step 3 ask ChatGPT for sentences about
+   that subject. The puzzles are shared evenly between the sections; to give a section its own
+   number of puzzles, add it after a bar: "Phones | 12". The note under the box shows which
+   puzzles each section got. With a heading as well, the heading is printed small above the
+   section title. In a mixed book every section runs from its easier puzzles to its harder
+   ones, and the levels have no opening pages. Set up the sections before you write the
+   puzzles: a sentence stays with its puzzle number when the sections change.
    LARGE PRINT: under "Text size and large print" choose Large print (16 pt text).
    Text size: Regular (12 pt), Easy to read (14 pt) or Large print (16 pt).
    Only 16 pt is called "Large Print" on the title page and cover: that is the size KDP counts

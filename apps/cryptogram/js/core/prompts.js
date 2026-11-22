@@ -124,6 +124,19 @@
     return out.slice(-MAX_USED);
   }
 
+  // The sections these puzzles are in, as lines for a prompt: "Puzzles 1 to 10: Food".
+  function sectionLines(project, pzs) {
+    var out = [], cur = null;
+    pzs.forEach(function (x) {
+      var s = P.sectionOf(project, x);
+      if (!s) return;
+      if (cur && cur.s === s && x.no === cur.to + 1) { cur.to = x.no; return; }
+      cur = { s: s, from: x.no, to: x.no };
+      out.push(cur);
+    });
+    return out.map(function (c) { return (c.from === c.to ? 'Puzzle ' + c.from : 'Puzzles ' + c.from + ' to ' + c.to) + ': ' + c.s.title; });
+  }
+
   function block(project, pz, d) {
     var L = [label(project, pz), 'TEXT: ' + (d.text || '(the sentence)')];
     if (topic(project).by) L.push('BY: ' + (d.by || ''));
@@ -140,7 +153,11 @@
       if (st.state === 'weak') L.push('- PUZZLE ' + x.no + ' did not work last time (' + st.pz.problems[0] + '): write a new one.');
     });
     L.push('');
-    L.push('Subjects to draw on, using as many different ones as you can: ' + topic(project).topics + '.');
+    var parts = sectionLines(project, todo);
+    if (parts.length) {
+      L.push('The book is in sections, each with a subject of its own. Write every puzzle about the subject of its section, a different side of it each time:');
+      parts.forEach(function (t) { L.push('- ' + t); });
+    } else L.push('Subjects to draw on, using as many different ones as you can: ' + topic(project).topics + '.');
     L.push('');
     Array.prototype.push.apply(L, rules(project));
     var u = used(project, todo);
@@ -201,6 +218,8 @@
     else if (t.by === 'ref') L.push('- Is the verse word for word from the King James Version, with the right reference?');
     else L.push('- Is every fact true and every joke clean and easy to follow?');
     L.push('- Is it inside the length for its level? Shorten or replace a sentence that is too long.');
+    var parts = sectionLines(project, have);
+    if (parts.length) L.push('- Is it about the subject of its section? ' + parts.join('; ') + '.');
     L.push('- Keep every good puzzle exactly as it is.');
     L.push('');
     L.push('Reply with one code block in the same format as below: every puzzle in full.');

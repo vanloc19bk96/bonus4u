@@ -19,7 +19,9 @@
  * page gets a page of its own. Book order: title, copyright, how to solve with a worked example,
  * the puzzle log, the puzzles (a divider before each level in a mixed book), hints, solutions and
  * the closing note. Page numbers that point forward come from the previous pass. A book can have a
- * heading: one line (two when it is long) at the top or the bottom of every puzzle page.
+ * heading: one line (two when it is long) at the top or the bottom of every puzzle page. A book in
+ * sections prints each section's title there instead (the book's heading small above it), starts
+ * every section on a new page, and has no level dividers: each section runs from easy to hard.
  */
 (function (root) {
   'use strict';
@@ -412,25 +414,39 @@
   }
 
   // ---------- the heading of the puzzle pages ----------
+  // str in lines of w at the biggest size from max down to min that needs no more than maxLines;
+  // one word wider than the page goes smaller still, so nothing leaves the margins.
+  function headLines(str, font, w, max, min, maxLines) {
+    var t = fit(str, font, w, max, min, maxLines), size = t.size;
+    var widest = Math.max.apply(null, t.lines.map(function (l) { return wid(l, size, font); }));
+    if (widest > w) size = Math.max(KDP.MIN_FONT_PT, Math.floor(size * w / widest * 10) / 10);
+    return { lines: t.lines, size: size };
+  }
+
   /*
-   * The heading in width w: { lines, size, h (the room it takes, with the rule and the gap to the
-   * puzzles) }, or null when the book has none. It is the text size of the book, smaller only when
+   * The heading of a puzzle page in width w, or null when the page has none. sec: the section of
+   * the page (null in a book without sections). The main line is the section title, or the book's
+   * heading; a book with both prints its heading small above the section title.
+   * { over (the small lines above), os, lines, size, oh, h (the room it all takes, with the rule
+   * and the gap to the puzzles) }. The main line is the text size of the book, smaller only when
    * it would need more than two lines.
    */
-  function headingPlan(project, S, w) {
-    var str = txt(P.heading(project), 'serifBold');
-    if (!str.trim()) return null;
-    var max = S.large ? S.b : Math.max(10, S.b * 0.9), min = S.large ? S.min : 8.5;
-    var t = fit(str, 'serifBold', w, max, min, 2), size = t.size;
-    // one word wider than the page: smaller still, so nothing leaves the margins
-    var widest = Math.max.apply(null, t.lines.map(function (l) { return wid(l, size, 'serifBold'); }));
-    if (widest > w) size = Math.max(KDP.MIN_FONT_PT, Math.floor(size * w / widest * 10) / 10);
-    return { lines: t.lines, size: size, h: t.lines.length * size * 1.25 + S.b * 1.3 };
+  function headingPlan(project, S, w, sec) {
+    var book = txt(P.heading(project), 'serifBold').trim(), title = sec ? txt(sec.title, 'serifBold').trim() : '';
+    var main = title || book, above = title && book ? txt(P.heading(project), 'sans').trim() : '';
+    if (!main) return null;
+    var t = headLines(main, 'serifBold', w, S.large ? S.b : Math.max(10, S.b * 0.9), S.large ? S.min : 8.5, 2);
+    var os = S.large ? S.b : Math.max(9, S.b * 0.75), o = above ? headLines(above, 'sans', w, os, os, 2) : { lines: [], size: os };
+    var oh = o.lines.length * o.size * 1.3;
+    return { over: o.lines, os: o.size, lines: t.lines, size: t.size, oh: oh, h: oh + t.lines.length * t.size * 1.25 + S.b * 1.3 };
   }
   function drawHeading(pg, hp, bottom) {
     var lead = hp.size * 1.25, n = hp.lines.length;
-    var y = bottom ? pg.cb - hp.size * 0.25 - (n - 1) * lead : pg.y0 + hp.size * 0.8;
-    var rule = bottom ? pg.cb - n * lead - hp.size * 0.15 : y + (n - 1) * lead + hp.size * 0.5;
+    // top: the block hangs from the top margin; bottom: it stands on the line above the page number
+    var top = bottom ? pg.cb - n * lead - hp.oh - hp.size * 0.15 : pg.y0;
+    var y = bottom ? pg.cb - hp.size * 0.25 - (n - 1) * lead : pg.y0 + hp.oh + hp.size * 0.8;
+    var rule = bottom ? top : y + (n - 1) * lead + hp.size * 0.5;
+    hp.over.forEach(function (l, i) { pg.text(l, pg.cx, top + hp.os * (bottom ? 1 : 0.8) + i * hp.os * 1.3, hp.os, 'sans', { align: 'center', ink: 0.8 }); });
     hp.lines.forEach(function (l, i) { pg.text(l, pg.cx, y + i * lead, hp.size, 'serifBold', { align: 'center' }); });
     pg.line(pg.x0, rule, pg.x1, rule, 0.75, 0.55);
   }
@@ -451,18 +467,26 @@
 
   /*
    * Width and height of the puzzle area on the narrowest page this book can have. head: the room
-   * the heading takes. A heading that would leave a short sentence no room (a pocket page in large
-   * print with the tracker) is left off: head is 0, and the checklist says so.
+   * the heading takes (the tallest one, in a book whose sections have titles of different
+   * lengths). Headings that would leave a short sentence no room (a pocket page in large print
+   * with the tracker) are left off: head is 0, and the checklist says so.
    */
   var areaMemo = { key: '', a: null };
   function area(project) {
-    var b = project.book, pl = project.plan, key = [b.trim, b.paper, b.print, P.heading(project), pl.tracker, pl.code, CX.puzzles.byMode(project)].join('|');
+    var b = project.book, pl = project.plan, secs = P.sections(project);
+    var key = [b.trim, b.paper, b.print, P.heading(project), pl.tracker, pl.code, CX.puzzles.byMode(project), secs.map(function (s) { return s.title; }).join('\n')].join('|');
     if (areaMemo.key === key) return areaMemo.a;
     var t = KDP.trim(b.trim), m = KDP.margins(KDP.maxPages(t.id, b.paper)), S = printSizes(project);
     var mm = KDP.margins(24), foot = S.folio + 12, w = (t.w - m.inside - m.outside) * PT, h = (t.h - mm.top - mm.bottom) * PT - foot;
-    var hp = headingPlan(project, S, w);
-    if (hp && !roomFor(project, S, w, h - hp.h)) hp = null;
-    areaMemo = { key: key, a: { w: w, h: h - (hp ? hp.h : 0), S: S, head: hp ? Math.round(hp.h * 10) / 10 : 0 } };
+    var head = 0, seen = {};
+    (secs.length ? secs : [null]).forEach(function (s) {
+      if (s && seen[s.title]) return;
+      if (s) seen[s.title] = 1;
+      var hp = headingPlan(project, S, w, s);
+      if (hp && hp.h > head) head = hp.h;
+    });
+    if (head && !roomFor(project, S, w, h - head)) head = 0;
+    areaMemo = { key: key, a: { w: w, h: h - head, S: S, head: Math.round(head * 10) / 10 } };
     return areaMemo.a;
   }
 
@@ -508,17 +532,22 @@
 
   // ---------- the puzzle pages ----------
   function puzzlePages(L, list) {
-    var p = L.project, S = L.S, per = perPage(p), mixed = P.levelsIn(p).length > 1, prev = '', i = 0;
+    var p = L.project, S = L.S, per = perPage(p), parts = P.sections(p).length > 0, prev = '', i = 0;
+    // a book in sections has no level dividers: every section runs from easy to hard
+    var mixed = !parts && P.levelsIn(p).length > 1;
     var bottom = p.plan.headingAt === 'bottom', headed = headingRoom(p) > 0;
+    L.out.parts = [];
     while (i < list.length) {
-      var lvl = P.levelOf(p, list[i].pz);
+      var lvl = P.levelOf(p, list[i].pz), sec = P.sectionOf(p, list[i].pz);
       if (mixed && lvl !== prev) levelPage(L, lvl);
       prev = lvl;
-      var pg = L.page('puzzle', 'Puzzle ' + list[i].pz.no), w = pg.w, hp = headed ? headingPlan(p, S, w) : null;
+      var pg = L.page('puzzle', 'Puzzle ' + list[i].pz.no), w = pg.w, hp = headed ? headingPlan(p, S, w, sec) : null;
+      if (sec && !L.out.parts.some(function (x) { return x.i === sec.i; })) L.out.parts.push({ i: sec.i, page: pg.num, title: sec.title });
       var avail = pg.cb - pg.y0 - (hp ? hp.h : 0), slot = (avail - (per - 1) * gapH(S)) / per;
       if (hp) drawHeading(pg, hp, bottom);
       var group = [], used = 0;
-      while (group.length < per && i < list.length && P.levelOf(p, list[i].pz) === lvl) {
+      // a page holds puzzles of one section only (of one level, in a book without sections)
+      while (group.length < per && i < list.length && (parts ? P.sectionOf(p, list[i].pz) === sec : P.levelOf(p, list[i].pz) === lvl)) {
         var x = list[i], ok = x.res && x.res.ok, bp = ok ? planIn(p, S, x.res, w, avail, false) : null;
         if (ok && !bp) {
           // too long for a page at the text size: a page of its own, the letters a little smaller
@@ -778,6 +807,8 @@
     if (pl.log) { sections.push({ page: L.pages.length + 1, title: 'Puzzle Log' }); logPage(L, all); }
     sections.push({ page: L.pages.length + 1, title: 'The Puzzles' });
     puzzlePages(L, list);
+    out.parts.forEach(function (x) { sections.push({ page: x.page, title: x.title, sub: true }); });
+    delete out.parts; // not a forward page reference, so it must not keep the layout from settling
     var ready = list.some(function (x) { return x.res && x.res.ok; });
     if (pl.hints && ready) {
       out.hints = L.pages.length + 1;

@@ -56,8 +56,12 @@
       });
     }
     // a heading the pages have no room for is left off, so say so
-    if (P.heading(project) && !CX.layout.headingRoom(project)) {
-      out.push({ ok: false, step: 2, label: 'Heading', detail: 'There is no room for the heading at this page size and text size, so the puzzle pages print without it. Choose a bigger page or a smaller text size, turn off the letter tracker, or clear the heading.' });
+    var sp = P.sectionPlan(project);
+    if ((P.heading(project) || sp.list.length) && !CX.layout.headingRoom(project)) {
+      out.push({ ok: false, step: 2, label: 'Heading', detail: 'There is no room for the heading' + (sp.list.length ? ' and the section titles' : '') + ' at this page size and text size, so the puzzle pages print without ' + (sp.list.length ? 'them' : 'it') + '. Choose a bigger page or a smaller text size, turn off the letter tracker, or clear the heading.' });
+    }
+    if (sp.empty.length) {
+      out.push({ ok: false, step: 2, label: 'Sections', detail: 'The book has ' + project.plan.count + ' puzzles, too few for every section: ' + short(sp.empty.map(function (t) { return '“' + t + '”'; })) + ' ' + (sp.empty.length > 1 ? 'have' : 'has') + ' no puzzle. Make more puzzles in step 1, give the sections fewer puzzles, or take a section out.' });
     }
     var n = book.pages.length, max = CX.kdp.maxPages(b.trim, b.paper);
     out.push({

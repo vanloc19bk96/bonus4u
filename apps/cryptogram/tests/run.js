@@ -3,7 +3,7 @@
  * Reader, the code rules (no letter on itself, no swaps, given letters, hints), the old "Letter E >
  * 22%" failure, prompts that ask for what fits, adding replies, the library, every trim x text size
  * x puzzles a page x code x name style against the KDP margins and minimums with no text on text,
- * the mix of levels, the heading on the puzzle pages, 700 puzzles, page references, every cover
+ * the mix of levels, the heading on the puzzle pages, sections, 700 puzzles, page references, every cover
  * template, real PDFs (checked with PyMuPDF through tests/verify-pdf.py when Python has it) and the
  * parts of the PNG export that need no browser.
  */
@@ -443,6 +443,93 @@ function clash(pg) {
     eq(P.heading(b), '');
     eq(P.normalize({ app: 'cryptogram', plan: { heading: 5, headingAt: 'side' }, puzzles: {} }).plan.heading, '');
     eq(P.normalize({ app: 'cryptogram', plan: { heading: 'x'.repeat(200), headingAt: 'bottom' }, puzzles: {} }).plan.headingAt, 'bottom');
+  });
+
+  await test('sections: the puzzles are shared out, by number or evenly; too many sections and odd lines are handled', () => {
+    const p = P.newProject();
+    p.plan.count = 100;
+    eq(P.sections(p), [], 'no sections unless asked for');
+    eq(P.sectionOf(p, { index: 5 }), null);
+    p.plan.sections = 'Food\n\n  Chores  \nPhones';
+    eq(P.sections(p).map((s) => [s.title, s.from, s.count]), [['Food', 0, 34], ['Chores', 34, 33], ['Phones', 67, 33]]);
+    eq([P.sectionOf(p, { index: 33 }).title, P.sectionOf(p, { index: 34 }).title, P.sectionOf(p, { index: 99 }).title], ['Food', 'Chores', 'Phones']);
+    p.plan.sections = 'Food | 12\nChores\nPhones|20\nMoney';
+    eq(P.sections(p).map((s) => [s.title, s.from, s.count]), [['Food', 0, 12], ['Chores', 12, 34], ['Phones', 46, 20], ['Money', 66, 34]]);
+    p.plan.sections = 'Food | 10\nChores | 10';
+    const rest = P.sectionPlan(p);
+    eq([rest.list.map((s) => s.count), rest.rest, rest.empty], [[10, 90], 80, []], 'the last section takes what no section asked for');
+    p.plan.sections = 'Food | 60\nChores | 60\nPhones | 5\nMoney';
+    const over = P.sectionPlan(p);
+    eq([over.list.map((s) => [s.title, s.count]), over.empty], [[['Food', 60], ['Chores', 40]], ['Phones', 'Money']]);
+    eq(over.of.length, 100, 'every puzzle has a section');
+    p.plan.count = 10;
+    p.plan.sections = CX.util.range(1, 30).map((n) => 'Part ' + n).join('\n');
+    eq([P.sections(p).length, P.sectionPlan(p).empty.length], [10, 20], 'more sections than puzzles');
+    ok(CX.checklist.run(p, CX.layout.layoutBook(p, {})).some((i) => i.label === 'Sections' && !i.ok), 'the checklist says which sections are empty');
+    p.plan.sections = 'A title that is much too long ' + 'x'.repeat(200) + ' | 3';
+    eq([P.sections(p)[0].title.length, P.sections(p)[0].count], [P.HEADING_MAX, 10]);
+    eq(P.normalize({ app: 'cryptogram', plan: { sections: 7 }, puzzles: {} }).plan.sections, '');
+    eq(P.normalize({ app: 'cryptogram', plan: { sections: 'A\nB' }, puzzles: {} }).plan.sections, 'A\nB');
+  });
+
+  await test('sections: each section starts a page with its own title, the levels run inside it, the prompts name the subjects', () => {
+    const text = 'Food\nChores and Pocket Money | 7\nPhones (and screens)';
+    const mut = (x) => { x.plan.sections = text; x.plan.mix = { easy: 0, medium: 50, hard: 50 }; x.plan.perPage = 2; };
+    const p = fullProject(mut, 30);
+    eq(P.sections(p).map((s) => [s.from + 1, s.count]), [[1, 12], [13, 7], [20, 11]]);
+    // every section: its first half medium, its second half hard
+    eq(P.puzzles(p).map((x) => P.levelOf(p, x)[0]).join(''), 'mmmmmmhhhhhh' + 'mmmmhhh' + 'mmmmmmhhhhh');
+    eq(CX.puzzles.printed(p).length, 30);
+    const book = CX.layout.layoutBook(p, {});
+    eq(book.pages.filter((pg) => pg.kind === 'level').length, 0, 'no level dividers in a book with sections');
+    const titles = P.sections(p).map((s) => s.title);
+    book.pages.filter((pg) => pg.kind === 'puzzle').forEach((pg) => {
+      const nos = pg.items.filter((it) => it.t === 'text' && /^PUZZLE \d+$/.test(it.str)).map((it) => +it.str.slice(7));
+      const own = [...new Set(nos.map((n) => P.sectionOf(p, { index: n - 1 }).title))];
+      eq(own.length, 1, 'page ' + pg.num + ' holds one section');
+      const bold = pg.items.filter((it) => it.t === 'text' && it.font === 'serifBold').map((it) => it.str).join(' ');
+      eq(bold, own[0], 'the title on page ' + pg.num);
+      titles.filter((t) => t !== own[0]).forEach((t) => ok(texts(pg).indexOf(t) < 0, 'no other title on page ' + pg.num));
+    });
+    eq(book.sections.filter((s) => s.sub).map((s) => s.title), titles, 'the sections are in the jump list');
+    book.pages.forEach((pg) => { checkPage(pg); const c = clash(pg); ok(!c, 'page ' + pg.num + ': ' + c); });
+    // the prompt tells the AI the subject of each puzzle; the reply still lands by its number
+    const q = P.newProject();
+    mut(q); q.plan.count = 30;
+    const l = CX.prompts.list(q), t = CX.prompts.text(q, l[0]);
+    ok(/- Puzzles 1 to 12: Food\n- Puzzles 13 to 19: Chores and Pocket Money\n- Puzzles 20 to 25: Phones \(and screens\)/.test(t), 'sections in the first prompt');
+    ok(!/Subjects to draw on/.test(t), 'the sections replace the general subjects');
+    ok(/- Puzzles 26 to 30: Phones \(and screens\)/.test(CX.prompts.text(q, l[1])) && !/Food/.test(CX.prompts.text(q, l[1])), 'only its own sections in the second prompt');
+    ok(/PUZZLE 13 \(medium\)/.test(t) && /PUZZLE 12 \(hard\)/.test(t), 'labels with the level inside the section');
+    ok(/about the subject of its section\? Puzzles 1 to 12: Food;/.test(CX.prompts.checkText(p, l[0].puzzles)), 'the check prompt asks about the subject');
+    // a puzzle left out of the PDF: the rest keep their sections and are numbered without a gap
+    delete p.puzzles.p12;
+    const b2 = CX.layout.layoutBook(p, {}), pg2 = b2.pages.filter((pg) => /PUZZLE 12 /.test(texts(pg) + ' '))[0];
+    ok(pg2 && texts(pg2).indexOf('Chores and Pocket Money') >= 0, 'the first puzzle of the second section is now number 12');
+  });
+
+  await test('sections: with a heading too, top or bottom, at every page and text size; one a page and four a page', () => {
+    const text = 'Food and Family Dinners\nChores, Pocket Money and Learning to Help Around the House\nPhones';
+    let n = 0;
+    CX.kdp.TRIMS.forEach((t) => ['regular', 'large', 'xl'].forEach((pr) => ['top', 'bottom'].forEach((at, k) => {
+      const p = fullProject((x) => { x.book.trim = t.id; x.book.print = pr; x.plan.perPage = k ? 4 : 1; x.plan.sections = text; x.plan.heading = k ? 'Cryptograms for Parents of Teens' : ''; x.plan.headingAt = at; x.plan.code = k ? 'letters' : 'numbers'; x.plan.tracker = !k; }, 12);
+      eq(CX.puzzles.printed(p).length, 12, t.id + ' ' + pr + ' ' + at + ' every puzzle prints');
+      const book = CX.layout.layoutBook(p, {}), shown = CX.layout.headingRoom(p) > 0;
+      book.pages.forEach((pg) => {
+        checkPage(pg);
+        const c = clash(pg);
+        ok(!c, 'sections ' + at + ' ' + t.id + ' ' + pr + ' page ' + pg.num + ' (' + pg.label + '): ' + c);
+        if (pg.kind !== 'puzzle') return;
+        const sec = P.sectionOf(p, { index: +/PUZZLE (\d+)/.exec(texts(pg))[1] - 1 });
+        const bold = pg.items.filter((it) => it.t === 'text' && it.font === 'serifBold').map((it) => it.str).join(' ');
+        eq(bold, shown ? sec.title : '', t.id + ' ' + pr + ' the section title on page ' + pg.num);
+        if (shown && k) ok(pg.items.some((it) => it.t === 'text' && it.font === 'sans' && it.str === 'Cryptograms for Parents of Teens'), 'the heading above the title');
+        if (book.S.large && !pg.meta.small) pg.items.forEach((it) => { if (it.t === 'text') ok(it.size >= book.S.min - 0.01, 'large print: ' + it.str + ' ' + it.size); });
+        n++;
+      });
+      eq(CX.checklist.run(p, book).some((i) => i.label === 'Heading' && !i.ok), !shown, t.id + ' ' + pr + ' checklist');
+    })));
+    ok(n > 200, 'puzzle pages checked: ' + n);
   });
 
   await test('700 puzzles: the most a book takes; inside the KDP page limit at 2 a page; 16 pt is large print', () => {
