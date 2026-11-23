@@ -37,6 +37,25 @@ It never prints the AI key. Or use a different key: `GRSAI_API_KEY=sk-... node e
 To keep an existing code: `--code NZB-XXXX-XXXX-XXXX-XXXX` instead of `--new-code`.
 Never write the activate code into a file in this repo: the repo is public.
 
+### One key for all four NAZO BOX bonuses
+
+The same `NZB-...` code also opens Murder Archive Studio, Nostalgia Trivia Book Maker and
+Occupation Trivia Book Maker: their `js/ui/gate.js` (identical in the three apps) holds a salted
+hash of it. After a new code, add its hash there:
+
+```bash
+node gate-hash.js NZB-XXXX-XXXX-XXXX-XXXX   # prints the hash for HASHES in the three gate.js
+NZB_KEY=NZB-XXXX-XXXX-XXXX-XXXX node ../../murder-archive-studio/tests/gate.js   # checks it (run in each app)
+```
+
+On bonus4u the four apps share one site, so a code typed in any of them opens the others:
+the book makers read the code the Launchpad remembers (`nzb_launchpad_activate_code_v1`) and
+hand a code typed in them to the Launchpad.
+
+When the code changes, `encrypt-key.mjs` replaces only `ENCRYPTED_API_KEY`. Move the old block
+into `EARLIER_API_KEYS` first (as done on 23 Nov 2026) so codes buyers already have still open
+the Launchpad's AI. Old codes do not open the three book makers.
+
 ## Publish the keyword data (required before shipping)
 
 The page loads `https://raw.githubusercontent.com/vanloc19bk96/affiliate-bonuses-data/master/nazo-box-keyword.json`

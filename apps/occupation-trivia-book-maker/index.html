@@ -10,7 +10,7 @@
 </head>
 <body>
 <noscript><p class="noscript">This app needs JavaScript. Please allow scripts for this page and reload it.</p></noscript>
-<div class="app" id="app" aria-busy="true">
+<div class="app" id="app" aria-busy="true" hidden>
   <aside class="sidebar" aria-label="Book steps">
     <header class="brand">
       <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><rect x="6" y="13" width="28" height="20" rx="3" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15 13v-3a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v3" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M6 21h28" stroke="currentColor" stroke-width="2"/><text x="20" y="30.5" text-anchor="middle" font-size="10" font-family="Arial, sans-serif" font-weight="700" fill="currentColor">?</text></svg>
@@ -70,6 +70,18 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="loading" id="loading">Clocking in&hellip;</div>
 
+<div class="gate" id="gate" hidden>
+  <form class="gate-card" id="gateForm" novalidate>
+    <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><rect x="6" y="13" width="28" height="20" rx="3" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15 13v-3a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v3" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M6 21h28" stroke="currentColor" stroke-width="2"/><text x="20" y="30.5" text-anchor="middle" font-size="10" font-family="Arial, sans-serif" font-weight="700" fill="currentColor">?</text></svg>
+    <h1>Occupation Trivia Book Maker</h1>
+    <p class="lead">Paste the activate key from your NAZO BOX bonus delivery. You only need to do this once on each computer.</p>
+    <label class="field-label" for="gateKey">Activate key</label>
+    <input class="input" id="gateKey" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="NZB-XXXX-XXXX-XXXX-XXXX" aria-describedby="gateError">
+    <p class="gate-error" id="gateError" role="alert"></p>
+    <button type="submit" class="btn btn-primary block" id="gateSubmit">Open the app</button>
+  </form>
+</div>
+
 <script src="js/vendor/jspdf.umd.min.js"></script>
 <script src="js/fonts.js"></script>
 <script src="js/core/util.js"></script>
@@ -86,6 +98,7 @@
 <script src="js/core/checklist.js"></script>
 <script src="js/render/svg.js"></script>
 <script src="js/render/pdf.js"></script>
+<script src="js/ui/gate.js"></script>
 <script src="js/ui/dom.js"></script>
 <script src="js/ui/preview.js"></script>
 <script src="js/ui/app.js"></script>

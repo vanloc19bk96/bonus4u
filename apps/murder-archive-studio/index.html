@@ -8,7 +8,7 @@
 </head>
 <body>
 <noscript><p class="noscript">This app needs JavaScript. Please allow scripts for this page and reload it.</p></noscript>
-<div class="app" id="app" aria-busy="true">
+<div class="app" id="app" aria-busy="true" hidden>
   <aside class="sidebar" aria-label="Book steps">
     <header class="brand">
       <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><path d="M5 11h30v6a3 3 0 0 0 0 6v6H5v-6a3 3 0 0 0 0-6z" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/><path d="M14 11v18" stroke="currentColor" stroke-width="2" stroke-dasharray="2.4 2.2"/><circle cx="25" cy="19" r="3.6" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M27.6 21.6l3 3" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
@@ -75,6 +75,18 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="loading" id="loading">Opening the archive&hellip;</div>
 
+<div class="gate" id="gate" hidden>
+  <form class="gate-card" id="gateForm" novalidate>
+    <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><path d="M5 11h30v6a3 3 0 0 0 0 6v6H5v-6a3 3 0 0 0 0-6z" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/><path d="M14 11v18" stroke="currentColor" stroke-width="2" stroke-dasharray="2.4 2.2"/><circle cx="25" cy="19" r="3.6" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M27.6 21.6l3 3" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <h1>Murder Archive Studio</h1>
+    <p class="lead">Paste the activate key from your NAZO BOX bonus delivery. You only need to do this once on each computer.</p>
+    <label class="field-label" for="gateKey">Activate key</label>
+    <input class="input" id="gateKey" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="NZB-XXXX-XXXX-XXXX-XXXX" aria-describedby="gateError">
+    <p class="gate-error" id="gateError" role="alert"></p>
+    <button type="submit" class="btn btn-primary block" id="gateSubmit">Open the app</button>
+  </form>
+</div>
+
 <script src="js/vendor/jspdf.umd.min.js"></script>
 <script src="js/fonts.js"></script>
 <script src="js/core/util.js"></script>
@@ -102,6 +114,7 @@
 <script src="js/render/pdf.js"></script>
 <script src="js/data/sample.js"></script>
 <script src="js/data/sample-manifest.js"></script>
+<script src="js/ui/gate.js"></script>
 <script src="js/ui/dom.js"></script>
 <script src="js/ui/preview.js"></script>
 <script src="js/ui/sidebar.js"></script>

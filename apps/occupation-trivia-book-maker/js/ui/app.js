@@ -709,5 +709,7 @@
   function boot() { dom.registerFonts().then(start, start); }
 
   CX.app = { state: state, openStep: openStep, setMode: setMode, addReply: addReply, renderPreview: renderPreview };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+  // the activate key screen first; it opens the app once a NAZO BOX bonus key is typed (js/ui/gate.js)
+  function go() { root.NZBGate.open(boot); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
 })(window);

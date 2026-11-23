@@ -4,6 +4,11 @@ Murder Archive Studio
 Double-click index.html. It opens in your web browser (Chrome, Edge, Firefox or Safari)
 and works without the internet. Nothing to install.
 
+The first time it opens, paste the activate key from your NAZO BOX bonus delivery
+(NZB-XXXX-XXXX-XXXX-XXXX) and click "Open the app". It is remembered on that computer, so you
+only type it once. The same key opens all four NAZO BOX bonuses: Murder Archive Studio,
+Nostalgia Trivia Book Maker, Occupation Trivia Book Maker and the NAZO BOX Listing Launchpad.
+
 Make "Thousands of suspects. A few clues. One killer." puzzle books for Amazon KDP:
 the reader crosses out records one clue at a time until only the killer is left.
 

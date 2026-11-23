@@ -723,10 +723,20 @@ details.explain li { margin-bottom: 4px; }
   // Only a correct activate code decrypts it. Lock it with encrypt-key.mjs.
   const ENCRYPTED_API_KEY = {
     iter: 250000,
-    salt: 'izKXH+wHDjtS/I5D1KsL/g==',
-    iv:   'VJB4zNdPaUU2XS75',
-    ct:   'aweYybdwQIyHRX0f9kzgnyjr8Qo/G8NnFkfL9uj/3RV01FSnqVsOQpRJT5WizFwbp40G',
+    salt: 'a8PRGtfQCcC6CdoeRBlQ+A==',
+    iv:   '71WL6eVRm/soZSEq',
+    ct:   'SdjXKtiOaDAEPC8j1BxD44F/ixzjYxr+j67otvYF9P4z2flkWJLTD4vTPzpF4uX1pVsQ',
   };
+  // Earlier locks, kept so the activate codes buyers already have still open the AI.
+  // encrypt-key.mjs only replaces ENCRYPTED_API_KEY above; it never touches this list.
+  const EARLIER_API_KEYS = [
+    {
+      iter: 250000,
+      salt: 'izKXH+wHDjtS/I5D1KsL/g==',
+      iv:   'VJB4zNdPaUU2XS75',
+      ct:   'aweYybdwQIyHRX0f9kzgnyjr8Qo/G8NnFkfL9uj/3RV01FSnqVsOQpRJT5WizFwbp40G',
+    },
+  ];
   const STATE_KEY     = 'nzb_launchpad_state_v1';
   const GRSAI_API_URL = 'https://grsaiapi.com/v1/chat/completions';
   const GRSAI_MODEL   = 'gpt-6.1-sol';
@@ -2158,14 +2168,17 @@ Return strict JSON only, no preamble: {"html": "<p>...</p>", "back_headline": ".
     code = normalizeCode(code);
     if (!code || !(window.crypto && crypto.subtle)) return '';
     const bytes = (b64) => Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0));
-    try {
-      const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(code), 'PBKDF2', false, ['deriveKey']);
-      const aesKey = await crypto.subtle.deriveKey(
-        { name: 'PBKDF2', salt: bytes(ENCRYPTED_API_KEY.salt), iterations: ENCRYPTED_API_KEY.iter, hash: 'SHA-256' },
-        base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
-      const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: bytes(ENCRYPTED_API_KEY.iv) }, aesKey, bytes(ENCRYPTED_API_KEY.ct));
-      return new TextDecoder().decode(plain);
-    } catch (err) { return ''; }   // wrong code: AES-GCM authentication fails
+    for (const lock of [ENCRYPTED_API_KEY].concat(EARLIER_API_KEYS)) {
+      try {
+        const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(code), 'PBKDF2', false, ['deriveKey']);
+        const aesKey = await crypto.subtle.deriveKey(
+          { name: 'PBKDF2', salt: bytes(lock.salt), iterations: lock.iter, hash: 'SHA-256' },
+          base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+        const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: bytes(lock.iv) }, aesKey, bytes(lock.ct));
+        return new TextDecoder().decode(plain);
+      } catch (err) { /* wrong code for this lock: AES-GCM authentication fails, try the next */ }
+    }
+    return '';
   }
 
   async function saveKey() {
