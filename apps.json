@@ -169,6 +169,11 @@
       "description": "Build Amazon listings for Shigai puzzle books."
     },
     {
+      "slug": "slitherlink-puzzle-prints",
+      "title": "Slitherlink Puzzle Prints",
+      "description": "Slitherlink (loop the loop) puzzle books from 5×5 to 25×25, four levels, solving tips and solutions, ready for KDP."
+    },
+    {
       "slug": "word-fill-in-prints",
       "title": "Word Fill-In Prints",
       "description": "Word fill-in puzzle books, with word lists from any AI chat."

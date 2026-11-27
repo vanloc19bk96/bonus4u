@@ -1,0 +1,33 @@
+SLITHERLINK PUZZLE PRINTS
+=========================
+
+Double-click index.html. It opens in your web browser (Chrome, Edge, Firefox or Safari)
+and works without the internet. Nothing to install.
+
+1. Pick a Quick start preset (or set the grid size, number of puzzles and difficulty).
+2. Click Create puzzles and wait for the green "Ready for KDP" status.
+3. Click Download PDF and upload it to KDP as the paperback manuscript (no bleed, black & white).
+
+What is in the book
+- Title, copyright and contents pages.
+- A How to Play page with an example puzzle and its solution.
+- A Solving Tips page: 8 patterns with pictures (0s, 3s in corners, two 3s side by side, ...).
+- The puzzles, each level (and each grid size of a mixed book) starting on a new page.
+- Solutions with the loop drawn as one thick line and the inside shaded.
+- A thank-you page.
+
+Grid sizes: 5 x 5 up to 25 x 25, or "Mixed" sizes that grow from small to large grids inside
+each level. Levels: Easy, Medium, Hard and Expert (5 x 5 has Easy and Medium, 7 x 7 has no Expert).
+
+Every puzzle has exactly one solution: the app solves each one step by step with logic only,
+and grids up to 10 x 10 are also checked by a second, brute-force solver.
+
+Big grids take longer: a 25 x 25 Expert puzzle can take about 20 seconds, so a 100-puzzle
+giant book needs a few minutes. You can keep working on the other settings meanwhile.
+
+Tips
+- Under Page you can turn on light guide lines between the dots, and choose whether the
+  solutions show the numbers (turning them off fits more solutions on a page).
+- The same Seed (under Advanced) always gives the same puzzles. Click New puzzles for a new set.
+
+If you have any questions, feel free to let me know.
